@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iris · Anleitung</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Montserrat, system-ui, sans-serif; background: #f5f5f5; color: #1f2937; font-size: 15px; }
+
+    .layout { display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      background: #232323;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 40px 0 32px;
+    }
+    .sidebar-logo {
+      padding: 0 28px 32px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+    .sidebar-logo img {
+      width: 110px;
+      filter: brightness(0) invert(1);
+      display: block;
+      margin-bottom: 8px;
+    }
+    .sidebar-logo .iris-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(255,255,255,.45);
+      letter-spacing: .3em;
+      text-transform: uppercase;
+    }
+    .sidebar-title {
+      padding: 24px 28px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(255,255,255,.35);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+    .nav-link {
+      display: block;
+      padding: 11px 28px;
+      color: rgba(255,255,255,.7);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      border-left: 3px solid transparent;
+      transition: color .15s, border-color .15s, background .15s;
+    }
+    .nav-link:hover { color: #fff; background: rgba(255,255,255,.05); }
+    .nav-link.active { color: #2C8CD1; border-left-color: #2C8CD1; background: rgba(44,140,209,.08); }
+    .nav-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #2C8CD1;
+      color: white;
+      font-size: 11px;
+      font-weight: 900;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    /* Main content */
+    .content { flex: 1; padding: 48px 52px; max-width: 760px; }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 900;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+    .page-sub {
+      font-size: 15px;
+      color: #6b7280;
+      margin-bottom: 48px;
+    }
+
+    .section {
+      margin-bottom: 52px;
+      scroll-margin-top: 32px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    .section-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #2C8CD1;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+    .section-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #111827;
+    }
+
+    .step {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2C8CD1;
+      flex-shrink: 0;
+      margin-top: 7px;
+    }
+    .step-text { font-size: 15px; line-height: 1.6; color: #374151; }
+    .step-text strong { color: #111827; font-weight: 700; }
+
+    .tip {
+      background: #eff6fc;
+      border-left: 4px solid #2C8CD1;
+      border-radius: 0 10px 10px 0;
+      padding: 14px 18px;
+      margin: 18px 0;
+      font-size: 14px;
+      color: #1A5F8A;
+      line-height: 1.6;
+    }
+    .tip strong { font-weight: 700; }
+
+    .warn {
+      background: #fefce8;
+      border-left: 4px solid #facc15;
+      border-radius: 0 10px 10px 0;
+      padding: 14px 18px;
+      margin: 18px 0;
+      font-size: 14px;
+      color: #a16207;
+      line-height: 1.6;
+    }
+
+    .kbd {
+      display: inline-block;
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 1px 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      font-family: inherit;
+    }
+
+    @media (max-width: 700px) {
+      .sidebar { display: none; }
+      .content { padding: 28px 20px; }
+      .page-title { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <img src="logoinline.png" alt="Prague Eyewear" onerror="this.style.display='none'">
+      <div class="iris-label">Iris</div>
+    </div>
+    <div class="sidebar-title">Anleitung</div>
+    <a href="#anmeldung" class="nav-link active">
+      <span class="nav-num">1</span>Anmeldung
+    </a>
+    <a href="#kunden" class="nav-link">
+      <span class="nav-num">2</span>Kunden
+    </a>
+    <a href="#besuch" class="nav-link">
+      <span class="nav-num">3</span>Besuch erfassen
+    </a>
+    <a href="#uebernachtung" class="nav-link">
+      <span class="nav-num">4</span>Übernachtung
+    </a>
+    <a href="#abschluss" class="nav-link">
+      <span class="nav-num">5</span>Tagesabschluss
+    </a>
+  </nav>
+
+  <!-- Content -->
+  <main class="content">
+    <div class="page-title">Iris · Benutzerhandbuch</div>
+    <div class="page-sub">Schritt-für-Schritt-Anleitung für Außendienstmitarbeiter</div>
+
+    <!-- 1. Anmeldung -->
+    <div class="section" id="anmeldung">
+      <div class="section-header">
+        <div class="section-num">1</div>
+        <div class="section-title">Anmeldung</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Öffne die App im Browser oder auf dem Startbildschirm deines Telefons (<strong>Iris · Prague Eyewear</strong>).</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Gib deine <strong>E-Mail-Adresse</strong> ein (z.&nbsp;B. <em>heeren@prague-eyewear.de</em>).</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Gib dein <strong>Passwort</strong> ein und tippe auf <kbd class="kbd">Anmelden →</kbd>.</div>
+      </div>
+      <div class="tip">
+        <strong>Tipp:</strong> Bei falschen Zugangsdaten erscheint eine rote Fehlermeldung. Überprüfe E-Mail und Passwort und versuche es erneut.
+      </div>
+    </div>
+
+    <!-- 2. Kunden -->
+    <div class="section" id="kunden">
+      <div class="section-header">
+        <div class="section-num">2</div>
+        <div class="section-title">Kunden</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Nach der Anmeldung siehst du den <strong>Startbildschirm</strong> mit deiner Kundenliste und den heutigen Besuchen.</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Um einen Kunden zu suchen, tippe auf <kbd class="kbd">+ Neuer Besuch</kbd> — ein Suchfeld öffnet sich.</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Gib den <strong>Namen</strong> oder die <strong>Stadt</strong> des Kunden ein. Die Liste filtert sich automatisch.</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Tippe auf den Kunden in der Liste, um die Besuchserfassung zu starten.</div>
+      </div>
+    </div>
+
+    <!-- 3. Besuch erfassen -->
+    <div class="section" id="besuch">
+      <div class="section-header">
+        <div class="section-num">3</div>
+        <div class="section-title">Besuch erfassen</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Nach Auswahl des Kunden startet die App automatisch die <strong>GPS-Überprüfung</strong>. Bestätige den Standortzugriff, wenn das Gerät danach fragt.</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Wähle das <strong>Besuchsergebnis</strong> aus (z.&nbsp;B. Bestellung, Kein Interesse, Termin vereinbart …).</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Schreibe optional eine <strong>Notiz</strong> zum Besuch in das Textfeld.</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Tippe auf <kbd class="kbd">Besuch speichern</kbd>, um den Besuch zu bestätigen.</div>
+      </div>
+      <div class="warn">
+        <strong>Wichtig:</strong> GPS muss aktiviert sein. Wenn der Standort zu weit vom Kunden entfernt ist, wird eine Warnung angezeigt — der Besuch kann trotzdem gespeichert werden.
+      </div>
+    </div>
+
+    <!-- 4. Übernachtung -->
+    <div class="section" id="uebernachtung">
+      <div class="section-header">
+        <div class="section-num">4</div>
+        <div class="section-title">Übernachtung</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Auf dem Startbildschirm findest du die Frage <strong>„Wo übernachtest du?"</strong>.</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Wähle eine der drei Optionen:</div>
+      </div>
+      <div style="margin: 8px 0 16px 24px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display:flex;align-items:center;gap:10px;background:white;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 16px;">
+          <span style="font-size:20px;">🏠</span>
+          <div>
+            <div style="font-weight:700;color:#111827;">Zu Hause</div>
+            <div style="font-size:13px;color:#6b7280;">Du schläfst heute zu Hause</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:white;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 16px;">
+          <span style="font-size:20px;">🏨</span>
+          <div>
+            <div style="font-weight:700;color:#111827;">Hotel</div>
+            <div style="font-size:13px;color:#6b7280;">Du übernachtest im Hotel</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:white;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 16px;">
+          <span style="font-size:20px;">📍</span>
+          <div>
+            <div style="font-weight:700;color:#111827;">Sonstiges</div>
+            <div style="font-size:13px;color:#6b7280;">Andere Unterkunft</div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Die Angabe wird automatisch gespeichert und ist für die Abrechnung relevant.</div>
+      </div>
+    </div>
+
+    <!-- 5. Tagesabschluss -->
+    <div class="section" id="abschluss">
+      <div class="section-header">
+        <div class="section-num">5</div>
+        <div class="section-title">Tagesabschluss</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Am Ende des Arbeitstages stelle sicher, dass alle Besuche erfasst und gespeichert sind.</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Im linken Menü (Sidebar) findest du den <strong>Tagesstatus</strong> — wähle aus, was du heute gemacht hast (z.&nbsp;B. <em>Kundentour</em>, <em>Homeoffice</em>, <em>Messe</em> …).</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Bei Abwesenheit (Urlaub, Krankheit …) wähle den entsprechenden Status im Bereich <strong>„Abwesenheit"</strong>.</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Vergiss nicht, die <strong>Übernachtungsoption</strong> für diesen Tag einzutragen.</div>
+      </div>
+      <div class="tip">
+        <strong>Tipp:</strong> Alle Einträge werden lokal gespeichert und sind sofort in der Übersicht des Managers sichtbar. Du kannst Besuche auch nachträglich bearbeiten oder löschen.
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Highlight active nav link on scroll
+  const sections = document.querySelectorAll('.section');
+  const navLinks = document.querySelectorAll('.nav-link');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector('.nav-link[href="#' + entry.target.id + '"]');
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.4 });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
