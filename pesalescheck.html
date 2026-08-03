@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Iris" />
+  <meta name="theme-color" content="#232323" />
+  <link rel="apple-touch-icon" id="pwa-icon" />
+  <link rel="manifest" id="pwa-manifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <title>Iris · Prague Eyewear</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; font-family: Montserrat, system-ui, sans-serif; background: #232323; font-size: 16px; }
+    #root { width: 100%; min-height: 100vh; }
+
+    /* Shared */
+    .btn-primary { background: #2C8CD1; color: white; border: none; cursor: pointer; border-radius: 14px; font-weight: 900; font-size: 18px; padding: 20px 0; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; transition: opacity .15s, transform .1s; font-family: inherit; }
+    .btn-primary:hover { opacity: .92; }
+    .btn-primary:active { transform: scale(.98); }
+    .btn-primary:disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; transform: none; }
+    .card { background: white; border-radius: 14px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 1px solid #f0f0f0; }
+    .result-btn { width: 100%; display: flex; align-items: center; gap: 12px; padding: 15px 16px; border-radius: 13px; border: 2px solid #e5e7eb; background: white; cursor: pointer; text-align: left; transition: border-color .15s, background .15s; font-family: inherit; }
+    .result-btn:hover { border-color: #BFDFEF; }
+    .result-btn.active { border-color: #2C8CD1; background: #EFF6FC; }
+    .result-lbl { font-size: 16px; font-weight: 600; color: #374151; }
+    .result-sub { font-size: 13px; color: #9ca3af; margin-top: 2px; }
+    .result-btn.active .result-lbl { color: #1A5F8A; }
+    .result-check { margin-left: auto; color: #2C8CD1; font-size: 22px; font-weight: 900; flex-shrink: 0; }
+    .stat-box { background: white; border-radius: 14px; padding: 20px 14px; box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 1px solid #f0f0f0; text-align: center; }
+    .stat-num { font-size: 34px; font-weight: 900; }
+    .stat-lbl { font-size: 14px; color: #9ca3af; margin-top: 4px; line-height: 1.3; }
+    .section-label { font-size: 12px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+    .group-label { font-size: 13px; font-weight: 800; color: #374151; letter-spacing: .02em; padding: 7px 12px; background: #e8e7e6; border-radius: 8px; margin-bottom: 10px; margin-top: 8px; display: block; }
+    .gps-box { border-radius: 12px; padding: 14px; border: 2px solid; }
+    .gps-box.ok   { background: #f0fdf4; border-color: #4ade80; }
+    .gps-box.warn { background: #fefce8; border-color: #facc15; }
+    .gps-box.err  { background: #fef2f2; border-color: #f87171; }
+    .gps-box.load { background: #f9fafb; border-color: #e5e7eb; }
+    .gps-text { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .gps-box.ok   .gps-text { color: #15803d; }
+    .gps-box.warn .gps-text { color: #a16207; }
+    .gps-box.err  .gps-text { color: #b91c1c; }
+    .gps-box.load .gps-text { color: #6b7280; }
+    .badge { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; border: 1px solid; display: inline-block; }
+    .badge-ok   { background: #f0fdf4; color: #15803d; border-color: #86efac; }
+    .badge-warn { background: #fefce8; color: #a16207; border-color: #fde047; }
+    .badge-err  { background: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
+    .cust-row { width: 100%; display: flex; align-items: center; gap: 14px; padding: 15px 16px; border-radius: 14px; background: white; border: 1.5px solid #f0f0f0; box-shadow: 0 1px 3px rgba(0,0,0,.05); cursor: pointer; text-align: left; transition: border-color .15s; font-family: inherit; }
+    .cust-row:hover { border-color: #BFDFEF; }
+    input, textarea { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 11px; padding: 14px 18px; font-size: 16px; outline: none; font-family: inherit; background: white; }
+    input:focus, textarea:focus { border-color: #2C8CD1; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+
+    /* LOGIN */
+    .login-root { min-height: 100vh; display: flex; background: white; }
+    .login-left { width: 420px; flex-shrink: 0; background: #232323; display: flex; flex-direction: column; padding: 48px 44px; position: relative; overflow: hidden; }
+    .login-left::before { content: ""; position: absolute; top: -120px; right: -120px; width: 400px; height: 400px; border-radius: 50%; background: rgba(255,255,255,.07); }
+    .login-left::after  { content: ""; position: absolute; bottom: -80px; left: -80px; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,.05); }
+    .login-right { flex: 1; display: flex; align-items: center; justify-content: center; padding: 48px 40px; background: #fafafa; }
+    .login-form-box { width: 100%; max-width: 380px; }
+
+    /* APP LAYOUT — same structure as login */
+    .app-root { display: flex; min-height: 100vh; }
+    .sidebar { width: 420px; flex-shrink: 0; background: #232323; display: flex; flex-direction: column; padding: 48px 44px; position: relative; overflow: hidden; }
+    .sidebar::before { content: ""; position: absolute; top: -120px; right: -120px; width: 400px; height: 400px; border-radius: 50%; background: rgba(255,255,255,.07); }
+    .sidebar::after  { content: ""; position: absolute; bottom: -80px; left: -80px; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,.05); }
+    .sidebar-content { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; }
+    .main-panel { flex: 1; background: #fafafa; display: flex; flex-direction: column; overflow: auto; }
+    .panel-header { background: white; border-bottom: 1px solid #e5e7eb; padding: 22px 32px; display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+    .panel-header-title { font-size: 22px; font-weight: 900; color: #111827; }
+    .panel-header-sub { font-size: 14px; color: #9ca3af; margin-top: 3px; }
+    .panel-body { flex: 1; padding: 40px 40px; overflow: auto; display: flex; flex-direction: column; align-items: center; }
+    .panel-body > * { width: 100%; }
+    .back-btn { font-size: 32px; font-weight: 700; color: #374151; background: none; border: none; cursor: pointer; padding: 0; line-height: 1; }
+
+    @media (max-width: 900px) {
+      .login-root { flex-direction: column; }
+      .login-left { width: 100%; padding: 36px 24px 32px; }
+      .login-right { padding: 32px 24px; background: white; }
+      .app-root { flex-direction: column; }
+      .sidebar { width: 100%; padding: 24px 24px 20px; }
+      .sidebar-content { flex-direction: row; align-items: center; gap: 20px; width: 100%; flex-wrap: wrap; }
+      .panel-body { padding: 20px; }
+    }
+    @media (max-width: 768px) {
+      .mobile-logo { width: 130px !important; }
+      .mobile-iris { font-size: 10px !important; margin-bottom: 10px !important; }
+      .app-sidebar-logo { display: none !important; }
+      .app-sidebar-iris { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const OG = "#2C8CD1";
+const TODAY = new Date().toISOString().split("T")[0];
+
+const DAY_STATUS_GROUPS = [
+  { group: "Was machst du heute?", items: [
+    { value:"aussendienst", label:"Kundentour",          icon:"🚗", note:null },
+    { value:"homeoffice",   label:"Homeoffice",          icon:"🏠", note:null },
+    { value:"buro",         label:"Büro",                icon:"🏢", note:null },
+    { value:"messe",        label:"Messe / Ausstellung", icon:"🎪", note:null },
+    { value:"schulung",     label:"Schulung",            icon:"📚", note:null },
+    { value:"inventur",     label:"Inventur",            icon:"📋", note:null },
+    { value:"sonstige",     label:"Sonstige Arbeit",     icon:"💼", note:null },
+  ]},
+  { group: "Abwesenheit", items: [
+    { value:"urlaub",       label:"Urlaub",              icon:"🏖", note:null },
+    { value:"krankheit",    label:"Krankheit",           icon:"🤒", note:null },
+    { value:"feiertag",     label:"Feiertag",            icon:"🎉", note:null },
+    { value:"fza",          label:"Freizeitausgleich",   icon:"⏱", note:null },
+    { value:"sonderurlaub", label:"Sonderurlaub",        icon:"📅", note:null },
+    { value:"unbezahlt",    label:"Unbez. Abwesenheit",  icon:"❌", note:null },
+  ]},
+];
+
+const LOCATION_TYPES = [
+  { value:"domov", label:"Von zu Hause", icon:"🏠" },
+  { value:"hotel", label:"Hotel",        icon:"🏨" },
+  { value:"jine",  label:"Sonstiges",    icon:"📍" },
+];
+const OVERNIGHT_TYPES = [
+  { value:"domov", label:"Zu Hause", icon:"🏠" },
+  { value:"hotel", label:"Hotel",    icon:"🏨" },
+  { value:"jine",  label:"Sonstiges",icon:"📍" },
+];
+
+function dsInfo(val) {
+  for (const g of DAY_STATUS_GROUPS) { const f=g.items.find(i=>i.value===val); if(f) return f; }
+  return null;
+}
+function locInfo(val) { return LOCATION_TYPES.find(l=>l.value===val); }
+function overnightLocInfo(val) { return OVERNIGHT_TYPES.find(l=>l.value===val); }
+
+const USERS = [
+  { id:1, name:"Jens Heeren",  email:"heeren@prague-eyewear.de", role:"rep",     territory:"PLZ 7, 8, 9", initials:"JH" },
+  { id:5, name:"Michael Boss", email:"boss@mi-optics.de",        role:"manager", territory:"ALL",          initials:"MB" },
+];
+
+const CUSTOMERS = [
+  {id:10,name:"Optik Harter",street:"Hauptstraße 33",city:"Achern",postal:"77855",lat:null,lng:null,rep_id:1},
+  {id:11,name:"OPTIK WEISS Matthias Weiss",street:"Waldenbucher Str.",city:"Aichtal-Aich",postal:"72631",lat:null,lng:null,rep_id:1},
+  {id:12,name:"Sehsicht",street:"Radolfzeller Str. 22",city:"Allensbach",postal:"78476",lat:null,lng:null,rep_id:1},
+  {id:13,name:"Optik Pabst",street:"Röderstr. 6",city:"Altdorf",postal:"90518",lat:null,lng:null,rep_id:1},
+  {id:14,name:"Optik Schweiger",street:"Schloßplatz 4",city:"Altdorf",postal:"90518",lat:null,lng:null,rep_id:1},
+  {id:15,name:"Georg Baur Augenoptik",street:"Münchner Strasse 22",city:"Ampfing",postal:"84539",lat:null,lng:null,rep_id:1},
+  {id:16,name:"Optiker Klein",street:"Maximilianstrasse 20",city:"Ansbach",postal:"91522",lat:null,lng:null,rep_id:1},
+  {id:17,name:"Optik Grimm",street:"Bahnhofstrasse 11",city:"Apolda",postal:"99510",lat:null,lng:null,rep_id:1},
+  {id:18,name:"Weinreich staatl.gepr.Augenoptiker und Augenoptikermeister",street:"Erfurter Str. 24",city:"Arnstadt",postal:"99310",lat:null,lng:null,rep_id:1},
+  {id:19,name:"Das Brillen Eck",street:"Unterer Markt 4",city:"Auerbach",postal:"91275",lat:null,lng:null,rep_id:1},
+  {id:20,name:"Augenoptik Frank",street:"Frauentorstraße 42",city:"Augsburg",postal:"86152",lat:null,lng:null,rep_id:1},
+  {id:21,name:"Augenoptikerie Müller GbR",street:"Königsbrunner Str. 73",city:"Augsburg",postal:"86179",lat:null,lng:null,rep_id:1},
+  {id:22,name:"Bukmaier Optik",street:"Salomon-Idler-Str. 22",city:"Augsburg",postal:"86159",lat:null,lng:null,rep_id:1},
+  {id:23,name:"Das BrillenAtelier",street:"Milchberg 2",city:"Augsburg",postal:"86150",lat:null,lng:null,rep_id:1},
+  {id:24,name:"Ihre Brille Augenoptik GmbH",street:"Inninger Str. 6",city:"Augsburg",postal:"86179",lat:null,lng:null,rep_id:1},
+  {id:25,name:"Optik Foto Seufert",street:"Augsburger Straße 6",city:"Augsburg",postal:"86157",lat:null,lng:null,rep_id:1},
+  {id:26,name:"Optik Heinzl Inhaber Caroline Croseck",street:"Neuburger Straße",city:"Augsburg",postal:"86167",lat:null,lng:null,rep_id:1},
+  {id:27,name:"Optik Petrak",street:"Halderstr. 1",city:"Augsburg",postal:"86150",lat:null,lng:null,rep_id:1},
+  {id:28,name:"Optik Trepl GmbH",street:"Ludwigstrasse 22",city:"Augsburg",postal:"86152",lat:null,lng:null,rep_id:1},
+  {id:29,name:"Optikuss",street:"Augsburger Str. 11",city:"Augsburg",postal:"86157",lat:null,lng:null,rep_id:1},
+  {id:30,name:"Optik Schütz",street:"Bürgermeister Aurnhammer Straße 13",city:"Augsburg - Göggingen",postal:"86199",lat:null,lng:null,rep_id:1},
+  {id:31,name:"Max51",street:"Maximilianstrasse 51",city:"Augsburg",postal:"86150",lat:null,lng:null,rep_id:1},
+  {id:32,name:"Martin Linke sehen+hören",street:"Königstr. 46",city:"Bad Bergzabern",postal:"76887",lat:null,lng:null,rep_id:1},
+  {id:33,name:"Optik Köllmer",street:"Grabengasse 4",city:"Bad Kissingen",postal:"97688",lat:null,lng:null,rep_id:1},
+  {id:34,name:"Optik Mack GmbH",street:"Martin-Reinhard-Str. 2",city:"Bad Königshofen",postal:"97631",lat:null,lng:null,rep_id:1},
+  {id:35,name:"Optik Werz",street:"Ledermarkt 8-10",city:"Bad Mergentheim",postal:"97980",lat:null,lng:null,rep_id:1},
+  {id:36,name:"Augenoptik Schaidacher e.K.",street:"Spörleinstr. 13",city:"Bad Neustadt/S.",postal:"97616",lat:null,lng:null,rep_id:1},
+  {id:37,name:"Optik Turski",street:"Schűtzengarten 3",city:"Bad Säckingen",postal:"79713",lat:null,lng:null,rep_id:1},
+  {id:38,name:"Pro Optik Augenoptik Fachgeschäft GmbH",street:"Steinbrückstrasse 19",city:"Bad Säckingen",postal:"79713",lat:null,lng:null,rep_id:1},
+  {id:39,name:"Nerlich Augenoptik Inh.Maximilian Nerlich",street:"Hauptstraße",city:"Bad Salgau",postal:"88348",lat:null,lng:null,rep_id:1},
+  {id:40,name:"pro optik Augenoptik Fachgeschäft GmbH",street:"Hauptstrasse 76",city:"Bad Saulgau",postal:"88348",lat:null,lng:null,rep_id:1},
+  {id:41,name:"pro optik Augenoptik Fachgeschäft GmbH",street:"Marktplatz 3",city:"Bad Urach",postal:"72574",lat:null,lng:null,rep_id:1},
+  {id:42,name:"pro optik Augenoptik Fachgeschäft GmbH",street:"Ravensburger Str.",city:"Bad Waldsee",postal:"88339",lat:null,lng:null,rep_id:1},
+  {id:43,name:"Optik Stoib",street:"Münchner Str. 7",city:"Bad Wiessee",postal:"83707",lat:null,lng:null,rep_id:1},
+  {id:44,name:"Brillen Herch GmbH",street:"Schüsselmarkt 1",city:"Bad Windsheim",postal:"91438",lat:null,lng:null,rep_id:1},
+  {id:45,name:"Peter Hoopmann Brillenstudio Hoopmann",street:"Rothenburger Str.",city:"Bad Windsheim",postal:"91438",lat:null,lng:null,rep_id:1},
+  {id:46,name:"Optik Kranz  Brillen&Kontaktlinsen",street:"Bürgermeister-Stöckle-Straße 6",city:"Bad Wörishofen",postal:"86825",lat:null,lng:null,rep_id:1},
+  {id:47,name:"Optik Müller GmbH BRILLEN-KONTAKTLINSEN",street:"Kathreinerstr. 19",city:"Bad Wörishofen",postal:"86825",lat:null,lng:null,rep_id:1},
+  {id:48,name:"Optik Westermayer",street:"Breiteweg 13/1",city:"Bad Wurzach",postal:"83410",lat:null,lng:null,rep_id:1},
+  {id:49,name:"Ibrom Optik",street:"Hauptstr. 4",city:"Beilngries",postal:"92339",lat:null,lng:null,rep_id:1},
+  {id:50,name:"Optic Siegmund - Peter Siegmund",street:"Maximilianstraße 7",city:"Berchtesgaden",postal:"83471",lat:null,lng:null,rep_id:1},
+  {id:51,name:"Szabó Augenoptik & Hörakustik",street:"Hauptstrasse 1a",city:"Berlstedt",postal:"99439",lat:null,lng:null,rep_id:1},
+  {id:52,name:"Kreck der Optiker Hr. Matthias Kreck",street:"Waaghausstraße 3",city:"Biberach",postal:"88400",lat:null,lng:null,rep_id:1},
+  {id:53,name:"Pro Optik Augenpti Fachgeschäft GmbH",street:"Hindenburgstrasse 8",city:"Biberach",postal:"88400",lat:null,lng:null,rep_id:1},
+  {id:54,name:"Bendel Optik GmbH",street:"Bűrgerturmstr. 14",city:"Biberbach",postal:"88400",lat:null,lng:null,rep_id:1},
+  {id:55,name:"Optik Gärtner",street:"Kirchstr. 52",city:"Bietigheim",postal:"76467",lat:null,lng:null,rep_id:1},
+  {id:56,name:"Optiker Zeit zum Sehen",street:"Hauptstraße",city:"Bisingen",postal:"72406",lat:null,lng:null,rep_id:1},
+  {id:57,name:"Zeit zum Sehen",street:"Hauptstr. 52",city:"Bisingen",postal:"72406",lat:null,lng:null,rep_id:1},
+  {id:58,name:"Brillenhäusle Blaubeuren Optik und Uhren",street:"Küfergasse",city:"Blaubeuren",postal:"89143",lat:null,lng:null,rep_id:1},
+  {id:59,name:"Optik Erdmann",street:"Hauptstr. 108",city:"Bleicherode",postal:"99752",lat:null,lng:null,rep_id:1},
+  {id:60,name:"Karl Bachmann Optiker",street:"Am Burghof",city:"Bodelshausen",postal:"72411",lat:null,lng:null,rep_id:1},
+  {id:61,name:"Optiker und Juwelier Erlmeier e.K. Erlmeier Michael",street:"Sandfeldstr. 4",city:"Bodenwöhr",postal:"92439",lat:null,lng:null,rep_id:1},
+  {id:62,name:"Optiker und Juwelier Erlmeier e.K. Linda Erlmeier",street:"Sandfeldstraße 4",city:"Bodenwöhr",postal:"92439",lat:null,lng:null,rep_id:1},
+  {id:63,name:"Wendelstein Optik GmbH",street:"Rosenheimer Str. 46",city:"Brannenburg",postal:"83098",lat:null,lng:null,rep_id:1},
+  {id:64,name:"LORENZ OPTIK",street:"Hauptstraße 63",city:"Bűhl",postal:"77815",lat:null,lng:null,rep_id:1},
+  {id:65,name:"Pro Optik Augenoptik Fachgeschäft GmbH",street:"Marktstr. 2",city:"Buchen",postal:"74722",lat:null,lng:null,rep_id:1},
+  {id:66,name:"Optik Nähring Inh.Susette Nähring-Seifarth",street:"Bahnhofstraße",city:"Buchloe",postal:"86807",lat:null,lng:null,rep_id:1},
+  {id:67,name:"Optik Fux  Inhaber: Jörg Mühlbauer",street:"Lederstraße 1",city:"Calw",postal:"75365",lat:null,lng:null,rep_id:1},
+  {id:68,name:"Fink Optik e.K.",street:"Bahnhofstraße",city:"Deggendorf",postal:"94469",lat:null,lng:null,rep_id:1},
+  {id:69,name:"Optik-Foto Fritz Stock",street:"Luitpold Platz 13",city:"Deggendorf",postal:"94469",lat:null,lng:null,rep_id:1},
+  {id:70,name:"Optik Ohne Gleichen Achim Stohr",street:"Königstr.",city:"Dietenheim",postal:"89165",lat:null,lng:null,rep_id:1},
+  {id:71,name:"VISUS1 OPTIK",street:"Grosse Allee 53",city:"Dillingen",postal:"89407",lat:null,lng:null,rep_id:1},
+  {id:72,name:"Augapfel Gbr",street:"Marienplatz 19a",city:"Dingolfing",postal:"84130",lat:null,lng:null,rep_id:1},
+  {id:73,name:"Optiker Conrad",street:"Griesgasse 5",city:"Dingolfing",postal:"84130",lat:null,lng:null,rep_id:1},
+  {id:74,name:"Optik Zellner",street:"Bahnhofstraße 9",city:"Donauwörth",postal:"86609",lat:null,lng:null,rep_id:1},
+  {id:75,name:"Brillenstube Maier",street:"Rathausgasse 1",city:"Dornstadt",postal:"89160",lat:null,lng:null,rep_id:1},
+  {id:76,name:"Sebastian Uehlin Augenoptik",street:"Bahnhofstrasse 3",city:"Edenkoben",postal:"67480",lat:null,lng:null,rep_id:1},
+  {id:77,name:"Factory Pilots GmbH",street:"Danziger Str. 2",city:"Eching",postal:"85386",lat:null,lng:null,rep_id:1},
+  {id:78,name:"Augenoptik Rothe",street:"Karlstrasse 12",city:"Eisenach",postal:"99817",lat:null,lng:null,rep_id:1},
+  {id:79,name:"Pro Optik Augenoptik Fachgeschäft GmbH",street:"Marienstr.7",city:"Ellwangen",postal:"73479",lat:null,lng:null,rep_id:1},
+  {id:80,name:"STADE OPTIK",street:"Brauergasse 2",city:"Ellwangen",postal:"73479",lat:null,lng:null,rep_id:1},
+  {id:81,name:"Haus der Brille",street:"Brettener Str.",city:"Eppingen",postal:"75031",lat:null,lng:null,rep_id:1},
+  {id:82,name:"Widmann, Uhren-Schmuck-Optik e.K.",street:"Lange Zeile 12",city:"Erding",postal:"85435",lat:null,lng:null,rep_id:1},
+  {id:83,name:"Knauer Weimar GmbH",street:"Bahnhofstr. 35",city:"Erfurt",postal:"99084",lat:null,lng:null,rep_id:1},
+  {id:84,name:"Optik Studio Anton",street:"Anger 78/79",city:"Erfurt",postal:"99084",lat:null,lng:null,rep_id:1},
+  {id:85,name:"Optiker MICHELI",street:"Bahnhofstrasse 8",city:"Erfurt",postal:"99084",lat:null,lng:null,rep_id:1},
+  {id:86,name:"Südpark Optik",street:"Häßlerstr. 6",city:"Erfurt",postal:"99096",lat:null,lng:null,rep_id:1},
+  {id:87,name:"Brillen-Ecke Busch",street:"Untere Karlstraße 17",city:"Erlangen",postal:"91054",lat:null,lng:null,rep_id:1},
+  {id:88,name:"Kumpfmüller Optik",street:"Marktplatz 4",city:"Falkenstein",postal:"93167",lat:null,lng:null,rep_id:1},
+  {id:89,name:"pro optik Augenoptik Fachgeschäft GmbH",street:"Bahnhofstr. 17",city:"Fellbach",postal:"70734",lat:null,lng:null,rep_id:1},
+  {id:90,name:"Optikhaus Feucht",street:"Schwabacher Str. 34",city:"Feucht",postal:"90537",lat:null,lng:null,rep_id:1},
+  {id:91,name:"pro optik Augenoptik Fachgeschäft GmbH",street:"Nürtinger Strasse 5",city:"Filderstadt-Bernhausern",postal:"70794",lat:null,lng:null,rep_id:1},
+  {id:92,name:"Augenoptik Brandner",street:"Apothekenstr. 8",city:"Forchheim",postal:"91301",lat:null,lng:null,rep_id:1},
+  {id:93,name:"Aha Augenoptik Hartmann",street:"Schusterstr. 30-32",city:"Freiburg",postal:"79098",lat:null,lng:null,rep_id:1},
+  {id:94,name:"Hartmann Augenhaus GmbH",street:"Sebastianistr. 1",city:"Freilassing",postal:"83395",lat:null,lng:null,rep_id:1},
+  {id:95,name:"Optik Piller",street:"Hauptstr. 8",city:"Freilassing",postal:"83395",lat:null,lng:null,rep_id:1},
+  {id:96,name:"Optik Wiedenmann",street:"Hauptstrasse 21",city:"Freilassing",postal:"83395",lat:null,lng:null,rep_id:1},
+  {id:97,name:"pefectOptics",street:"Sebastianigasse 1",city:"Freilassing",postal:"83395",lat:null,lng:null,rep_id:1},
+  {id:98,name:"BrillenCult GmbH",street:"Bahnhofstr. 39",city:"Friedberg",postal:"86316",lat:null,lng:null,rep_id:1},
+  {id:99,name:"Das Brillenhaus",street:"Ludwigstr. 34",city:"Friedberg",postal:"86316",lat:null,lng:null,rep_id:1},
+  {id:100,name:"Ihre Brille",street:"Ludwigstraße 5",city:"Friedberg",postal:"86316",lat:null,lng:null,rep_id:1},
+  {id:101,name:"EYE EYE",street:"Karlstr. 53",city:"Friedrichshafen",postal:"88045",lat:null,lng:null,rep_id:1},
+  {id:102,name:"Brillen Wachter  Petra Ulrich e.K.",street:"Hauptstr. 29",city:"Fürstenfeldbruck",postal:"82256",lat:null,lng:null,rep_id:1},
+  {id:103,name:"Optik Freise",street:"Bahnhofstr.19",city:"Garmisch-Partenkirchen",postal:"82467",lat:null,lng:null,rep_id:1},
+  {id:104,name:"Ihre AugenOptik",street:"Ringlebener Str. 64",city:"Gebesee",postal:"99189",lat:null,lng:null,rep_id:1},
+  {id:105,name:"pro optik Augenoptik Fachgeschäft GmbH",street:"Hauptstr. 36/2",city:"Geislingen",postal:"73312",lat:null,lng:null,rep_id:1},
+  {id:106,name:"Optik Zimmermann",street:"Eberhardstr. 60",city:"Geislingen-Steige",postal:"73312",lat:null,lng:null,rep_id:1},
+  {id:107,name:"Beihofer Optik Schmuck Uhren",street:"Hauptstr.14",city:"Germersheim",postal:"76726",lat:null,lng:null,rep_id:1},
+  {id:108,name:"Optik Klimm GbR",street:"Bahnhofstrasse 13",city:"Gersthofen",postal:"86368",lat:null,lng:null,rep_id:1},
+  {id:109,name:"Optik Schwager",street:"Bahnhofstraße 8",city:"Gersthofen",postal:"86368",lat:null,lng:null,rep_id:1},
+  {id:110,name:"Pro Optik Augenoptik Fachgeschäft GmbH",street:"Römerstr. 49",city:"Gilching",postal:"82205",lat:null,lng:null,rep_id:1},
+  {id:111,name:"Klaunig optik",street:"Miesbacher Str. 4",city:"Gmund am Tegernsee",postal:"83703",lat:null,lng:null,rep_id:1},
+  {id:112,name:"Jürgen Häser Optik",street:"Schützenstraße",city:"Göppingen",postal:"73033",lat:null,lng:null,rep_id:1},
+  {id:113,name:"Augenoptik Helmvoigt",street:"Erfurter Straße 16",city:"Gotha",postal:"99867",lat:null,lng:null,rep_id:1},
+  {id:114,name:"Augenoptik Henze",street:"Pfortenstr. 8",city:"Gotha",postal:"99867",lat:null,lng:null,rep_id:1},
+  {id:115,name:"Michaelis Augenoptik",street:"Marktstr. 22",city:"Gotha",postal:"99867",lat:null,lng:null,rep_id:1},
+  {id:116,name:"Optiglas GbR",street:"Nägelseestrasse 33",city:"Gottenheim",postal:"79288",lat:null,lng:null,rep_id:1},
+  {id:117,name:"Optik Reschke GmbH",street:"Hauptstraße 39",city:"Gottmadingen",postal:"78244",lat:null,lng:null,rep_id:1},
+  {id:118,name:"Style Optik",street:"Mannheimer Str. 66",city:"Graben- Neudorf",postal:"76676",lat:null,lng:null,rep_id:1},
+  {id:119,name:"Optik Böser",street:"Bahnhofsring 2",city:"Graben-Neudorf",postal:"76676",lat:null,lng:null,rep_id:1},
+  {id:120,name:"Optik Blickpunkt",street:"Marktplatz 4",city:"Greding",postal:"91171",lat:null,lng:null,rep_id:1},
+  {id:121,name:"Brillenatelier Stahn & Sulzinger GmbH",street:"Bahnhofstr. 26",city:"Gröbenzell",postal:"82194",lat:null,lng:null,rep_id:1},
+  {id:122,name:"Augenoptik Gortan",street:"Friedensstr. 7",city:"Grossbreitenbach",postal:"98701",lat:null,lng:null,rep_id:1},
+  {id:123,name:"Augenoptik Geppert",street:"Theresienstraße 61",city:"Hallbergmoos",postal:"85399",lat:null,lng:null,rep_id:1},
+  {id:124,name:"Augenoptik Biesterfeld GmbH",street:"Bamberger Straße 21",city:"Hallstadt",postal:"96103",lat:null,lng:null,rep_id:1},
+  {id:125,name:"Hiesfelder Optik",street:"Bahnhofstr.",city:"Hammelburg",postal:"97762",lat:null,lng:null,rep_id:1},
+  {id:126,name:"Augenmeile Brillen-und Kontaktlinsenstudio GmbH",street:"Bahnhofstrasse 2",city:"Heiningen",postal:"73092",lat:null,lng:null,rep_id:1},
+  {id:127,name:"Optik Hüttner",street:"Schwarzenbacher Str. 5",city:"Helmbrechts",postal:"95233",lat:null,lng:null,rep_id:1},
+  {id:128,name:"Optik Dietrich",street:"Marktplatz",city:"Hengersberg",postal:"94491",lat:null,lng:null,rep_id:1},
+  {id:129,name:"Optiker Rompf",street:"Lange Strasse 23",city:"Herbrechtingen",postal:"89542",lat:null,lng:null,rep_id:1},
+  {id:130,name:"Optik am See",street:"Zum Landungssteg 3",city:"Herrsching",postal:"82211",lat:null,lng:null,rep_id:1},
+  {id:131,name:"Optik Kaiser",street:"Mühlfelderstr. 21",city:"Herrsching am Ammersee",postal:"82211",lat:null,lng:null,rep_id:1},
+  {id:132,name:"Brillen Redlich Kontaktlinsen",street:"Obere Hauptstr.55",city:"Herxheim",postal:"76863",lat:null,lng:null,rep_id:1},
+  {id:133,name:"BrillenMode Redlich",street:"Obere Hauptstraße 55",city:"Herxheim",postal:"76863",lat:null,lng:null,rep_id:1},
+  {id:134,name:"Optik Wagner Inh. Jürgen Bitter",street:"Hauptstraße",city:"Herzogenaurach",postal:"91074",lat:null,lng:null,rep_id:1},
+  {id:135,name:"W&W Optik",street:"Hauptstraße 22",city:"Herzogenaurach",postal:"91074",lat:null,lng:null,rep_id:1},
+  {id:136,name:"Augenoptik Kupfer e.K.",street:"Markt 13",city:"Hildburghausen",postal:"98646",lat:null,lng:null,rep_id:1},
+  {id:137,name:"Optik Porzky",street:"Nürnberger Straße 5",city:"Hirschaid",postal:"96114",lat:null,lng:null,rep_id:1},
+  {id:138,name:"Optik Herch",street:"Hauptstr. 13",city:"Höchstadt",postal:"91315",lat:null,lng:null,rep_id:1},
+  {id:139,name:"Optik Uhren Schmuck J.-H.Harfich",street:"Herzog-Philipp-Ludwig-Str.",city:"Höchstädt/Donau",postal:"89420",lat:null,lng:null,rep_id:1},
+  {id:140,name:"Augenoptik im Atrium",street:"Münchner Strasse 56a",city:"Holzkirchen",postal:"83607",lat:null,lng:null,rep_id:1},
+  {id:141,name:"Michael Werner",street:"Müncher Str. 56 A",city:"Holzkirchen",postal:"83607",lat:null,lng:null,rep_id:1},
+  {id:142,name:"Optikhaus Individuell GmbH",street:"Marienstr. 3",city:"Holzkirchen",postal:"83607",lat:null,lng:null,rep_id:1},
+  {id:143,name:"Brillen Mayer",street:"Auf der Schanze 5",city:"Cham",postal:"93413",lat:null,lng:null,rep_id:1},
+  {id:144,name:"OGT-Cham GmbH (ehem. Optik Raab)",street:"Fuhrmannstrasse 5",city:"Cham",postal:"93413",lat:null,lng:null,rep_id:1},
+  {id:145,name:"Augenoptik Elsner",street:"Friedrich-Hofmann-Str. 12",city:"Ilmenau",postal:"98693",lat:null,lng:null,rep_id:1},
+  {id:146,name:"Der Brillenbauer",street:"Salzstrasse 2",city:"Immenstadt",postal:"87509",lat:null,lng:null,rep_id:1},
+  {id:147,name:"Duo-Optik",street:"Pettenkoferstraße 22",city:"Ingolstadt",postal:"85053",lat:null,lng:null,rep_id:1},
+  {id:148,name:"Optik Himmer",street:"Schmalzingergasse 5",city:"Ingolstadt",postal:"85049",lat:null,lng:null,rep_id:1},
+  {id:149,name:"Schölzel - Tradition by Pe, Augen und Ohren",street:"Ettinger Strasse 21a",city:"Ingolstadt",postal:"85057",lat:null,lng:null,rep_id:1},
+  {id:150,name:"Optik Motz",street:"Marktplatz 3",city:"Isny",postal:"88316",lat:null,lng:null,rep_id:1},
+  {id:151,name:"OPTI-MO Inh.Michaela Oßwald",street:"Hauptstr.",city:"Kandern",postal:"79400",lat:null,lng:null,rep_id:1},
+  {id:152,name:"Apollo-Optik Inh.Karin Marz",street:"Landauer Strasse",city:"Karlsruhe",postal:"76185",lat:null,lng:null,rep_id:1},
+  {id:153,name:"Brillen.profi GmbH",street:"Mindelheimer Str. 19",city:"Kaufbeuren",postal:"87600",lat:null,lng:null,rep_id:1},
+  {id:154,name:"Brillen-Profi-Contact GmbH",street:"Mindelheimer Straße 19",city:"Kaufbeuren",postal:"87600",lat:null,lng:null,rep_id:1},
+  {id:155,name:"Optik Schwandt",street:"Ledergasse 9",city:"Kaufbeuren",postal:"876000",lat:null,lng:null,rep_id:1},
+  {id:156,name:"Optik Cordella",street:"Sudetenstraße 99",city:"Kaufbeuren / Neugablonz",postal:"87600",lat:null,lng:null,rep_id:1},
+  {id:157,name:"Die Brillenecke Reinhard Lehmann",street:"Albert-Schweitzer-Str. 2b",city:"Kaufering",postal:"86916",lat:null,lng:null,rep_id:1},
+  {id:158,name:"Optik Jäkel GmbH",street:"Schäfflerstr. 14",city:"Kelheim",postal:"93309",lat:null,lng:null,rep_id:1},
+  {id:159,name:"Optiker Schippl",street:"Stadtplatz 7",city:"Kemnath",postal:"95478",lat:null,lng:null,rep_id:1},
+  {id:160,name:"Wipfler Augenoptik	 Tobias Wehrle",street:"Brotstr. 15",city:"Kenzingen",postal:"79341",lat:null,lng:null,rep_id:1},
+  {id:161,name:"Blickpunkt Optik OHG",street:"Am Gangsteig 5",city:"Kirchheim-Heimstetten",postal:"85551",lat:null,lng:null,rep_id:1},
+  {id:162,name:"Augenoptik Herbach",street:"Falterstrasse 19",city:"Kitzingen",postal:"97318",lat:null,lng:null,rep_id:1},
+  {id:163,name:"Augenoptik Gudrun Schwägerl e.K",street:"Bahnhofstr. 3",city:"Kolbermoor",postal:"83059",lat:null,lng:null,rep_id:1},
+  {id:164,name:"Optik Griesbauer GmbH & Co.KG",street:"Bürgermeister Wohlfahrt Straße 28",city:"Königsbrunn",postal:"86343",lat:null,lng:null,rep_id:1},
+  {id:165,name:"Optik Schranner",street:"Marktplatz 30",city:"Kraiburg",postal:"84559",lat:null,lng:null,rep_id:1},
+  {id:166,name:"Pro Optik Augenoptik Fachgeschäft GmbH",street:"Haupstr. 85",city:"Künzelsau",postal:"74653",lat:null,lng:null,rep_id:1},
+  {id:167,name:"pro optik Augenoptik Fachgeschäft",street:"Sonnenplatz 3",city:"Lahr",postal:"77933",lat:null,lng:null,rep_id:1},
+  {id:168,name:"Aktiv Optik",street:"Webergasse 7",city:"Laichingen",postal:"89150",lat:null,lng:null,rep_id:1},
+  {id:169,name:"Optik Flamm",street:"Theresienstr. 2",city:"Landau an der Isar",postal:"94405",lat:null,lng:null,rep_id:1},
+  {id:170,name:"Besser Sehen Landshut Herr Andreas Polzer",street:"Veldener Str. 16",city:"Landshut",postal:"84036",lat:null,lng:null,rep_id:1},
+  {id:171,name:"Optik Blickfang",street:"Altstadt 392",city:"Landshut",postal:"84028",lat:null,lng:null,rep_id:1},
+  {id:172,name:"Die Optikerin",street:"Bahnhofstr. 25",city:"Langenargen",postal:"88085",lat:null,lng:null,rep_id:1},
+  {id:173,name:"EYE EYE GmbH Jochen Förstner",street:"Marktplatz 4",city:"Langenau",postal:"89129",lat:null,lng:null,rep_id:1},
+  {id:174,name:"Optik Hufnagel",street:"Johannisstr. 12",city:"Lauf/Pegnitz",postal:"91207",lat:null,lng:null,rep_id:1},
+  {id:175,name:"DUO OPTIK Stephanie Ullrich e.K.",street:"Hauptstr.75",city:"Lauchringen",postal:"79787",lat:null,lng:null,rep_id:1},
+  {id:176,name:"Optik Pausch",street:"Von-Richthofen-Str. 9",city:"Leipheim",postal:"89340",lat:null,lng:null,rep_id:1},
+  {id:177,name:"Optik Herwig",street:"Hauptstraße 24",city:"Lichtenau",postal:"77839",lat:null,lng:null,rep_id:1},
+  {id:178,name:"Brillenmacher",street:"Hauptstrasse 8",city:"Lohr am Main",postal:"97816",lat:null,lng:null,rep_id:1},
+  {id:179,name:"Design Optical Group",street:"Bahnhofstrasse 20/1",city:"Lorch - Waldhausen",postal:"73547",lat:null,lng:null,rep_id:1},
+  {id:180,name:"Optik Giese",street:"Hauptstr. 35",city:"Malch",postal:"76316",lat:null,lng:null,rep_id:1},
+  {id:181,name:"Brillen Sommer GmbH",street:"Marktplatz 10",city:"Marktoberdorf",postal:"87616",lat:null,lng:null,rep_id:1},
+  {id:182,name:"Optik Hübner & Zeisberg GbR",street:"Poststraße",city:"Marktoberdorf",postal:"87616",lat:null,lng:null,rep_id:1},
+  {id:183,name:"Vornberger GmbH",street:"Markt 4",city:"Marktredwitz",postal:"95615",lat:null,lng:null,rep_id:1},
+  {id:184,name:"Wolfrum Optik",street:"Markt 14",city:"Marktredwitz",postal:"95615",lat:null,lng:null,rep_id:1},
+  {id:185,name:"Optik Schnobrich",street:"Bahnhofstrasse 5",city:"Maxhütte-Haidhof",postal:"93142",lat:null,lng:null,rep_id:1},
+  {id:186,name:"Optik Rudolph",street:"Ernestinerstr. 28",city:"Meiningen",postal:"98617",lat:null,lng:null,rep_id:1},
+  {id:187,name:"Optiker Christoph Gleich",street:"Donauwörther Straße 2",city:"Meitingen",postal:"86405",lat:null,lng:null,rep_id:1},
+  {id:188,name:"Optik Schüller",street:"Bahnhofstraße 1",city:"Memmelsdorf",postal:"96117",lat:null,lng:null,rep_id:1},
+  {id:189,name:"BlickFang Augenoptik GmbH",street:"Hauptstr. 51",city:"Mengen",postal:"88512",lat:null,lng:null,rep_id:1},
+  {id:190,name:"Optik Plank",street:"Bayerwaldstr. 11a",city:"Mitterfels",postal:"94360",lat:null,lng:null,rep_id:1},
+  {id:191,name:"pro optik M.Wödl  Fachgeschäft für Optik & Akustik GmbH",street:"Bahnhofstr.",city:"Mössingen",postal:"72116",lat:null,lng:null,rep_id:1},
+  {id:192,name:"Optikum by Kuhrmann Holm Kuhrmann",street:"Karl-Liebknecht-Str. 36 A",city:"Műhlhausen",postal:"99974",lat:null,lng:null,rep_id:1},
+  {id:193,name:"Ullrich Optik",street:"Jüdenstraße 2",city:"Mühlhausen",postal:"99974",lat:null,lng:null,rep_id:1},
+  {id:194,name:"Fleissner Optik",street:"Limesstraße 64",city:"München",postal:"81243",lat:null,lng:null,rep_id:1},
+  {id:195,name:"Heydenreich Optik GmbH Ulrich Mößlang",street:"Arnulfstr. 136",city:"München",postal:"80634",lat:null,lng:null,rep_id:1},
+  {id:196,name:"Marcus Stadler",street:"Keferloherstr. 140",city:"München",postal:"80807",lat:null,lng:null,rep_id:1},
+  {id:197,name:"Optik Hankiewicz",street:"Wasserburger Landstraße 238",city:"München",postal:"81827",lat:null,lng:null,rep_id:1},
+  {id:198,name:"Optik Heydenreich GmbH",street:"Arnulfstraße 136",city:"München",postal:"80634",lat:null,lng:null,rep_id:1},
+  {id:199,name:"Optik Mayer",street:"Nymphenburger Straße 181",city:"München",postal:"80634",lat:null,lng:null,rep_id:1},
+  {id:200,name:"Optik Westermeier GmbH",street:"Liebeblümchenstrasse 2",city:"München",postal:"80995",lat:null,lng:null,rep_id:1},
+  {id:201,name:"Pro Optik Augenoptik Fachgeschäft GmbH",street:"Wasserburger Landstrasse 210",city:"München",postal:"81827",lat:null,lng:null,rep_id:1},
+  {id:202,name:"Pro Optik Augenoptik Fachgeschäft GmbH",street:"Tegerneer Landstrasse 33",city:"München",postal:"81541",lat:null,lng:null,rep_id:1},
+  {id:203,name:"Optik am Obermarkt GmbH",street:"Obermarkt",city:"Murnau am Staffelsee",postal:"82418",lat:null,lng:null,rep_id:1},
+  {id:204,name:"M A I E R Optik Schmuck GmbH",street:"Georgensr. 32",city:"Nabburg",postal:"92507",lat:null,lng:null,rep_id:1},
+  {id:205,name:"EyeEye",street:"Marktstellung 13",city:"Nagold",postal:"72202",lat:null,lng:null,rep_id:1},
+  {id:206,name:"Pinhak Optik",street:"Hauptstr. 2a",city:"Neubiberg",postal:"85579",lat:null,lng:null,rep_id:1},
+  {id:207,name:"Brillen Winkens",street:"Neue Anlage 5",city:"Neudenau",postal:"74861",lat:null,lng:null,rep_id:1},
+  {id:208,name:"Rennsteig Optik",street:"Sonneberger Str. 26",city:"Neuhaus am Rennweg",postal:"98724",lat:null,lng:null,rep_id:1},
+  {id:209,name:"OPTOTECK augenoptik&feinwerktechnik",street:"Hauptstraße 21",city:"Neukirchen/Inn",postal:"94127",lat:null,lng:null,rep_id:1},
+  {id:210,name:"Optik Mannhart GmbH",street:"Ledererstrasse 11",city:"Neunburg",postal:"92431",lat:null,lng:null,rep_id:1},
+  {id:211,name:"Fischl Optometrie und Hörakustik OUNDA GmbH c/o",street:"Ludwigstraße 79",city:"Neuötting",postal:"84524",lat:null,lng:null,rep_id:1},
+  {id:212,name:"Augenoptik Bräu",street:"Hauptstr. 13",city:"Neusäß",postal:"86356",lat:null,lng:null,rep_id:1},
+  {id:213,name:"Augenoptik Dotterweich",street:"Hauptstraße 1",city:"Neusäss",postal:"86356",lat:null,lng:null,rep_id:1},
+  {id:214,name:"Augenoptiker Dotterweich",street:"Hauptstr. 1",city:"Neusäss",postal:"83356",lat:null,lng:null,rep_id:1},
+  {id:215,name:"Brillen Herch GmbH",street:"Würzburger Str. 12",city:"Neustadt /Aisch",postal:"91413",lat:null,lng:null,rep_id:1},
+  {id:216,name:"Augenoptik Lattner",street:"Bahnhofstr. 24",city:"Neustadt a.d.Donau",postal:"93333",lat:null,lng:null,rep_id:1},
+  {id:217,name:"Brillen Stübinger GmbH",street:"Kirchgasse 3",city:"Neustadt an der Aisch",postal:"91413",lat:null,lng:null,rep_id:1},
+  {id:218,name:"Das Brillen Duo Ströbel & Sack Akustik und Optik GmbH",street:"Wilhelmstrasse 22",city:"Neustadt/Aisch",postal:"91413",lat:null,lng:null,rep_id:1},
+  {id:219,name:"Weitblick Optik und Hörakustik",street:"Töpferstr. 41/42",city:"Nordhausen",postal:"99734",lat:null,lng:null,rep_id:1},
+  {id:220,name:"Werner Optik GmbH",street:"Weberstr. 1",city:"Nordhausen",postal:"99734",lat:null,lng:null,rep_id:1},
+  {id:221,name:"Augenoptik & Akustik Kraus & Schneider",street:"Äußere Sulzbacher Straße 124",city:"Nürnberg",postal:"90491",lat:null,lng:null,rep_id:1},
+  {id:222,name:"Die Durchblicker GmbH",street:"Barlachstraße",city:"Nürnberg",postal:"90455",lat:null,lng:null,rep_id:1},
+  {id:223,name:"Karl Henze GmbH",street:"Pirckheimerstraße 61",city:"Nürnberg",postal:"90408",lat:null,lng:null,rep_id:1},
+  {id:224,name:"Klaus Eck Augenoptik",street:"Ostendstraße 176",city:"Nürnberg",postal:"90482",lat:null,lng:null,rep_id:1},
+  {id:225,name:"Optik Henze",street:"Johannnisstrasse 75",city:"Nürnberg",postal:"90419",lat:null,lng:null,rep_id:1},
+  {id:226,name:"Optik Pur  Werner Hofmann",street:"Siemensstrasse 22",city:"Nürnberg",postal:"90459",lat:null,lng:null,rep_id:1},
+  {id:227,name:"Optik Schneider Fachgeschäft",street:"Kopernikusplatz 38",city:"Nürnberg",postal:"90459",lat:null,lng:null,rep_id:1},
+  {id:228,name:"Optik Carl Leidig GmbH",street:"Königstr. 25-27",city:"Nürnberg",postal:"90402",lat:null,lng:null,rep_id:1},
+  {id:229,name:"Optik Schneider",street:"Kopernikusplatz 38",city:"Nürnberg",postal:"90459",lat:null,lng:null,rep_id:1},
+  {id:230,name:"Gairing GmbH",street:"Kirchstrasse 35",city:"Nürtingen",postal:"72622",lat:null,lng:null,rep_id:1},
+  {id:231,name:"Optik Wehner",street:"Am Rathaus 2 - 4",city:"Oberasbach",postal:"90522",lat:null,lng:null,rep_id:1},
+  {id:232,name:"Weissmann GmbH",street:"Rosenheimerstraße 2",city:"Oberaudorf",postal:"83080",lat:null,lng:null,rep_id:1},
+  {id:233,name:"Augenoptik Müller",street:"Haupstrasse 29",city:"Oberkirch",postal:"77704",lat:null,lng:null,rep_id:1},
+  {id:234,name:"Pro optik Augenoptik Fachgeschäft GmbH",street:"Kirchtorstr. 3",city:"Oberndorf a.N.",postal:"78727",lat:null,lng:null,rep_id:1},
+  {id:235,name:"LOUIS G.F. Augenoptik GmbH & Co. KG",street:"Lindauer Straße 12",city:"Oberstaufen",postal:"87534",lat:null,lng:null,rep_id:1},
+  {id:236,name:"Rührschneck Augenoptik",street:"Schloßstr. 49",city:"Oettingen in Bayern",postal:"86732",lat:null,lng:null,rep_id:1},
+  {id:237,name:"Augenoptik Langenhan Inhaberin: Denise Döpping",street:"Marktstraße 27",city:"Ohrdruf",postal:"99885",lat:null,lng:null,rep_id:1},
+  {id:238,name:"Klingentor-Optik GmbH",street:"Brunnenstrasse 1",city:"Ochsenfurt",postal:"97199",lat:null,lng:null,rep_id:1},
+  {id:239,name:"Wahl Optik",street:"Marktplatz",city:"Ochsenhausen",postal:"88416",lat:null,lng:null,rep_id:1},
+  {id:240,name:"k&k optik GbR",street:"Dr.-Boecale-Str. 7",city:"Parsberg",postal:"92331",lat:null,lng:null,rep_id:1},
+  {id:241,name:"Rother Akustik-&Brillenhaus",street:"Dr.-Hans-Kapfinger-Str. 24",city:"Passau",postal:"94032",lat:null,lng:null,rep_id:1},
+  {id:242,name:"Optik Stöckmann",street:"Brauhausgasse",city:"Pegnitz",postal:"91257",lat:null,lng:null,rep_id:1},
+  {id:243,name:"Die Optiker im Pavillon",street:"Marie-Juchacz-Weg 6",city:"Peissenberg",postal:"82380",lat:null,lng:null,rep_id:1},
+  {id:244,name:"Dr. Wilhelm Pohl Inh. Manfred Bittner e.K.",street:"Ringstraße 17",city:"Pfarrkirchen",postal:"84347",lat:null,lng:null,rep_id:1},
+  {id:245,name:"Pietsch Optik",street:"Güterstraße 38",city:"Pforzheim",postal:"75177",lat:null,lng:null,rep_id:1},
+  {id:246,name:"Optik Mühlbauer GmbH",street:"westliche Karl Friedrich Straße 350",city:"Pforzheim",postal:"75172",lat:null,lng:null,rep_id:1},
+  {id:247,name:"Wolf Optik GmbH",street:"Hauptstrasse 59",city:"Pfullendorf",postal:"88630",lat:null,lng:null,rep_id:1},
+  {id:248,name:"Röding Optik und Akustik",street:"Marktplatz 8-12",city:"Pilsting",postal:"94431",lat:null,lng:null,rep_id:1},
+  {id:249,name:"Augenoptik Springer",street:"Bahnhofstr. 43",city:"Planegg",postal:"82152",lat:null,lng:null,rep_id:1},
+  {id:250,name:"Optik Studio Lamm GmbH",street:"Am Marktplatz 7",city:"Plüderhausen",postal:"73655",lat:null,lng:null,rep_id:1},
+  {id:251,name:"Sehen & Hören Lutz",street:"Erdweg 12",city:"Pöttmes",postal:"86554",lat:null,lng:null,rep_id:1},
+  {id:252,name:"Optik Knopp",street:"Allinger Str. 1",city:"Puchheim",postal:"82178",lat:null,lng:null,rep_id:1},
+  {id:253,name:"Uhren Optik Schmuck Grueber",street:"Hauptstraße 28",city:"Rain am Lech",postal:"86641",lat:null,lng:null,rep_id:1},
+  {id:254,name:"Werner Optic",street:"Kufsteiner Str. 17",city:"Raubling",postal:"83064",lat:null,lng:null,rep_id:1},
+  {id:255,name:"ABAKUS Augenoptik",street:"Eisenbahnstrasse 19",city:"Ravensburg",postal:"88212",lat:null,lng:null,rep_id:1},
+  {id:256,name:"Brillen Müller",street:"Seelbruckstr. 4",city:"Ravensburg",postal:"88121",lat:null,lng:null,rep_id:1},
+  {id:257,name:"pro optik Augenoptik Fachgeschäft GmbH",street:"Adlerstrasse 19",city:"Ravensburg",postal:"88212",lat:null,lng:null,rep_id:1},
+  {id:258,name:"Optik Paradies",street:"Auwiesenweg 34",city:"Regen",postal:"94209",lat:null,lng:null,rep_id:1},
+  {id:259,name:"Optik Güßbacher GmbH",street:"Malergasse 8",city:"Regensburg",postal:"93047",lat:null,lng:null,rep_id:1},
+  {id:260,name:"die Brille",street:"Bahnhofstraße 24",city:"Regensburg",postal:"93047",lat:null,lng:null,rep_id:1},
+  {id:261,name:"Optik Neuwirth GmbH",street:"Olgastraße 5",city:"Remshalden",postal:"73630",lat:null,lng:null,rep_id:1},
+  {id:262,name:"Optik Turski",street:"Karl-Fűrstenberg-Str. 9",city:"Rheinfelden",postal:"79618",lat:null,lng:null,rep_id:1},
+  {id:263,name:"Pro Optik Augenoptiker Fachgeschäft GmbH",street:"Kapuzinerstr. 4",city:"Rheinfelden",postal:"79618",lat:null,lng:null,rep_id:1},
+  {id:264,name:"Rietschel Optik",street:"Badenerstraße 12",city:"Rheinstetten-Mörsch",postal:"76287",lat:null,lng:null,rep_id:1},
+  {id:265,name:"Augenoptik Keller Michael Keller",street:"Donaustr. 16-18",city:"Riedlingen",postal:"88499",lat:null,lng:null,rep_id:1},
+  {id:266,name:"Optik Deutelmoser GmbH",street:"Haldenstraße 15",city:"Riedlingen",postal:"88499",lat:null,lng:null,rep_id:1},
+  {id:267,name:"Optik Rumpel",street:"Haldenstrasse",city:"Riedlingen",postal:"88499",lat:null,lng:null,rep_id:1},
+  {id:268,name:"Optik Mannhart",street:"Chamer Straße 1",city:"Roding",postal:"93426",lat:null,lng:null,rep_id:1},
+  {id:269,name:"SALIN OPTIK GmbH",street:"Ludwigsplatz 27",city:"Rosenheim",postal:"83022",lat:null,lng:null,rep_id:1},
+  {id:270,name:"Optiker Riedelsheimer",street:"An der Schlossmauer 4",city:"Rosstal",postal:"90574",lat:null,lng:null,rep_id:1},
+  {id:271,name:"Aktivoptik GmbH",street:"Kemptner Str. 31a",city:"Senden",postal:"89250",lat:null,lng:null,rep_id:1},
+  {id:272,name:"Augenblick Optik",street:"Hauptstr. 15",city:"Senden",postal:"89259",lat:null,lng:null,rep_id:1},
+  {id:273,name:"OPTIK AUGENBLICK Inh.Mirko Kennerknecht",street:"Würzburger Str.",city:"Scheinfeld",postal:"91443",lat:null,lng:null,rep_id:1},
+  {id:274,name:"Optik Traxler",street:"Hauptstr. 36",city:"Scheßlitz",postal:"96110",lat:null,lng:null,rep_id:1},
+  {id:275,name:"Optik Nagler e.k.",street:"Hauptstraße",city:"Schiltach",postal:"77761",lat:null,lng:null,rep_id:1},
+  {id:276,name:"Müller-Optik Inh. K. Riethműller",street:"Erfurter Str.2",city:"Schlotheim",postal:"99994",lat:null,lng:null,rep_id:1},
+  {id:277,name:"Gutheil Optik GmbH",street:"Auer Gasse 22",city:"Schmalkalden",postal:"98574",lat:null,lng:null,rep_id:1},
+  {id:278,name:"Optik Rudolph Meisterfachbetrieb Inhaber: OPTIK-RUDOLPH GbR",street:"Pfaffengasse 2",city:"Schmalkalden",postal:"98574",lat:null,lng:null,rep_id:1},
+  {id:279,name:"Optik Schulze",street:"Bahnhofstr. 70-72",city:"Schmalkalden",postal:"98574",lat:null,lng:null,rep_id:1},
+  {id:280,name:"Augenoptik Grünwald GmbH",street:"Rosenbühlstr. 2",city:"Schnaittenbach",postal:"92253",lat:null,lng:null,rep_id:1},
+  {id:281,name:"Die Brillengalerie",street:"Hauptstr. 60",city:"Schonungen",postal:"97493",lat:null,lng:null,rep_id:1},
+  {id:282,name:"E. + V. GmbH Uhren - Schmuck - Optik",street:"Hauptstraße",city:"Schopfheim",postal:"79650",lat:null,lng:null,rep_id:1},
+  {id:283,name:"OPTIK Michels Brillen und Kontaktlinsen Inh.Werner Michels",street:"Hebelstr.",city:"Schopfheim",postal:"79650",lat:null,lng:null,rep_id:1},
+  {id:284,name:"Pro Optik Augenoptik Fachgeschäft GmbH",street:"Hauptstrasse 55",city:"Schopfheim",postal:"79650",lat:null,lng:null,rep_id:1},
+  {id:285,name:"Optik Studio Lamm GmbH",street:"Joh.-Phil.-Palm-Str. 5",city:"Schorndorf",postal:"73614",lat:null,lng:null,rep_id:1},
+  {id:286,name:"Pro Optik Fachgeschäft GmbH",street:"Gottlieb-Daimler-Str. 1",city:"Schorndorf",postal:"73614",lat:null,lng:null,rep_id:1},
+  {id:287,name:"Pro Optik Augenoptik Fachgeschäft GmbH",street:"Hauptstrasse 34",city:"Schramberg",postal:"78713",lat:null,lng:null,rep_id:1},
+  {id:288,name:"Pro Optik Augenoptik Fachgeschäft GmbH",street:"Neue Str. 5",city:"Schwäbisch Hall",postal:"74523",lat:null,lng:null,rep_id:1},
+  {id:289,name:"Ihr Optiker und Akustiker Michael Großmann",street:"Kaufbeurer Str.4",city:"Schwabmünchen",postal:"86830",lat:null,lng:null,rep_id:1},
+  {id:290,name:"Sehzentrum Sagolla Augenoptik",street:"Behringersdorfer Str. 1",city:"Schwaig",postal:"90571",lat:null,lng:null,rep_id:1},
+  {id:291,name:"Uhl Optik Uhren Schmuck",street:"Hauptstr. 66",city:"Schwarzenbach am Wald",postal:"95131",lat:null,lng:null,rep_id:1},
+  {id:292,name:"pro optik Augenoptik Fachgeschäft GmbH",street:"Mannheimer Str. 5",city:"Schwetzingen",postal:"68723",lat:null,lng:null,rep_id:1},
+  {id:293,name:"Blickpunkt Augenoptik",street:"Hauptstraße",city:"Siegsdorf",postal:"83313",lat:null,lng:null,rep_id:1},
+  {id:294,name:"Pro Optik Augenoptik Fachgeschäft GmbH",street:"Antonstr. 2",city:"Sigmaringen",postal:"72488",lat:null,lng:null,rep_id:1},
+  {id:295,name:"Augenoptik Kleiner",street:"August-Ruf-Str. 17",city:"Singen",postal:"78224",lat:null,lng:null,rep_id:1},
+  {id:296,name:"Optik Diezemann",street:"Marktplatz 12",city:"Sömmerda",postal:"99610",lat:null,lng:null,rep_id:1},
+  {id:297,name:"Optikzentrum Hense",street:"Straße der Einheit 4",city:"Sömmerda",postal:"99610",lat:null,lng:null,rep_id:1},
+  {id:298,name:"Optik Steck GmbH",street:"Roßmarktstraße 28",city:"Speyer",postal:"67346",lat:null,lng:null,rep_id:1},
+  {id:299,name:"pro optik Augenoptik Fachgeschäft GmbH",street:"Maximilianstrasse",city:"Speyer",postal:"67346",lat:null,lng:null,rep_id:1},
+  {id:300,name:"Optiker Kraus",street:"Bismarck Straße 49a",city:"Stadtbergen",postal:"86391",lat:null,lng:null,rep_id:1},
+  {id:301,name:"Augenoptik Thorsten Schulze",street:"Ostheimer Straße 14",city:"Steinheim",postal:"89555",lat:null,lng:null,rep_id:1},
+  {id:302,name:"Optik Knor",street:"Hauptstrasse 25",city:"Stockach",postal:"78333",lat:null,lng:null,rep_id:1},
+  {id:303,name:"Optik Hartmannsgruber",street:"Kirchplatz 10",city:"Strasskirchen",postal:"94342",lat:null,lng:null,rep_id:1},
+  {id:304,name:"Optik Klopfer Petra Klopfer",street:"Birkheckenstraße",city:"Stuttgart-Birkach",postal:"70599",lat:null,lng:null,rep_id:1},
+  {id:305,name:"Greif Optic",street:"Am Topfmarkt 3",city:"Suhl",postal:"98527",lat:null,lng:null,rep_id:1},
+  {id:306,name:"Optik Scheuerer",street:"Landshuter Str. 41",city:"Taufkirchen - Vils",postal:"84416",lat:null,lng:null,rep_id:1},
+  {id:307,name:"Optik-Scheuerer",street:"Landshuter Str.41",city:"Taufkirchen-Vils",postal:"84416",lat:null,lng:null,rep_id:1},
+  {id:308,name:"Töginger Brillenhaus",street:"Wolfgang-Leeb-Str. 1",city:"Töging",postal:"84513",lat:null,lng:null,rep_id:1},
+  {id:309,name:"Trieb Optik Hörgeräte OHG",street:"Nansenstrasse 2",city:"Traunreut",postal:"83301",lat:null,lng:null,rep_id:1},
+  {id:310,name:"OPTIK-STUDIO FELDHÄUSER",street:"Hauptstr. 12",city:"Treuchtlingen",postal:"91757",lat:null,lng:null,rep_id:1},
+  {id:311,name:"VSS-Group GmbH",street:"Marktplatz 14",city:"Trossingen",postal:"78647",lat:null,lng:null,rep_id:1},
+  {id:312,name:"Augenoptik Dieter Koen",street:"Wilhelmstraße",city:"Tuttlingen",postal:"78532",lat:null,lng:null,rep_id:1},
+  {id:313,name:"Adam Optik",street:"Kirchenstr. 5",city:"Tutzing",postal:"82327",lat:null,lng:null,rep_id:1},
+  {id:314,name:"Konrad Kitt GmbH",street:"Franziskanerstraße 1-3",city:"Überlingen",postal:"88662",lat:null,lng:null,rep_id:1},
+  {id:315,name:"Brillengalerie Bolay&Bolay OHG",street:"Platzgasse 15",city:"Ulm",postal:"89073",lat:null,lng:null,rep_id:1},
+  {id:316,name:"Lohof Optik LOOP",street:"Bezirksstrasse 38",city:"Unterschleißheim",postal:"85716",lat:null,lng:null,rep_id:1},
+  {id:317,name:"Lindner Optik + Akustik",street:"Marktplatz 15",city:"Villingen Schwenningen",postal:"78054",lat:null,lng:null,rep_id:1},
+  {id:318,name:"Brillen Bauer",street:"Friedrichstr. 11",city:"Vohenstrauß",postal:"92648",lat:null,lng:null,rep_id:1},
+  {id:319,name:"Optik Koch GmbH",street:"Oberer Markt 3",city:"Volkach",postal:"97332",lat:null,lng:null,rep_id:1},
+  {id:320,name:"Sehzentrum Volkach Ing.Tanja Werner",street:"Storchgasse 1",city:"Volkach",postal:"97332",lat:null,lng:null,rep_id:1},
+  {id:321,name:"derBrillenmacher",street:"Seestrasse 7",city:"Waiging am See",postal:"83329",lat:null,lng:null,rep_id:1},
+  {id:322,name:"Sehenswert Optik",street:"Stadtplatz 14",city:"Waldkraiburg",postal:"84478",lat:null,lng:null,rep_id:1},
+  {id:323,name:"Brille & Design",street:"Rheinstraße",city:"Waldshut-Tiengen",postal:"79761",lat:null,lng:null,rep_id:1},
+  {id:324,name:"Opticuss Gräser - Beutner GbR Christina Gräser,Hartmut bEUTNER",street:"Beckengasse 4",city:"Waltershausen",postal:"99880",lat:null,lng:null,rep_id:1},
+  {id:325,name:"Bergermann Brille und Linse",street:"Martinstorplatz 3",city:"Wangen",postal:"88239",lat:null,lng:null,rep_id:1},
+  {id:326,name:"BERGERMANN Brille+Linse Inhaber Heribert Bergermann",street:"Martinstorplatz 3",city:"Wangen",postal:"88239",lat:null,lng:null,rep_id:1},
+  {id:327,name:"pro optik Augenoptik Fachgeschäft GmbH",street:"Marktplatz 5",city:"Wangen i.A.",postal:"88239",lat:null,lng:null,rep_id:1},
+  {id:328,name:"Optik Tewes",street:"Ledererzeile 16",city:"Wasserburg",postal:"83512",lat:null,lng:null,rep_id:1},
+  {id:329,name:"Optik Seider",street:"Marktstr.19",city:"Wegscheid",postal:"94110",lat:null,lng:null,rep_id:1},
+  {id:330,name:"Wipfler Augenoptik",street:"Lammstrasse 19",city:"Wehrle",postal:"79312",lat:null,lng:null,rep_id:1},
+  {id:331,name:"Focus-Optic-Messner",street:"Bahnhofstr.",city:"Weiden",postal:"92637",lat:null,lng:null,rep_id:1},
+  {id:332,name:"Pro Optik Augenoptik Fachgeschäft GmbH",street:"Hauptstrasse 299",city:"Weil am Rhein",postal:"79576",lat:null,lng:null,rep_id:1},
+  {id:333,name:"Stern Optik",street:"Hauptstr. 226",city:"Weil am Rhein",postal:"79576",lat:null,lng:null,rep_id:1},
+  {id:334,name:"Augenoptik Förster GmbH",street:"Marienplatz 13-15",city:"Weilheim / Obb.",postal:"82362",lat:null,lng:null,rep_id:1},
+  {id:335,name:"Augenoptik Weiss Inh. Andrea Weiss",street:"Döllstädtstr. 2",city:"Weimar",postal:"99423",lat:null,lng:null,rep_id:1},
+  {id:336,name:"Knauer Weimar GmbH",street:"Steubenstr. 7",city:"Weimar",postal:"99423",lat:null,lng:null,rep_id:1},
+  {id:337,name:"Optik Blandfort GmbH",street:"Am Löwenplatz 7",city:"Weingarten",postal:"88250",lat:null,lng:null,rep_id:1},
+  {id:338,name:"pro optik Augenoptik Fachgeschäft GmbH",street:"Hauptstrasse 94",city:"Weinheim",postal:"64469",lat:null,lng:null,rep_id:1},
+  {id:339,name:"Pro Optik",street:"Ulmer Straße 1",city:"Wendlingen",postal:"73240",lat:null,lng:null,rep_id:1},
+  {id:340,name:"Starkmann Optik & mehr",street:"Jahnstraße 2",city:"Wernberg-Köblitz",postal:"92533",lat:null,lng:null,rep_id:1},
+  {id:341,name:"Optik Schmitt",street:"Breslauerstr. 2",city:"Wiesau",postal:"95676",lat:null,lng:null,rep_id:1},
+  {id:342,name:"Optik Bayreuther",street:"Bahnhofstr. 3",city:"Windsbach",postal:"91575",lat:null,lng:null,rep_id:1},
+  {id:343,name:"Optik Brucker",street:"Hauptstr.",city:"Wolfach",postal:"77709",lat:null,lng:null,rep_id:1},
+  {id:344,name:"Optello Optik",street:"Stephansgasse 8-10",city:"Worms",postal:"67547",lat:null,lng:null,rep_id:1},
+  {id:345,name:"Blickwinkel Augenoptik",street:"Straubinger Straße 4",city:"Wörth",postal:"93086",lat:null,lng:null,rep_id:1},
+  {id:346,name:"Brillen Töpfer GmbH",street:"Marktstrasse 3",city:"Wörth",postal:"76744",lat:null,lng:null,rep_id:1},
+  {id:347,name:"Optik Jöckle",street:"Ottstr. 6",city:"Wörth/Rhein",postal:"76744",lat:null,lng:null,rep_id:1},
+  {id:348,name:"Optik Ladenburger",street:"Sechsämterlandstr. 23",city:"Wunsiedel",postal:"95632",lat:null,lng:null,rep_id:1},
+  {id:349,name:"Optik Huth",street:"Wenzelstr. 16",city:"Würzburg",postal:"97084",lat:null,lng:null,rep_id:1},
+  {id:350,name:"Röding Optik und Akustik",street:"Haugerpfarrgasse 7",city:"Würzburg",postal:"97070",lat:null,lng:null,rep_id:1},
+  {id:351,name:"Michael Dauber Optik",street:"Theaterstrasse 1",city:"Wűrzburg",postal:"97070",lat:null,lng:null,rep_id:1},
+  {id:352,name:"Ladenburger Optik",street:"Sechsämterland-Str. 23",city:"Wusiedel",postal:"95632",lat:null,lng:null,rep_id:1},
+  {id:353,name:"Optik Titze Inh.Gerhard Krepinsky",street:"Schopfheimer Str.",city:"Zell im Wiesental",postal:"79669",lat:null,lng:null,rep_id:1},
+  {id:354,name:"Augenoptik Krell",street:"Hauptstr. 78",city:"Zella-Mehlis",postal:"98544",lat:null,lng:null,rep_id:1},
+  {id:355,name:"Egloff Optik",street:"Hauptstr. 4",city:"Zella-Mehlis",postal:"98544",lat:null,lng:null,rep_id:1},
+  {id:356,name:"Optik Rank",street:"Nürnberger Strasse 2",city:"Zirndorf",postal:"90513",lat:null,lng:null,rep_id:1},
+  {id:357,name:"Thomas Optik",street:"Wertinger Straße 2",city:"Zusmarshausen",postal:"86441",lat:null,lng:null,rep_id:1},
+  {id:358,name:"Gerstenecker Augenoptik",street:"Angerstr. 30",city:"Zwiesel",postal:"94227",lat:null,lng:null,rep_id:1}
+];
+
+const INIT_VISITS = [];
+
+const INIT_WORKDAYS = [];
+
+const RESULTS = [
+  { value:"order",        label:"Bestellung",              icon:"🛒" },
+  { value:"presentation", label:"Präsentation",              icon:"👁" },
+  { value:"complaint",    label:"Reklamation / Service",      icon:"🔧" },
+  { value:"absent",       label:"Kunde nicht anwesend", icon:"🚪" },
+  { value:"follow_up",    label:"Folgetermin vereinbart",   icon:"📅" },
+  { value:"no_interest",  label:"Kein Interesse",               icon:"❌" },
+];
+
+const rl=v=>RESULTS.find(r=>r.value===v)?.label||v;
+const ri=v=>RESULTS.find(r=>r.value===v)?.icon||"•";
+
+function haversine(la1,lo1,la2,lo2){
+  const R=6371000,dLa=(la2-la1)*Math.PI/180,dLo=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)**2;
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+function gpsInfo(d){
+  if(d===null) return{cls:"load",icon:"⏳",text:"GPS wird geladen...",ok:false};
+  if(d<=150)   return{cls:"ok",  icon:"✓", text:d+" m — Bestätigt",ok:true};
+  if(d<=300)   return{cls:"warn",icon:"⚠", text:d+" m — Warnung",ok:true};
+  return            {cls:"err", icon:"✗", text:d+" m — Außerhalb",ok:false};
+}
+function fmtT(iso){try{return new Date(iso).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});}catch{return "";}}
+
+function Badge({status}){
+  const m=status==="confirmed"?"badge-ok":status==="warning"?"badge-warn":"badge-err";
+  const t=status==="confirmed"?"✓ GPS":status==="warning"?"⚠ GPS":"✗ GPS";
+  return <span className={"badge "+m}>{t}</span>;
+}
+
+/* ── SIDEBAR — stejná struktura jako login-left ── */
+function Sidebar({user,workday,onLogout,onSetDay}){
+  const ds=workday?dsInfo(workday.day_status):null;
+  const av={width:54,height:54,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,flexShrink:0};
+  return (
+    <div className="sidebar">
+      <div className="sidebar-content">
+        <div style={{flex:1}}/>
+        <div style={{position:"relative",zIndex:1}}>
+          {/* Logo */}
+          <img src="logoinline.png" className="mobile-logo app-sidebar-logo" style={{width:200,height:"auto",display:"block",marginBottom:10,filter:"brightness(0) invert(1)"}} alt="Prague Eyewear"/>
+          <div className="mobile-iris app-sidebar-iris" style={{fontSize:12,fontWeight:600,color:"rgba(255,255,255,.55)",letterSpacing:".3em",textTransform:"uppercase",marginBottom:22}}>Iris</div>
+          {/* User info */}
+          <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24}}>
+            <div style={av}>{user.initials}</div>
+            <div>
+              <div style={{fontSize:18,fontWeight:900,color:"white",lineHeight:1.2}}>{user.name}</div>
+              <div style={{fontSize:14,color:"rgba(255,255,255,.5)",marginTop:3}}>{user.territory}</div>
+            </div>
+          </div>
+          {/* Tagesstatus — nur für Vertreter */}
+          {user.role!=="manager"&&<>
+          <div style={{fontSize:12,color:"rgba(255,255,255,.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:".15em",marginBottom:10}}>Tagesstatus</div>
+          {workday&&ds ? (
+            <button onClick={onSetDay} style={{width:"100%",background:"linear-gradient(135deg,#1a4b8c,#2C8CD1)",borderRadius:16,padding:"16px 18px",border:"none",cursor:"pointer",fontFamily:"inherit",marginBottom:14,display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
+              <div style={{width:50,height:50,borderRadius:"50%",background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{ds.icon}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:20,fontWeight:900,color:"white",textTransform:"uppercase",letterSpacing:".03em",lineHeight:1.1,marginBottom:6}}>{ds.label}</div>
+                {workday.day_status==="aussendienst"&&workday.start_location&&<div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.9)",display:"flex",alignItems:"center",gap:6}}>🏠 Start: {locInfo(workday.start_location)?.label}</div>}
+                {workday.day_status==="messe"&&workday.event_name&&<div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.9)"}}>{workday.event_name}</div>}
+                {workday.overnight&&<div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.9)",display:"flex",alignItems:"center",gap:6,marginTop:2}}>🛏 Übernachtung: {overnightLocInfo(workday.overnight)?.label}</div>}
+              </div>
+              <div style={{fontSize:22,color:"rgba(255,255,255,.7)",flexShrink:0}}>›</div>
+            </button>
+          ) : (
+            <button onClick={onSetDay} style={{width:"100%",background:"linear-gradient(135deg,#1a4b8c,#2C8CD1)",borderRadius:16,padding:"18px",border:"none",cursor:"pointer",fontFamily:"inherit",marginBottom:14,display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+              <div style={{width:46,height:46,borderRadius:"50%",background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📋</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:17,fontWeight:900,color:"white",textTransform:"uppercase",letterSpacing:".03em"}}>Tag einrichten</div>
+                <div style={{fontSize:13,color:"rgba(255,255,255,.7)",marginTop:3}}>Tippen um zu starten</div>
+              </div>
+              <div style={{fontSize:22,color:"rgba(255,255,255,.7)"}}>›</div>
+            </button>
+          )}
+          </>}
+          {/* Abmelden */}
+          <button onClick={onLogout} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:"8px 0",fontSize:13,fontWeight:600,color:"rgba(255,255,255,.4)",letterSpacing:".04em"}}>
+            Abmelden →
+          </button>
+        </div>
+        <div style={{flex:2}}/>
+      </div>
+    </div>
+  );
+}
+
+/* ── LOGIN ── */
+function LoginScreen({onLogin}){
+  const [email,setEmail]=useState(""); const [pass,setPass]=useState(""); const [err,setErr]=useState("");
+  const go=()=>{
+    const u=USERS.find(u=>u.email.toLowerCase()===email.toLowerCase());
+    if(!u||pass!=="demo"){setErr("Nesprávný e-mail nebo heslo.");return;}
+    onLogin(u);
+  };
+  return (
+    <div className="login-root">
+      <div className="login-left">
+        <div style={{flex:1}}/>
+        <div style={{position:"relative",zIndex:1}}>
+          <img src="logoinline.png" className="mobile-logo" style={{width:200,height:"auto",marginBottom:10,display:"block",filter:"brightness(0) invert(1)"}} alt="Prague Eyewear"/>
+          <div className="mobile-iris" style={{fontSize:12,fontWeight:600,color:"rgba(255,255,255,.55)",letterSpacing:".3em",textTransform:"uppercase",marginBottom:0}}>Iris</div>
+        </div>
+        <div style={{flex:2}}/>
+      </div>
+      <div className="login-right">
+        <div className="login-form-box">
+          <div style={{marginBottom:32}}>
+            <div style={{fontSize:28,fontWeight:900,color:"#111827",marginBottom:4}}>Anmelden</div>
+            <div style={{fontSize:15,color:"#9ca3af"}}>Geben Sie Ihre Anmeldedaten ein</div>
+          </div>
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>E-mail</div>
+            <input placeholder="vas@mi-optics.de" value={email} onChange={e=>{setEmail(e.target.value);setErr("");}}/>
+          </div>
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Passwort</div>
+            <input type="password" placeholder="••••••" value={pass} onChange={e=>{setPass(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&go()}/>
+          </div>
+          {err&&<div style={{color:"#ef4444",fontSize:12,fontWeight:600,marginBottom:14,padding:"10px 14px",background:"#fef2f2",borderRadius:10}}>{err}</div>}
+          <button onClick={go} style={{width:"100%",padding:"14px 0",background:OG,color:"white",border:"none",borderRadius:12,fontSize:17,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            Anmelden →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── HOME ── */
+function HomeScreen({user,visits,workday,onNewVisit,onSetOvernight,onDeleteVisit,onEditVisit}){
+  const mine=visits.filter(v=>v.rep_id===user.id&&v.confirmed_at.startsWith(TODAY));
+  const [dialog,setDialog]=useState(null); // {type:'delete'|'edit', visit}
+  const [editResult,setEditResult]=useState(""); const [editNote,setEditNote]=useState("");
+  const orders=mine.filter(v=>v.result==="order");
+  const ds=workday?dsInfo(workday.day_status):null;
+  const isAD=workday?.day_status==="aussendienst";
+  const needOvernight=isAD&&!workday.overnight;
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <div>
+          <div className="panel-header-title">Hallo, {user.name.split(" ")[0]}</div>
+          <div className="panel-header-sub">{new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+        </div>
+      </div>
+      <div className="panel-body">
+        <div style={{maxWidth:580,width:"100%"}}>
+        {isAD&&<>
+          <button className="btn-primary" onClick={onNewVisit} style={{fontSize:17,padding:"18px 0",marginBottom:14}}>
+            <span style={{fontSize:22}}>📍</span><span>KUNDENBESUCH BESTÄTIGEN</span>
+          </button>
+          {needOvernight&&(
+            <button onClick={onSetOvernight} style={{width:"100%",marginBottom:14,padding:"13px",borderRadius:13,background:"#fff7ed",color:"#c2410c",border:"2px solid #fed7aa",cursor:"pointer",fontWeight:700,fontSize:15,display:"flex",alignItems:"center",gap:8,justifyContent:"center",fontFamily:"inherit"}}>
+              🏨 Wo übernachtest du?
+            </button>
+          )}
+          {mine.length>0&&<>
+            <div className="section-label" style={{marginTop:8}}>Kundenbesuche heute</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[...mine].sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at)).map(v=>{
+                const c=CUSTOMERS.find(c=>c.id===v.customer_id);
+                const iab={background:"none",border:"none",cursor:"pointer",fontSize:17,padding:"6px 8px",borderRadius:8,lineHeight:1};
+                return (
+                  <div key={v.id} className="card" style={{display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{fontSize:22,width:30,textAlign:"center",flexShrink:0}}>{ri(v.result)}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c?.name||v.customer_id}</div>
+                      <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}{v.note?` · ${v.note}`:""}</div>
+                    </div>
+                    <Badge status={v.status}/>
+                    <button onClick={()=>{setEditResult(v.result);setEditNote(v.note||"");setDialog({type:"edit",visit:v});}} style={{...iab,background:"#EFF6FC"}}>✏️</button>
+                    <button onClick={()=>setDialog({type:"delete",visit:v})} style={{...iab,background:"#FEF2F2"}}>🗑️</button>
+                  </div>
+                );
+              })}
+            </div>
+          </>}
+          {dialog&&(
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setDialog(null)}>
+              <div style={{background:"white",borderRadius:20,padding:24,maxWidth:380,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}} onClick={e=>e.stopPropagation()}>
+                {dialog.type==="delete"?<>
+                  <div style={{textAlign:"center",fontSize:36,marginBottom:12}}>🗑️</div>
+                  <div style={{fontWeight:900,fontSize:18,textAlign:"center",marginBottom:6}}>Besuch löschen?</div>
+                  <div style={{fontSize:15,color:"#6b7280",textAlign:"center",marginBottom:24}}>{CUSTOMERS.find(c=>c.id===dialog.visit.customer_id)?.name||dialog.visit.customer_id} · {rl(dialog.visit.result)}</div>
+                  <div style={{display:"flex",gap:10}}>
+                    <button onClick={()=>setDialog(null)} style={{flex:1,padding:"12px",borderRadius:10,background:"#f3f4f6",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Abbrechen</button>
+                    <button onClick={()=>{onDeleteVisit(dialog.visit.id);setDialog(null);}} style={{flex:1,padding:"12px",borderRadius:10,background:"#dc2626",color:"white",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Löschen</button>
+                  </div>
+                </>:<>
+                  <div style={{fontWeight:900,fontSize:18,marginBottom:16}}>Besuch bearbeiten</div>
+                  <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:10}}>Ergebnis</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:16}}>
+                    {RESULTS.map(r=>(
+                      <button key={r.value} onClick={()=>setEditResult(r.value)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,border:`2px solid ${editResult===r.value?OG:"#e5e7eb"}`,background:editResult===r.value?"#EFF6FC":"white",cursor:"pointer",fontFamily:"inherit",fontWeight:editResult===r.value?700:500,textAlign:"left"}}>
+                        <span style={{fontSize:18,width:24,textAlign:"center"}}>{r.icon}</span>
+                        <span style={{fontSize:15}}>{r.label}</span>
+                        {editResult===r.value&&<span style={{marginLeft:"auto",color:OG}}>✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:8}}>Notiz</div>
+                  <textarea rows={2} value={editNote} onChange={e=>setEditNote(e.target.value)} placeholder="Kurze Notiz…" style={{resize:"none",marginBottom:16}}/>
+                  <div style={{display:"flex",gap:10}}>
+                    <button onClick={()=>setDialog(null)} style={{flex:1,padding:"12px",borderRadius:10,background:"#f3f4f6",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Abbrechen</button>
+                    <button onClick={()=>{onEditVisit(dialog.visit.id,{result:editResult,note:editNote});setDialog(null);}} style={{flex:1,padding:"12px",borderRadius:10,background:OG,color:"white",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Speichern</button>
+                  </div>
+                </>}
+              </div>
+            </div>
+          )}
+          {mine.length===0&&<div style={{textAlign:"center",padding:"48px 0",color:"#d1d5db"}}><div style={{fontSize:48,marginBottom:12}}>🗺</div><div style={{fontSize:16}}>Keine Besuche heute</div></div>}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:14,marginTop:24}}>
+            {[{l:"Besuche heute",v:mine.length,c:OG},{l:"Bestellungen",v:orders.length,c:"#16a34a"}].map(s=>(
+              <div key={s.l} className="stat-box">
+                <div className="stat-num" style={{color:s.c}}>{s.v}</div>
+                <div className="stat-lbl">{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </>}
+        {workday&&!isAD&&(
+          <div style={{textAlign:"center",padding:"60px 0"}}>
+            <div style={{fontSize:64,marginBottom:16}}>{ds?.icon}</div>
+            <div style={{fontSize:24,fontWeight:900,color:"#111827"}}>{ds?.label}</div>
+            {ds?.note&&<div style={{fontSize:14,color:"#9ca3af",marginTop:4}}>{ds.note}</div>}
+            {workday.day_status==="messe"&&workday.event_name&&<div style={{fontSize:18,fontWeight:700,color:"#374151",marginTop:12}}>{workday.event_name}{workday.event_city?" · "+workday.event_city:""}</div>}
+            {workday.note&&<div style={{fontSize:16,color:"#9ca3af",marginTop:8,fontStyle:"italic"}}>{workday.note}</div>}
+          </div>
+        )}
+        {!workday&&<div style={{textAlign:"center",padding:"60px 0",color:"#d1d5db"}}><div style={{fontSize:48,marginBottom:12}}>📋</div><div style={{fontSize:16}}>Bitte richte den Tag im linken Bereich ein</div></div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── DAY SETUP ── */
+function DaySetupScreen({user,existing,onBack,onSave}){
+  const [step,setStep]=useState("type");
+  const [dayStatus,setDayStatus]=useState(existing?.day_status||"");
+  const [startLoc,setStartLoc]=useState(existing?.start_location||"");
+  const [overnight,setOvernight]=useState(existing?.overnight||"");
+  const [eventName,setEventName]=useState(existing?.event_name||"");
+  const [eventCity,setEventCity]=useState(existing?.event_city||"");
+  const [note,setNote]=useState(existing?.note||"");
+
+  const commit=(status,sl,on,en,ec,nt)=>onSave({user_id:user.id,date:TODAY,day_status:status,start_location:sl,overnight:on,event_name:en,event_city:ec,note:nt});
+  const pickType=val=>{
+    setDayStatus(val);
+    const noExtra=["homeoffice","buro","schulung","inventur","sonstige"];
+    const abs=["urlaub","krankheit","feiertag","fza","sonderurlaub","unbezahlt"];
+    if(val==="aussendienst") setStep("start");
+    else if(val==="messe")   setStep("messe");
+    else if(noExtra.includes(val)) setStep("note");
+    else if(abs.includes(val))     setStep("abs_confirm");
+  };
+
+  const content=()=>{
+    if(step==="type") return (
+      <div style={{maxWidth:520,width:"100%"}}>
+        {DAY_STATUS_GROUPS.map(g=>(
+          <div key={g.group} style={{marginBottom:12}}>
+            <div className="group-label">{g.group}</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {g.items.map(item=>(
+                <button key={item.value} className={"result-btn"+(dayStatus===item.value?" active":"")} onClick={()=>pickType(item.value)}>
+                  <span style={{fontSize:20,width:28,textAlign:"center",flexShrink:0}}>{item.icon}</span>
+                  <div style={{flex:1}}>
+                    <div className="result-lbl">{item.label}</div>
+                    {item.note&&<div className="result-sub">{item.note}</div>}
+                  </div>
+                  {dayStatus===item.value&&<span className="result-check">✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+    if(step==="start") return (
+      <div style={{maxWidth:480,width:"100%"}}>
+        <div className="card" style={{background:"#EFF6FC",border:"1px solid #BFDFEF",marginBottom:16}}>
+          <div style={{fontSize:15,color:"#1A5F8A",fontWeight:700}}>🚗 Kundentour — wo startest du heute?</div>
+        </div>
+        <div className="section-label">Startort *</div>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+          {LOCATION_TYPES.map(loc=>(
+            <button key={loc.value} className={"result-btn"+(startLoc===loc.value?" active":"")} onClick={()=>setStartLoc(loc.value)}>
+              <span style={{fontSize:22,width:28,textAlign:"center"}}>{loc.icon}</span>
+              <span className="result-lbl">{loc.label}</span>
+              {startLoc===loc.value&&<span className="result-check">✓</span>}
+            </button>
+          ))}
+        </div>
+        <button className="btn-primary" disabled={!startLoc} onClick={()=>commit("aussendienst",startLoc,"","","","")} style={{marginBottom:10}}>✓ BESTÄTIGEN</button>
+        <button onClick={()=>setStep("type")} style={{width:"100%",background:"none",border:"1.5px solid #e5e7eb",borderRadius:13,padding:"13px 0",fontWeight:700,fontSize:16,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>← Zurück zur Auswahl</button>
+      </div>
+    );
+    if(step==="messe") return (
+      <div style={{maxWidth:480,width:"100%"}}>
+        <div className="card" style={{background:"#f5f0ff",border:"1px solid #c4b5fd",marginBottom:16}}>
+          <div style={{fontSize:15,color:"#7c3aed",fontWeight:700}}>🎪 Veletrh / výstava — zadejte údaje</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:16}}>
+          <div>
+            <div className="section-label">Veranstaltungsname *</div>
+            <input placeholder="z. B. OPTI München" value={eventName} onChange={e=>setEventName(e.target.value)}/>
+          </div>
+          <div>
+            <div className="section-label">Stadt</div>
+            <input placeholder="z. B. München" value={eventCity} onChange={e=>setEventCity(e.target.value)}/>
+          </div>
+          <div>
+            <div className="section-label">Übernachtungsort</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {OVERNIGHT_TYPES.map(loc=>(
+                <button key={loc.value} className={"result-btn"+(overnight===loc.value?" active":"")} onClick={()=>setOvernight(loc.value)}>
+                  <span style={{fontSize:20,width:28,textAlign:"center"}}>{loc.icon}</span>
+                  <span className="result-lbl">{loc.label}</span>
+                  {overnight===loc.value&&<span className="result-check">✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <button className="btn-primary" disabled={!eventName} onClick={()=>commit("messe","",overnight,eventName,eventCity,"")} style={{marginBottom:10}}>✓ BESTÄTIGEN</button>
+        <button onClick={()=>setStep("type")} style={{width:"100%",background:"none",border:"1.5px solid #e5e7eb",borderRadius:13,padding:"13px 0",fontWeight:700,fontSize:16,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>← Zurück zur Auswahl</button>
+      </div>
+    );
+    if(step==="note"){
+      const ds=dsInfo(dayStatus);
+      return (
+        <div style={{maxWidth:480,width:"100%"}}>
+          <div className="card" style={{background:"#f0fdf4",border:"1px solid #86efac",marginBottom:16}}>
+            <div style={{fontSize:15,color:"#15803d",fontWeight:700}}>{ds?.icon} {ds?.label}{ds?.note?" — "+ds.note:""}</div>
+          </div>
+          <div style={{marginBottom:16}}>
+            <div className="section-label">Notiz (optional)</div>
+            <textarea rows={3} placeholder="Weitere Informationen…" value={note} onChange={e=>setNote(e.target.value)} style={{resize:"none"}}/>
+          </div>
+          <button className="btn-primary" onClick={()=>commit(dayStatus,"","","","",note)} style={{marginBottom:10}}>✓ BESTÄTIGEN</button>
+          <button onClick={()=>setStep("type")} style={{width:"100%",background:"none",border:"1.5px solid #e5e7eb",borderRadius:13,padding:"13px 0",fontWeight:700,fontSize:16,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>← Zurück zur Auswahl</button>
+        </div>
+      );
+    }
+    if(step==="abs_confirm"){
+      const ds=dsInfo(dayStatus);
+      return (
+        <div style={{maxWidth:480,width:"100%"}}>
+          <div className="card" style={{textAlign:"center",padding:40,marginBottom:16}}>
+            <div style={{fontSize:56,marginBottom:12}}>{ds?.icon}</div>
+            <div style={{fontSize:24,fontWeight:900,color:"#111827"}}>{ds?.label}</div>
+            {ds?.note&&<div style={{fontSize:14,color:"#9ca3af",marginTop:4}}>{ds.note}</div>}
+          </div>
+          <button className="btn-primary" onClick={()=>commit(dayStatus,"","","","","")} style={{marginBottom:10}}>✓ BESTÄTIGEN</button>
+          <button onClick={()=>setStep("type")} style={{width:"100%",background:"none",border:"1.5px solid #e5e7eb",borderRadius:13,padding:"13px 0",fontWeight:700,fontSize:16,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>← Zurück zur Auswahl</button>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <button className="back-btn" onClick={step==="type"?onBack:()=>setStep("type")}>‹</button>
+        <div>
+          <div className="panel-header-title">Tagesplanung</div>
+          <div className="panel-header-sub">{new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</div>
+        </div>
+      </div>
+      <div className="panel-body">{content()}</div>
+    </div>
+  );
+}
+
+/* ── OVERNIGHT ── */
+function OvernightScreen({workday,onBack,onSave}){
+  const [overnight,setOvernight]=useState(workday?.overnight||"");
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <button className="back-btn" onClick={onBack}>‹</button>
+        <div className="panel-header-title">Wo übernachtest du?</div>
+      </div>
+      <div className="panel-body">
+        <div style={{maxWidth:480,width:"100%"}}>
+          <div className="card" style={{background:"#fff7ed",border:"1px solid #fed7aa",marginBottom:16}}>
+            <div style={{fontSize:15,color:"#c2410c",fontWeight:700}}>🏨 Wo übernachtest du heute Nacht?</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            {OVERNIGHT_TYPES.map(loc=>(
+              <button key={loc.value} className={"result-btn"+(overnight===loc.value?" active":"")} onClick={()=>setOvernight(loc.value)}>
+                <span style={{fontSize:22,width:28,textAlign:"center"}}>{loc.icon}</span>
+                <span className="result-lbl">{loc.label}</span>
+                {overnight===loc.value&&<span className="result-check">✓</span>}
+              </button>
+            ))}
+          </div>
+          <button className="btn-primary" disabled={!overnight} onClick={()=>{if(overnight)onSave(overnight);}}>✓ BESTÄTIGEN</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── SEARCH ── */
+function CustomerSearchScreen({user,visits,onBack,onSelect}){
+  const NK_KEY="actio_new_cust_"+user.id;
+  const [q,setQ]=useState(""); const [pos,setPos]=useState(null);
+  const [newCusts,setNewCusts]=useState(()=>ls(NK_KEY,[]));
+  const [nkName,setNkName]=useState(""); const [nkCity,setNkCity]=useState("");
+  const [editNkId,setEditNkId]=useState(null);
+  useEffect(()=>{if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(p=>setPos({lat:p.coords.latitude,lng:p.coords.longitude}),()=>{});},[]);
+  useEffect(()=>{localStorage.setItem(NK_KEY,JSON.stringify(newCusts));},[newCusts]);
+  const mine=CUSTOMERS.filter(c=>c.rep_id===user.id);
+  const filtered=q.length>=1?mine.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())||c.city.toLowerCase().includes(q.toLowerCase())||c.postal.includes(q)):[];
+  const nearby=pos?[...mine].map(c=>({...c,_d:haversine(pos.lat,pos.lng,c.lat,c.lng)})).sort((a,b)=>a._d-b._d).slice(0,8):[];
+  const saveNk=()=>{
+    if(!nkName.trim())return;
+    if(editNkId){setNewCusts(p=>p.map(c=>c.id===editNkId?{...c,name:nkName.trim(),city:nkCity.trim()}:c));setEditNkId(null);}
+    else{setNewCusts(p=>[{id:"new_"+Date.now(),name:nkName.trim(),city:nkCity.trim(),postal:"",street:"",rep_id:user.id,lat:null,lng:null,isNew:true},...p]);}
+    setNkName("");setNkCity("");
+  };
+  const editNk=c=>{setEditNkId(c.id);setNkName(c.name);setNkCity(c.city);};
+  const cancelEdit=()=>{setEditNkId(null);setNkName("");setNkCity("");};
+  const deleteNk=id=>{setNewCusts(p=>p.filter(c=>c.id!==id));if(editNkId===id)cancelEdit();};
+  const Row=({c,dist})=>{
+    const last=[...visits].filter(v=>v.rep_id===user.id&&v.customer_id===c.id).sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at))[0];
+    const tod=last?.confirmed_at?.startsWith(TODAY);
+    return (
+      <button className="cust-row" onClick={()=>onSelect(c)}>
+        <div style={{width:46,height:46,borderRadius:"50%",background:"#EFF6FC",color:OG,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:16,flexShrink:0}}>{c.name.charAt(0)}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
+          <div style={{fontSize:14,color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.postal} {c.city} · {c.street}</div>
+        </div>
+        <div style={{flexShrink:0,textAlign:"right"}}>
+          {dist!==undefined&&<div style={{fontSize:14,color:"#9ca3af"}}>{dist<1000?dist+" m":(dist/1000).toFixed(1)+" km"}</div>}
+          {tod&&<div style={{fontSize:13,color:"#16a34a",fontWeight:700}}>✓ dnes</div>}
+        </div>
+      </button>
+    );
+  };
+  const nkBtnStyle={background:"none",border:"none",borderRadius:8,padding:"7px 10px",cursor:"pointer",fontSize:17,lineHeight:1};
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <button className="back-btn" onClick={onBack}>‹</button>
+        <div className="panel-header-title">Kunden auswählen</div>
+      </div>
+      <div className="panel-body">
+        <div style={{maxWidth:580,width:"100%"}}>
+          <input autoFocus placeholder="Optiker, Stadt, PLZ suchen..." value={q} onChange={e=>setQ(e.target.value)} style={{marginBottom:16}}/>
+          {q.length>=1?<>
+            <div className="section-label">Ergebnisse ({filtered.length})</div>
+            {filtered.length===0?<div style={{textAlign:"center",padding:"40px 0",color:"#d1d5db",fontSize:16}}>Kein Optiker gefunden</div>
+            :<div style={{display:"flex",flexDirection:"column",gap:8}}>{filtered.map(c=><Row key={c.id} c={c}/>)}</div>}
+          </>:<>
+            {nearby.length>0&&<>
+              <div className="section-label">Altkunde</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>{nearby.map(c=><Row key={c.id} c={c} dist={c._d}/>)}</div>
+            </>}
+            {nearby.length===0&&<div style={{textAlign:"center",padding:"32px 0 24px",color:"#d1d5db"}}><div style={{fontSize:36,marginBottom:10}}>🔍</div><div style={{fontSize:16}}>GPS lädt oder nicht verfügbar</div></div>}
+            <div className="section-label">Neukunde</div>
+            <div style={{background:"#f9fafb",borderRadius:14,padding:"16px",marginBottom:8,border:"1.5px solid #e5e7eb"}}>
+              <input placeholder="Geschäftsname" value={nkName} onChange={e=>setNkName(e.target.value)} style={{marginBottom:10}} onKeyDown={e=>e.key==="Enter"&&saveNk()}/>
+              <input placeholder="Stadt & PLZ (z. B. München 80333)" value={nkCity} onChange={e=>setNkCity(e.target.value)} style={{marginBottom:12}} onKeyDown={e=>e.key==="Enter"&&saveNk()}/>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={saveNk} disabled={!nkName.trim()||!nkCity.trim()} style={{flex:1,background:(nkName.trim()&&nkCity.trim())?OG:"#d1d5db",color:"white",border:"none",borderRadius:8,padding:"11px",fontWeight:700,cursor:(nkName.trim()&&nkCity.trim())?"pointer":"default",fontFamily:"inherit",fontSize:15,transition:"background .2s"}}>
+                  {editNkId?"Speichern ✓":"Hinzufügen +"}
+                </button>
+                {editNkId&&<button onClick={cancelEdit} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"11px 16px",cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:14}}>Abbrechen</button>}
+              </div>
+            </div>
+            {newCusts.length>0&&<>
+              <div className="section-label" style={{marginTop:20}}>Neue Kunden ({newCusts.length})</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {newCusts.map(c=>(
+                  <div key={c.id} style={{display:"flex",alignItems:"center",gap:6,background:"white",borderRadius:12,border:editNkId===c.id?"2px solid "+OG:"1.5px solid #e5e7eb",padding:"12px 14px",boxSizing:"border-box"}}>
+                    <button onClick={()=>onSelect(c)} style={{flex:1,background:"none",border:"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",padding:0}}>
+                      <div style={{fontWeight:700,fontSize:15,color:"#111827"}}>{c.name}</div>
+                      {c.city&&<div style={{fontSize:13,color:"#9ca3af",marginTop:2}}>{c.city}</div>}
+                    </button>
+                    <button onClick={()=>editNk(c)} title="Bearbeiten" style={{...nkBtnStyle,background:"#EFF6FC"}}>✏️</button>
+                    <button onClick={()=>deleteNk(c.id)} title="Löschen" style={{...nkBtnStyle,background:"#FEF2F2"}}>🗑️</button>
+                  </div>
+                ))}
+              </div>
+            </>}
+          </>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── CONFIRM ── */
+function VisitConfirmScreen({user,customer,onBack,onConfirm}){
+  const [pos,setPos]=useState(null); const [gpsErr,setGpsErr]=useState(null); const [loading,setLoading]=useState(true);
+  const [result,setResult]=useState(""); const [units,setUnits]=useState(""); const [note,setNote]=useState("");
+  const [saving,setSaving]=useState(false); const [done,setDone]=useState(false);
+  useEffect(()=>{
+    if(!navigator.geolocation){setGpsErr("GPS nicht verfügbar");setLoading(false);return;}
+    navigator.geolocation.getCurrentPosition(
+      p=>{setPos({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)});setLoading(false);},
+      ()=>{setGpsErr("GPS nicht verfügbar");setLoading(false);},
+      {enableHighAccuracy:true,timeout:12000}
+    );
+  },[]);
+  const dist=(pos&&!customer.isNew&&customer.lat!=null&&customer.lng!=null)?haversine(pos.lat,pos.lng,customer.lat,customer.lng):null;
+  const noGps=customer.isNew||customer.lat==null;
+  const gi=noGps
+    ?(loading?{cls:"load",icon:"⏳",text:"GPS wird geladen...",ok:false}
+      :pos?{cls:"ok",icon:"✅",text:"GPS-Standort erfasst",ok:true}
+      :{cls:"err",icon:"⚠️",text:"GPS nicht verfügbar",ok:false})
+    :gpsInfo(loading?null:dist);
+  const vs=noGps?(pos?"confirmed":"unknown"):dist===null?"unknown":dist<=150?"confirmed":dist<=300?"warning":"rejected";
+  const go=()=>{
+    if(!result||saving)return; setSaving(true);
+    setTimeout(()=>{onConfirm({id:Date.now(),rep_id:user.id,customer_id:customer.id,confirmed_at:new Date().toISOString(),distance:dist??9999,status:vs,result,units:result==="order"?(parseInt(units)||0):0,note});setDone(true);},900);
+  };
+  if(done) return (
+    <div className="main-panel" style={{alignItems:"center",justifyContent:"center",textAlign:"center"}}>
+      <div style={{padding:40}}>
+        <div style={{fontSize:72,marginBottom:16}}>✅</div>
+        <div style={{fontSize:28,fontWeight:900,color:"#111827",marginBottom:4}}>Gespeichert!</div>
+        <div style={{fontSize:16,color:"#6b7280"}}>{customer.name}</div>
+        {dist!==null&&!customer.isNew&&<div style={{fontSize:14,color:"#9ca3af",marginTop:4}}>GPS-Entfernung: {dist} m</div>}
+      </div>
+    </div>
+  );
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <button className="back-btn" onClick={onBack}>‹</button>
+        <div>
+          <div className="panel-header-title">Besuch bestätigen</div>
+          <div className="panel-header-sub">{customer.name}{customer.city?` · ${customer.city}`:""}</div>
+        </div>
+      </div>
+      <div className="panel-body">
+        <div style={{maxWidth:520,width:"100%",display:"flex",flexDirection:"column",gap:14}}>
+          <div className={"gps-box "+gi.cls}>
+            <div className="gps-text"><span style={{fontSize:18}}>{gi.icon}</span><span>{gpsErr||gi.text}</span></div>
+            {pos&&<div style={{fontSize:14,color:"#6b7280",marginTop:4}}>GPS-Genauigkeit: ±{pos.acc} m</div>}
+            {!customer.isNew&&dist!==null&&dist>300&&<div style={{fontSize:14,color:"#b91c1c",marginTop:6,fontWeight:600}}>Sie sind zu weit entfernt. Der Besuch wird zur Überprüfung markiert.</div>}
+          </div>
+          <div>
+            <div className="section-label">Besuchsergebnis *</div>
+            <div style={{display:"flex",flexDirection:"column",gap:7}}>
+              {RESULTS.map(r=>(
+                <button key={r.value} className={"result-btn"+(result===r.value?" active":"")} onClick={()=>setResult(r.value)}>
+                  <span style={{fontSize:18,width:24,textAlign:"center"}}>{r.icon}</span>
+                  <span className="result-lbl">{r.label}</span>
+                  {result===r.value&&<span className="result-check">✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="section-label">Notiz (optional)</div>
+            <textarea rows={2} placeholder="Kurze Notiz…" value={note} onChange={e=>setNote(e.target.value)} style={{resize:"none"}}/>
+          </div>
+          <button className="btn-primary" onClick={go} disabled={!result||saving}
+            style={{background:(!result||saving)?"#e5e7eb":OG,color:(!result||saving)?"#9ca3af":"white",cursor:(!result||saving)?"not-allowed":"pointer"}}>
+            {saving?"⏳ Wird gespeichert…":"KUNDENBESUCH BESTÄTIGEN"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── DASHBOARD ── */
+function DashboardScreen({visits,workdays}){
+  const [selRep,setSelRep]=useState(null);
+  const [view,setView]=useState("today");
+  const [repMonth,setRepMonth]=useState(TODAY.slice(0,7));
+  const [hoveredDay,setHoveredDay]=useState(null);
+  const [chartView,setChartView]=useState("bar");
+  const reps=USERS.filter(u=>u.role==="rep");
+  const tod=visits.filter(v=>v.confirmed_at.startsWith(TODAY));
+  const DOW=["So","Mo","Di","Mi","Do","Fr","Sa"];
+  const adjMonth=n=>{const [y,m]=repMonth.split("-").map(Number);const d=new Date(y,m-1+n,1);setRepMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);};
+  const monthLabel=()=>{const [y,m]=repMonth.split("-").map(Number);return new Date(y,m-1,1).toLocaleDateString("de-DE",{month:"long",year:"numeric"});};
+  const getMonthDays=()=>{const [y,m]=repMonth.split("-").map(Number);const dim=new Date(y,m,0).getDate();return Array.from({length:dim},(_,i)=>{const d=i+1;const dateStr=`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;const wds=ls("actio_wd_"+dateStr,[]);const dayVisits=visits.filter(v=>v.confirmed_at.startsWith(dateStr));return {dateStr,d,dow:new Date(y,m-1,d).getDay(),wds,dayVisits};});};
+  // Helper: get last N days as date strings
+  const getLast7Days=()=>{return Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const ds=d.toISOString().slice(0,10);const dow=d.getDay();const isToday=ds===TODAY;return{dateStr:ds,d:d.getDate(),dow,isToday,dayVisits:visits.filter(v=>v.confirmed_at.startsWith(ds))};});};
+  const fmtConv=(v,o)=>v===0?"—":`${Math.round(o/v*100)}%`;
+
+  // Monthly detail for one rep
+  if(selRep&&view==="month"){
+    const mdays=getMonthDays();
+    const activeDays=mdays.filter(day=>day.wds.find(w=>w.user_id===selRep.id)||day.dayVisits.filter(v=>v.rep_id===selRep.id).length>0);
+    const totalAD=mdays.filter(day=>day.wds.find(w=>w.user_id===selRep.id&&w.day_status==="aussendienst")).length;
+    const totalVisits=mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===selRep.id).length,0);
+    const totalOrders=mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===selRep.id&&v.result==="order").length,0);
+    return (
+      <div className="main-panel">
+        <div className="panel-header">
+          <button className="back-btn" onClick={()=>setSelRep(null)}>‹</button>
+          <div style={{flex:1}}>
+            <div className="panel-header-title">{selRep.name}</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:2}}>
+              <button onClick={()=>adjMonth(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 4px",color:"#9ca3af"}}>‹</button>
+              <span style={{fontSize:13,fontWeight:600,color:"#6b7280"}}>{monthLabel()}</span>
+              <button onClick={()=>adjMonth(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 4px",color:"#9ca3af"}}>›</button>
+            </div>
+          </div>
+        </div>
+        <div className="panel-body">
+          <div style={{maxWidth:600,width:"100%"}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+              {[{l:"AD-Tage",v:totalAD,c:OG},{l:"Besuche",v:totalVisits,c:"#374151"},{l:"Bestellungen",v:totalOrders,c:"#16a34a"}].map(s=>(
+                <div key={s.l} className="stat-box"><div className="stat-num" style={{color:s.c}}>{s.v}</div><div className="stat-lbl">{s.l}</div></div>
+              ))}
+            </div>
+            {activeDays.length===0?<div style={{textAlign:"center",padding:"48px 0",color:"#d1d5db"}}><div style={{fontSize:40,marginBottom:12}}>📋</div>Keine Einträge</div>
+            :<div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+              {activeDays.map((day,i)=>{
+                const wd=day.wds.find(w=>w.user_id===selRep.id);
+                const ds=wd?dsInfo(wd.day_status):null;
+                const rv=day.dayVisits.filter(v=>v.rep_id===selRep.id);
+                const orders=rv.filter(v=>v.result==="order").length;
+                const isWE=day.dow===0||day.dow===6;
+                return (
+                  <div key={day.dateStr} style={{display:"grid",gridTemplateColumns:"72px 24px 1fr 36px 56px",alignItems:"center",padding:"11px 16px",borderBottom:i<activeDays.length-1?"1px solid #f9fafb":"none",background:isWE?"#fafafa":"white",gap:8}}>
+                    <div style={{fontSize:13,fontWeight:600,color:"#374151"}}>{String(day.d).padStart(2,"0")}.{repMonth.slice(5)} <span style={{color:"#9ca3af",fontWeight:400}}>{DOW[day.dow]}</span></div>
+                    <div style={{fontSize:17,textAlign:"center"}}>{ds?.icon||"—"}</div>
+                    <div style={{fontSize:13,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ds?.label||"—"}{wd?.day_status==="messe"&&wd.event_name?` · ${wd.event_name}`:""}</div>
+                    <div style={{fontSize:14,fontWeight:900,color:rv.length>0?OG:"#d1d5db",textAlign:"center"}}>{rv.length>0?rv.length:"—"}</div>
+                    <div style={{fontSize:13,fontWeight:700,color:orders>0?"#16a34a":"#d1d5db",textAlign:"right"}}>{orders>0?`${orders} Best.`:"—"}</div>
+                  </div>
+                );
+              })}
+            </div>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Today's detail for one rep
+  if(selRep){
+    const rv=tod.filter(v=>v.rep_id===selRep.id).sort((a,b)=>a.confirmed_at.localeCompare(b.confirmed_at));
+    const wd=workdays.find(w=>w.user_id===selRep.id&&w.date===TODAY);
+    const ds=wd?dsInfo(wd.day_status):null;
+    return (
+      <div className="main-panel">
+        <div className="panel-header">
+          <button className="back-btn" onClick={()=>setSelRep(null)}>‹</button>
+          <div><div className="panel-header-title">{selRep.name}</div><div className="panel-header-sub">{ds?ds.label:"—"} · {selRep.territory}</div></div>
+        </div>
+        <div className="panel-body">
+          <div style={{maxWidth:600,width:"100%"}}>
+          {wd&&<div className="card" style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+            <span style={{fontSize:24}}>{ds?.icon||"❓"}</span>
+            <div><div style={{fontWeight:700,fontSize:16}}>{ds?.label}</div>
+              {wd.day_status==="aussendienst"&&<div style={{fontSize:12,color:"#9ca3af"}}>Start: {locInfo(wd.start_location)?.label||"—"} · Übernachtung: {wd.overnight?overnightLocInfo(wd.overnight)?.label:"—"}</div>}
+              {wd.day_status==="messe"&&<div style={{fontSize:14,color:"#9ca3af"}}>{wd.event_name}{wd.event_city?" · "+wd.event_city:""}</div>}
+            </div>
+          </div>}
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {rv.length===0&&<div style={{textAlign:"center",padding:"48px 0",color:"#d1d5db"}}><div style={{fontSize:40,marginBottom:12}}>📭</div>Keine Einträge heute</div>}
+            {rv.map(v=>{
+              const c=CUSTOMERS.find(c=>c.id===v.customer_id);
+              return (
+                <div key={v.id} className="card">
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                    <span style={{fontSize:15,fontWeight:900,color:"#4b5563"}}>{fmtT(v.confirmed_at)}</span>
+                    <span className={"badge "+(v.status==="confirmed"?"badge-ok":v.status==="warning"?"badge-warn":"badge-err")}>{v.distance} m</span>
+                    <span style={{marginLeft:"auto",fontSize:16}}>{ri(v.result)}</span>
+                  </div>
+                  <div style={{fontWeight:700,fontSize:14,color:"#111827"}}>{c?.name}</div>
+                  <div style={{fontSize:14,color:"#6b7280"}}>{c?.postal} {c?.city} · {rl(v.result)}</div>
+                  {v.note&&<div style={{fontSize:14,color:"#9ca3af",marginTop:4,fontStyle:"italic"}}>„{v.note}"</div>}
+                </div>
+              );
+            })}
+          </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const stats=reps.map(r=>{
+    const wd=workdays.find(w=>w.user_id===r.id&&w.date===TODAY);
+    const ds=wd?dsInfo(wd.day_status):null;
+    const repVisits=tod.filter(v=>v.rep_id===r.id);
+    const overnight=wd?.overnight?overnightLocInfo(wd.overnight)?.label:null;
+    const statusText=ds?(wd.day_status==="messe"&&wd.event_name?wd.event_name:ds.label):"—";
+    return {...r,wd,ds,repVisits,overnight,statusText};
+  });
+  const tot={v:tod.length,o:tod.filter(v=>v.result==="order").length,f:tod.filter(v=>v.status==="rejected").length,conv:fmtConv(tod.length,tod.filter(v=>v.result==="order").length)};
+
+  // 7-day overview
+  if(view==="week"){
+    const days=getLast7Days();
+    return (
+      <div className="main-panel">
+        <div className="panel-header">
+          <div style={{flex:1}}>
+            <div className="panel-header-title">Letzte 7 Tage</div>
+            <div className="panel-header-sub">Teamübersicht</div>
+          </div>
+          <button onClick={()=>setView("today")} style={{background:"none",border:"1.5px solid #e5e7eb",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>Heute</button>
+        </div>
+        <div className="panel-body">
+          <div style={{maxWidth:680,width:"100%"}}>
+            {/* Summary row */}
+            {reps.map(r=>{
+              const repTotal=days.reduce((s,d)=>s+d.dayVisits.filter(v=>v.rep_id===r.id).length,0);
+              const repOrders=days.reduce((s,d)=>s+d.dayVisits.filter(v=>v.rep_id===r.id&&v.result==="order").length,0);
+              return (
+                <div key={r.id} style={{marginBottom:24}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                    <div style={{width:32,height:32,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,flexShrink:0}}>{r.initials}</div>
+                    <div style={{fontWeight:700,fontSize:15,color:"#111827"}}>{r.name}</div>
+                    <div style={{marginLeft:"auto",display:"flex",gap:12}}>
+                      <span style={{fontSize:13,color:"#6b7280"}}>{repTotal} Bes.</span>
+                      <span style={{fontSize:13,fontWeight:700,color:repOrders>0?"#16a34a":"#9ca3af"}}>{repOrders} Best.</span>
+                      <span style={{fontSize:13,fontWeight:700,color:"#6366f1"}}>{fmtConv(repTotal,repOrders)}</span>
+                    </div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+                    {days.map(day=>{
+                      const dv=day.dayVisits.filter(v=>v.rep_id===r.id);
+                      const do_=dv.filter(v=>v.result==="order").length;
+                      const isWE=day.dow===0||day.dow===6;
+                      return (
+                        <div key={day.dateStr} style={{background:day.isToday?"#fff7ed":isWE?"#f9fafb":"white",border:day.isToday?"1.5px solid "+OG:"1px solid #f0f0f0",borderRadius:10,padding:"8px 4px",textAlign:"center",minHeight:70}}>
+                          <div style={{fontSize:10,fontWeight:700,color:day.isToday?OG:"#9ca3af",textTransform:"uppercase",marginBottom:4}}>{DOW[day.dow]}</div>
+                          <div style={{fontSize:11,color:"#9ca3af",marginBottom:6}}>{String(day.d).padStart(2,"0")}</div>
+                          {dv.length>0?(
+                            <>
+                              <div style={{fontSize:18,fontWeight:900,color:OG,lineHeight:1}}>{dv.length}</div>
+                              {do_>0&&<div style={{fontSize:11,fontWeight:700,color:"#16a34a",marginTop:2}}>{do_}✓</div>}
+                            </>
+                          ):<div style={{fontSize:16,color:"#e5e7eb",marginTop:4}}>—</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Monthly overview
+  if(view==="month"){
+    const mdays=getMonthDays();
+    return (
+      <div className="main-panel">
+        <div className="panel-header">
+          <div style={{flex:1}}>
+            <div className="panel-header-title">Monatsreport</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
+              <button onClick={()=>adjMonth(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:"2px 6px",color:"#9ca3af"}}>‹</button>
+              <span style={{fontSize:14,fontWeight:600,color:"#374151"}}>{monthLabel()}</span>
+              <button onClick={()=>adjMonth(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:"2px 6px",color:"#9ca3af"}}>›</button>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>setView("today")} style={{background:"none",border:"1.5px solid #e5e7eb",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>Heute</button>
+          </div>
+        </div>
+        <div className="panel-body">
+          <div style={{maxWidth:680,width:"100%"}}>
+            <div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+              <div style={{display:"grid",gridTemplateColumns:"1.5fr 70px 80px 90px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
+                {["Vertreter","AD-Tage","Besuche","Bestellungen"].map(h=>(
+                  <div key={h} style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em"}}>{h}</div>
+                ))}
+              </div>
+              {reps.map((r,i)=>{
+                const totalAD=mdays.filter(day=>day.wds.find(w=>w.user_id===r.id&&w.day_status==="aussendienst")).length;
+                const totalVisits=mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===r.id).length,0);
+                const totalOrders=mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===r.id&&v.result==="order").length,0);
+                return (
+                  <button key={r.id} onClick={()=>setSelRep(r)}
+                    style={{display:"grid",gridTemplateColumns:"1.5fr 70px 80px 90px",width:"100%",padding:"13px 16px",background:"white",border:"none",borderBottom:i<reps.length-1?"1px solid #f9fafb":"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",alignItems:"center"}}
+                    onMouseOver={e=>e.currentTarget.style.background="#f9fafb"} onMouseOut={e=>e.currentTarget.style.background="white"}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <div style={{width:32,height:32,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,flexShrink:0}}>{r.initials}</div>
+                      <div><div style={{fontSize:15,fontWeight:700,color:"#111827"}}>{r.name}</div><div style={{fontSize:12,color:"#9ca3af"}}>{r.territory}</div></div>
+                    </div>
+                    <div style={{fontSize:17,fontWeight:900,color:totalAD>0?OG:"#d1d5db",textAlign:"center"}}>{totalAD||"—"}</div>
+                    <div style={{fontSize:17,fontWeight:900,color:totalVisits>0?"#374151":"#d1d5db",textAlign:"center"}}>{totalVisits||"—"}</div>
+                    <div style={{fontSize:17,fontWeight:900,color:totalOrders>0?"#16a34a":"#d1d5db",textAlign:"center"}}>{totalOrders||"—"}</div>
+                  </button>
+                );
+              })}
+            </div>
+            {/* ── Chart view toggle ── */}
+            <div style={{display:"flex",gap:8,marginTop:12}}>
+              {["bar","heatmap"].map(cv=>(
+                <button key={cv} onClick={()=>{setChartView(cv);setHoveredDay(null);}} style={{padding:"5px 16px",borderRadius:8,border:"1.5px solid "+(chartView===cv?"#e87722":"#e5e7eb"),background:chartView===cv?"#fff7ed":"white",fontWeight:700,fontSize:12,cursor:"pointer",color:chartView===cv?"#e87722":"#6b7280",fontFamily:"inherit",transition:"all .15s"}}>
+                  {cv==="bar"?"Balken":"Heatmap"}
+                </button>
+              ))}
+            </div>
+            {/* ── CHART 1: Tagesübersicht (bar chart + tooltip) + Line chart ── */}
+            {chartView==="bar"&&(()=>{
+              const maxV=Math.max(1,...mdays.map(d=>d.dayVisits.length));
+              const n=mdays.length;
+              const W=640,H=160,pL=36,pR=8,pT=8,pB=24;
+              const pw=W-pL-pR,ph=H-pT-pB;
+              const slotW=pw/n;
+              const bw=Math.max(3,Math.min(9,slotW*0.38));
+              const lineH=90,linePT=10,linePB=20,linePH=lineH-linePT-linePB;
+              const linePoints=mdays.map((day,i)=>{
+                const v=day.dayVisits.length;
+                if(v===0) return null;
+                const o=day.dayVisits.filter(x=>x.result==="order").length;
+                const rate=Math.round(o/v*100);
+                return {x:pL+i*slotW+slotW/2,y:linePT+linePH-(linePH*rate/100),rate,dateStr:day.dateStr,d:day.d};
+              }).filter(Boolean);
+              return (
+                <div>
+                  {hoveredDay&&(
+                    <div style={{position:"fixed",left:hoveredDay.cx,top:hoveredDay.cy-10,transform:"translate(-50%,-100%)",background:"white",border:"1.5px solid #e87722",borderRadius:8,padding:"8px 12px",fontSize:12,fontWeight:600,zIndex:1000,pointerEvents:"none",boxShadow:"0 4px 12px rgba(0,0,0,.15)",whiteSpace:"nowrap"}}>
+                      <div style={{color:"#374151",marginBottom:3}}>{hoveredDay.dateStr}</div>
+                      <div style={{display:"flex",gap:10}}>
+                        <span style={{color:"#e87722"}}>● {hoveredDay.v} Besuche</span>
+                        <span style={{color:"#16a34a"}}>● {hoveredDay.o} Best.</span>
+                      </div>
+                    </div>
+                  )}
+                  <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:12}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#374151"}}>Tagesübersicht</div>
+                      <div style={{display:"flex",gap:14}}>
+                        <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,background:"#e87722",borderRadius:2}}/><span style={{fontSize:11,color:"#6b7280"}}>Besuche</span></div>
+                        <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,background:"#16a34a",borderRadius:2}}/><span style={{fontSize:11,color:"#6b7280"}}>Bestellungen</span></div>
+                      </div>
+                    </div>
+                    <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",display:"block"}}>
+                      {[0,0.25,0.5,0.75,1].map(f=>{
+                        const y=pT+ph-ph*f;
+                        return (
+                          <g key={f}>
+                            <line x1={pL} y1={y} x2={W-pR} y2={y} stroke="#f3f4f6" strokeWidth="1"/>
+                            {f>0&&<text x={pL-4} y={y+4} textAnchor="end" fontSize="9" fill="#9ca3af">{Math.round(maxV*f)}</text>}
+                          </g>
+                        );
+                      })}
+                      {mdays.map((day,i)=>{
+                        const v=day.dayVisits.length;
+                        const o=day.dayVisits.filter(x=>x.result==="order").length;
+                        const cx=pL+i*slotW+slotW/2;
+                        const vh=v>0?Math.max(2,ph*v/maxV):0;
+                        const oh=o>0?Math.max(2,ph*o/maxV):0;
+                        const isWE=day.dow===0||day.dow===6;
+                        const showLbl=i===0||(i+1)%5===0||i===n-1;
+                        return (
+                          <g key={day.dateStr} onMouseEnter={e=>setHoveredDay({dateStr:day.dateStr,v,o,cx:e.clientX,cy:e.clientY})} onMouseLeave={()=>setHoveredDay(null)} style={{cursor:"pointer"}}>
+                            {isWE&&<rect x={pL+i*slotW} y={pT} width={slotW} height={ph} fill="#f9fafb"/>}
+                            <rect x={pL+i*slotW} y={pT} width={slotW} height={ph+pB} fill="transparent"/>
+                            <rect x={cx-bw-1} y={pT+ph-vh} width={bw} height={vh} fill="#e87722" rx="2"/>
+                            <rect x={cx+1} y={pT+ph-oh} width={bw} height={oh} fill="#16a34a" rx="2"/>
+                            {showLbl&&<text x={cx} y={H-6} textAnchor="middle" fontSize="9" fill="#9ca3af">{day.d}</text>}
+                          </g>
+                        );
+                      })}
+                      <line x1={pL} y1={pT+ph} x2={W-pR} y2={pT+ph} stroke="#e5e7eb" strokeWidth="1"/>
+                    </svg>
+                  </div>
+                  {/* ── Line chart: Konversionsrate ── */}
+                  <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:10}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#374151"}}>Konversionsrate</div>
+                      <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,background:"#6366f1",borderRadius:99}}/><span style={{fontSize:11,color:"#6b7280"}}>Rate (%)</span></div>
+                    </div>
+                    <svg viewBox={`0 0 ${W} ${lineH}`} style={{width:"100%",height:"auto",display:"block"}}>
+                      {[0,25,50,75,100].map(pct=>{
+                        const y=linePT+linePH-(linePH*pct/100);
+                        return (
+                          <g key={pct}>
+                            <line x1={pL} y1={y} x2={W-pR} y2={y} stroke="#f3f4f6" strokeWidth="1"/>
+                            <text x={pL-4} y={y+4} textAnchor="end" fontSize="9" fill="#9ca3af">{pct}%</text>
+                          </g>
+                        );
+                      })}
+                      {linePoints.length>1&&<polyline points={linePoints.map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke="#6366f1" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>}
+                      {linePoints.map(p=>(
+                        <circle key={p.dateStr} cx={p.x} cy={p.y} r="3" fill="#6366f1" stroke="white" strokeWidth="1.5"/>
+                      ))}
+                      <line x1={pL} y1={linePT+linePH} x2={W-pR} y2={linePT+linePH} stroke="#e5e7eb" strokeWidth="1"/>
+                    </svg>
+                  </div>
+                </div>
+              );
+            })()}
+            {/* ── HEATMAP ── */}
+            {chartView==="heatmap"&&(()=>{
+              const [hy,hm]=repMonth.split("-").map(Number);
+              const daysInMonth=new Date(hy,hm,0).getDate();
+              const firstDow=(new Date(hy,hm-1,1).getDay()+6)%7;
+              const wdLabels=["Po","Út","St","Čt","Pá","So","Ne"];
+              const heatColor=cnt=>cnt===0?"#f3f4f6":cnt<=2?"#fed7aa":cnt<=5?"#fb923c":"#e87722";
+              const cells=[];
+              for(let i=0;i<firstDow;i++) cells.push(null);
+              for(let d=1;d<=daysInMonth;d++){
+                const dateStr=`${hy}-${String(hm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                const cnt=visits.filter(v=>v.confirmed_at.startsWith(dateStr)).length;
+                const ord=visits.filter(v=>v.confirmed_at.startsWith(dateStr)&&v.result==="order").length;
+                cells.push({d,dateStr,cnt,ord});
+              }
+              const weeks=[];
+              for(let i=0;i<cells.length;i+=7) weeks.push(cells.slice(i,i+7));
+              return (
+                <div>
+                  {hoveredDay&&(
+                    <div style={{position:"fixed",left:hoveredDay.cx,top:hoveredDay.cy-10,transform:"translate(-50%,-100%)",background:"white",border:"1.5px solid #e87722",borderRadius:8,padding:"8px 12px",fontSize:12,fontWeight:600,zIndex:1000,pointerEvents:"none",boxShadow:"0 4px 12px rgba(0,0,0,.15)",whiteSpace:"nowrap"}}>
+                      <div style={{color:"#374151",marginBottom:3}}>{hoveredDay.dateStr}</div>
+                      <div style={{display:"flex",gap:10}}>
+                        <span style={{color:"#e87722"}}>● {hoveredDay.v} Besuche</span>
+                        <span style={{color:"#16a34a"}}>● {hoveredDay.o} Best.</span>
+                      </div>
+                    </div>
+                  )}
+                  <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:12}}>
+                    <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:12}}>Heatmap — {monthLabel()}</div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:6}}>
+                      {wdLabels.map(d=><div key={d} style={{fontSize:11,fontWeight:700,color:"#9ca3af",textAlign:"center"}}>{d}</div>)}
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      {weeks.map((week,wi)=>(
+                        <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+                          {Array.from({length:7},(_,ci)=>{
+                            const cell=week[ci];
+                            if(!cell) return <div key={ci}/>;
+                            return (
+                              <div key={cell.dateStr}
+                                style={{aspectRatio:"1",background:heatColor(cell.cnt),borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:cell.cnt>2?"#7c2d00":"#6b7280",cursor:"default"}}
+                                onMouseEnter={e=>setHoveredDay({dateStr:cell.dateStr,v:cell.cnt,o:cell.ord,cx:e.clientX,cy:e.clientY})}
+                                onMouseLeave={()=>setHoveredDay(null)}
+                              >{cell.d}</div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{display:"flex",gap:8,marginTop:12,alignItems:"center"}}>
+                      <span style={{fontSize:11,color:"#9ca3af"}}>Weniger</span>
+                      {["#f3f4f6","#fed7aa","#fb923c","#e87722"].map((c,i)=><div key={i} style={{width:14,height:14,background:c,borderRadius:3}}/>)}
+                      <span style={{fontSize:11,color:"#9ca3af"}}>Mehr</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+            {/* ── CHART 2: Vertreter im Überblick (progress bars + trends) ── */}
+            {(()=>{
+              const now=new Date();
+              const dow=now.getDay();
+              const daysFromMon=dow===0?6:dow-1;
+              const daysCount=daysFromMon+1;
+              const weekVisits=(repId,offsetWeeks)=>{
+                let total=0;
+                const base=new Date(now);
+                base.setDate(now.getDate()-daysFromMon-offsetWeeks*7);
+                for(let i=0;i<daysCount;i++){
+                  const d=new Date(base);d.setDate(base.getDate()+i);
+                  total+=visits.filter(v=>v.rep_id===repId&&v.confirmed_at.startsWith(d.toISOString().slice(0,10))).length;
+                }
+                return total;
+              };
+              const repStats=reps.map(r=>({
+                ...r,
+                totalV:mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===r.id).length,0),
+                totalO:mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===r.id&&v.result==="order").length,0),
+                thisW:weekVisits(r.id,0),
+                lastW:weekVisits(r.id,1),
+              }));
+              const maxV=Math.max(1,...repStats.map(r=>r.totalV));
+              return (
+                <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:12,marginBottom:4}}>
+                  <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:14}}>Vertreter im Überblick</div>
+                  {repStats.map((r,ri)=>{
+                    const conv=r.totalV>0?Math.round(r.totalO/r.totalV*100):0;
+                    const vPct=Math.round(r.totalV/maxV*100);
+                    const diff=r.lastW===0?(r.thisW>0?100:0):Math.round((r.thisW-r.lastW)/r.lastW*100);
+                    const tDir=diff>5?"up":diff<-5?"down":"flat";
+                    return (
+                      <div key={r.id} style={{marginBottom:ri<repStats.length-1?16:0}}>
+                        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:7}}>
+                          <div style={{width:28,height:28,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,flexShrink:0}}>{r.initials}</div>
+                          <div style={{flex:1,fontWeight:700,fontSize:14,color:"#111827"}}>{r.name}<span style={{fontSize:12,fontWeight:700,marginLeft:8,color:tDir==="up"?"#16a34a":tDir==="down"?"#dc2626":"#9ca3af"}}>{tDir==="up"?"↑":tDir==="down"?"↓":"→"} {diff>0?"+":""}{diff}%</span></div>
+                          <div style={{fontSize:12,color:"#6b7280"}}><span style={{fontWeight:700,color:"#e87722"}}>{r.totalV}</span> Besuche</div>
+                          <div style={{fontSize:12,fontWeight:700,color:"#16a34a",minWidth:60,textAlign:"right"}}>{conv>0?conv+"% Konv.":"—"}</div>
+                        </div>
+                        <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                          <div style={{height:9,background:"#f3f4f6",borderRadius:5,overflow:"hidden"}}>
+                            <div style={{height:"100%",width:vPct+"%",background:"#e87722",borderRadius:5}}/>
+                          </div>
+                          <div style={{height:6,background:"#f3f4f6",borderRadius:3,overflow:"hidden"}}>
+                            <div style={{height:"100%",width:conv+"%",background:"#16a34a",borderRadius:3}}/>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Default: today
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <div style={{flex:1}}>
+          <div className="panel-header-title">Dashboard</div>
+          <div className="panel-header-sub">{new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setView("week")} style={{background:view==="week"?"#4b5563":"#f3f4f6",border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:view==="week"?"white":"#374151",fontFamily:"inherit"}}>7 Tage</button>
+          <button onClick={()=>setView("month")} style={{background:OG,border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"white",fontFamily:"inherit"}}>Monatsreport</button>
+        </div>
+      </div>
+      <div className="panel-body">
+        <div style={{maxWidth:680,width:"100%"}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:28}}>
+          {[{l:"Besuche",v:tot.v,c:OG},{l:"Bestellungen",v:tot.o,c:"#16a34a"},{l:"Konversionsrate",v:tot.conv,c:"#6366f1"},{l:"Zur Überprüfung",v:tot.f,c:"#dc2626"}].map(s=>(
+            <div key={s.l} className="stat-box"><div className="stat-num" style={{color:s.c,fontSize:typeof s.v==="string"?22:28}}>{s.v}</div><div className="stat-lbl">{s.l}</div></div>
+          ))}
+        </div>
+        <div className="section-label">Teamübersicht — heute</div>
+        <div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:24}}>
+          <div style={{display:"grid",gridTemplateColumns:"1.5fr 1.5fr 80px 100px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
+            {["Vertreter","Status","Besuche","Übernachtung"].map(h=>(
+              <div key={h} style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em"}}>{h}</div>
+            ))}
+          </div>
+          {stats.map((r,i)=>(
+            <button key={r.id} onClick={()=>setSelRep(r)}
+              style={{display:"grid",gridTemplateColumns:"1.5fr 1.5fr 80px 100px",width:"100%",padding:"13px 16px",background:"white",border:"none",borderBottom:i<stats.length-1?"1px solid #f9fafb":"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",transition:"background .1s",alignItems:"center"}}
+              onMouseOver={e=>e.currentTarget.style.background="#f9fafb"} onMouseOut={e=>e.currentTarget.style.background="white"}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,flexShrink:0}}>{r.initials}</div>
+                <div><div style={{fontSize:15,fontWeight:700,color:"#111827"}}>{r.name}</div><div style={{fontSize:13,color:"#9ca3af"}}>{r.territory}</div></div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:16}}>{r.ds?.icon||"❓"}</span>
+                <span style={{fontSize:15,color:"#374151"}}>{r.statusText}</span>
+              </div>
+              <div style={{textAlign:"center",fontSize:17,fontWeight:900,color:r.repVisits.length>0?OG:"#d1d5db"}}>
+                {r.wd?.day_status==="aussendienst"?r.repVisits.length:"—"}
+              </div>
+              <div style={{fontSize:14,color:"#6b7280"}}>{r.overnight||"—"}</div>
+            </button>
+          ))}
+        </div>
+        {tot.f>0&&<>
+          <div className="section-label" style={{color:"#f87171"}}>⚠ Zur Überprüfung ({tot.f})</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {tod.filter(v=>v.status==="rejected").map(v=>{
+              const c=CUSTOMERS.find(c=>c.id===v.customer_id);
+              const r=USERS.find(u=>u.id===v.rep_id);
+              return (
+                <div key={v.id} style={{background:"#fef2f2",border:"1.5px solid #fca5a5",borderRadius:12,padding:12}}>
+                  <div style={{fontSize:16,fontWeight:700,color:"#b91c1c"}}>{r?.name} · {c?.name}</div>
+                  <div style={{fontSize:14,color:"#ef4444"}}>{fmtT(v.confirmed_at)} · {v.distance} m · {rl(v.result)}</div>
+                </div>
+              );
+            })}
+          </div>
+        </>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── ROOT ── */
+function ls(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch{return def;}}
+function App(){
+  const savedId=localStorage.getItem("actio_uid");
+  const savedUser=savedId?USERS.find(u=>u.id===parseInt(savedId)):null;
+  const [screen,setScreen]=useState(savedUser?(savedUser.role==="manager"?"dashboard":"home"):"login");
+  const [user,setUser]=useState(savedUser||null);
+  const [visits,setVisits]=useState(()=>{
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
+    const cutStr=cutoff.toISOString().split("T")[0];
+    const all=ls("actio_visits",INIT_VISITS);
+    return all.filter(v=>v.confirmed_at.split("T")[0]>=cutStr);
+  });
+  // workdays keyed by date — auto-resets each day
+  const [workdays,setWorkdays]=useState(()=>ls("actio_wd_"+TODAY,[]));
+  const [cust,setCust]=useState(null);
+
+  useEffect(()=>{localStorage.setItem("actio_visits",JSON.stringify(visits));},[visits]);
+  useEffect(()=>{localStorage.setItem("actio_wd_"+TODAY,JSON.stringify(workdays));},[workdays]);
+
+  const login=u=>{localStorage.setItem("actio_uid",u.id);setUser(u);setScreen(u.role==="manager"?"dashboard":"home");};
+  const logout=()=>{localStorage.removeItem("actio_uid");setUser(null);setScreen("login");};
+  const addVisit=v=>{setVisits(p=>[v,...p]);setScreen("home");};
+  const deleteVisit=id=>{setVisits(p=>p.filter(v=>v.id!==id));};
+  const editVisit=(id,changes)=>{setVisits(p=>p.map(v=>v.id===id?{...v,...changes}:v));};
+  const myWorkday=user?workdays.find(w=>w.user_id===user.id&&w.date===TODAY):null;
+  const saveWorkday=wd=>{
+    setWorkdays(p=>[...p.filter(w=>!(w.user_id===user.id&&w.date===TODAY)),{...wd,id:Date.now()}]);
+    setScreen("home");
+  };
+  const saveOvernight=overnight=>{
+    setWorkdays(p=>p.map(w=>(w.user_id===user.id&&w.date===TODAY)?{...w,overnight}:w));
+    setScreen("home");
+  };
+
+  if(screen==="login") return <LoginScreen onLogin={login}/>;
+
+  return (
+    <div className="app-root">
+      <Sidebar user={user} workday={myWorkday} onLogout={logout} onSetDay={()=>setScreen("dayset")}/>
+      {screen==="home"      && <HomeScreen user={user} visits={visits} workday={myWorkday} onNewVisit={()=>setScreen("search")} onSetOvernight={()=>setScreen("overnight")} onDeleteVisit={deleteVisit} onEditVisit={editVisit}/>}
+      {screen==="dayset"    && <DaySetupScreen user={user} existing={myWorkday} onBack={()=>setScreen("home")} onSave={saveWorkday}/>}
+      {screen==="overnight" && <OvernightScreen workday={myWorkday} onBack={()=>setScreen("home")} onSave={saveOvernight}/>}
+      {screen==="search"    && <CustomerSearchScreen user={user} visits={visits} onBack={()=>setScreen("home")} onSelect={c=>{setCust(c);setScreen("confirm");}}/>}
+      {screen==="confirm"   && <VisitConfirmScreen user={user} customer={cust} onBack={()=>setScreen("search")} onConfirm={addVisit}/>}
+      {screen==="dashboard" && <DashboardScreen visits={visits} workdays={workdays}/>}
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>, document.getElementById("root"));
+</script>
+<script>
+// PWA icon + manifest
+(function(){
+  // Generate icon via canvas
+  const c=document.createElement("canvas");
+  c.width=c.height=512;
+  const ctx=c.getContext("2d");
+  // Dark rounded background (same as sidebar #232323)
+  const r=90;
+  ctx.fillStyle="#232323";
+  ctx.beginPath();
+  ctx.moveTo(r,0);ctx.lineTo(512-r,0);ctx.quadraticCurveTo(512,0,512,r);
+  ctx.lineTo(512,512-r);ctx.quadraticCurveTo(512,512,512-r,512);
+  ctx.lineTo(r,512);ctx.quadraticCurveTo(0,512,0,512-r);
+  ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);
+  ctx.closePath();ctx.fill();
+  // Subtle circle decoration (like sidebar ::before)
+  ctx.fillStyle="rgba(255,255,255,.07)";
+  ctx.beginPath();ctx.arc(420,90,200,0,Math.PI*2);ctx.fill();
+  // "Iris" centered
+  ctx.fillStyle="white";
+  ctx.font="bold 140px Montserrat,Arial,sans-serif";
+  ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText("Iris",256,256);
+  const iconUrl=c.toDataURL("image/png");
+  document.getElementById("pwa-icon").href=iconUrl;
+  // Manifest
+  const m={name:"Iris – Prague Eyewear",short_name:"Iris",start_url:"/",display:"standalone",background_color:"#232323",theme_color:"#232323",icons:[{src:iconUrl,sizes:"512x512",type:"image/png"}]};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:"application/json"}));
+  document.getElementById("pwa-manifest").href=url;
+})();
+</script>
+</body>
+</html>
