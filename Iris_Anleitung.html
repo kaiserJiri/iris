@@ -172,6 +172,24 @@
       font-family: inherit;
     }
 
+    .option-list {
+      margin: 12px 0 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .option-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: white;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 11px 16px;
+    }
+    .option-item span { font-size: 20px; flex-shrink: 0; }
+    .option-item strong { font-weight: 700; color: #111827; }
+
     @media (max-width: 700px) {
       .sidebar { display: none; }
       .content { padding: 28px 20px; }
@@ -192,8 +210,8 @@
     <a href="#anmeldung" class="nav-link active">
       <span class="nav-num">1</span>Anmeldung
     </a>
-    <a href="#kunden" class="nav-link">
-      <span class="nav-num">2</span>Kunden
+    <a href="#tagesplanung" class="nav-link">
+      <span class="nav-num">2</span>Tagesplanung
     </a>
     <a href="#besuch" class="nav-link">
       <span class="nav-num">3</span>Besuch erfassen
@@ -201,8 +219,8 @@
     <a href="#uebernachtung" class="nav-link">
       <span class="nav-num">4</span>Übernachtung
     </a>
-    <a href="#abschluss" class="nav-link">
-      <span class="nav-num">5</span>Tagesabschluss
+    <a href="#bearbeiten" class="nav-link">
+      <span class="nav-num">5</span>Bearbeiten &amp; Löschen
     </a>
     <a href="#install" class="nav-link">
       <span class="nav-num">6</span>App installieren
@@ -213,10 +231,6 @@
   <main class="content">
     <div class="page-title">Iris · Benutzerhandbuch</div>
     <div class="page-sub">Schritt-für-Schritt-Anleitung für Außendienstmitarbeiter</div>
-
-    <div class="tip" style="margin-bottom:36px">
-      <strong>📱 Auf dem Handy:</strong> Der dunkle Menübereich befindet sich <strong>oben am Bildschirm</strong> (nicht seitlich). Alle Schaltflächen wie „Tagesplanung" oder „Neuer Besuch" findest du dort.
-    </div>
 
     <!-- 1. Anmeldung -->
     <div class="section" id="anmeldung">
@@ -237,31 +251,37 @@
         <div class="step-text">Gib dein <strong>Passwort</strong> ein und tippe auf <kbd class="kbd">Anmelden →</kbd>.</div>
       </div>
       <div class="tip">
-        <strong>Tipp:</strong> Bei falschen Zugangsdaten erscheint eine rote Fehlermeldung. Überprüfe E-Mail und Passwort und versuche es erneut.
+        <strong>Tipp:</strong> Bei falschen Zugangsdaten erscheint eine Fehlermeldung. Überprüfe E-Mail und Passwort und versuche es erneut.
       </div>
     </div>
 
-    <!-- 2. Kunden -->
-    <div class="section" id="kunden">
+    <!-- 2. Tagesplanung -->
+    <div class="section" id="tagesplanung">
       <div class="section-header">
         <div class="section-num">2</div>
-        <div class="section-title">Kunden</div>
+        <div class="section-title">Tagesplanung</div>
       </div>
       <div class="step">
         <div class="step-dot"></div>
-        <div class="step-text">Nach der Anmeldung siehst du den <strong>Startbildschirm</strong> mit deiner Kundenliste und den heutigen Besuchen.</div>
+        <div class="step-text">Nach der Anmeldung öffnet sich automatisch die <strong>Tagesplanung</strong>. Wähle aus, was du heute machst:</div>
+      </div>
+      <div class="option-list">
+        <div class="option-item"><span>🚗</span><strong>Kundentour</strong></div>
+        <div class="option-item"><span>🏠</span><strong>Homeoffice</strong></div>
+        <div class="option-item"><span>🏢</span><strong>Büro</strong></div>
+        <div class="option-item"><span>🎪</span><strong>Messe / Ausstellung</strong></div>
+        <div class="option-item"><span>📚</span><strong>Schulung</strong></div>
       </div>
       <div class="step">
         <div class="step-dot"></div>
-        <div class="step-text">Um einen Kunden zu suchen, tippe auf <kbd class="kbd">+ Neuer Besuch</kbd> — ein Suchfeld öffnet sich.</div>
+        <div class="step-text">Wenn du <strong>Kundentour</strong> wählst, fragt die App zusätzlich nach dem <strong>Startort</strong> — wähle <em>Von zu Hause</em>, <em>Hotel</em> oder <em>Sonstiges</em>.</div>
       </div>
       <div class="step">
         <div class="step-dot"></div>
-        <div class="step-text">Gib den <strong>Namen</strong> oder die <strong>Stadt</strong> des Kunden ein. Die Liste filtert sich automatisch.</div>
+        <div class="step-text">Tippe auf <kbd class="kbd">✓ BESTÄTIGEN</kbd>, um die Tagesplanung abzuschließen.</div>
       </div>
-      <div class="step">
-        <div class="step-dot"></div>
-        <div class="step-text">Tippe auf den Kunden in der Liste, um die Besuchserfassung zu starten.</div>
+      <div class="tip">
+        <strong>Tipp:</strong> Die Tagesplanung kannst du jederzeit über das blaue <strong>KUNDENTOUR</strong>-Banner oben am Bildschirm aufrufen und bearbeiten.
       </div>
     </div>
 
@@ -273,22 +293,42 @@
       </div>
       <div class="step">
         <div class="step-dot"></div>
-        <div class="step-text">Nach Auswahl des Kunden startet die App automatisch die <strong>GPS-Überprüfung</strong>. Bestätige den Standortzugriff, wenn das Gerät danach fragt.</div>
+        <div class="step-text">Tippe auf den blauen Button <kbd class="kbd">📍 KUNDENBESUCH BESTÄTIGEN</kbd> auf dem Startbildschirm.</div>
       </div>
       <div class="step">
         <div class="step-dot"></div>
-        <div class="step-text">Wähle das <strong>Besuchsergebnis</strong> aus (z.&nbsp;B. Bestellung, Kein Interesse, Termin vereinbart …).</div>
+        <div class="step-text">Es öffnet sich die Seite <strong>„Kunden auswählen"</strong>. Gib den <strong>Namen</strong>, die <strong>Stadt</strong> oder die <strong>PLZ</strong> des Kunden in das Suchfeld ein — die Liste filtert sich automatisch.</div>
       </div>
       <div class="step">
         <div class="step-dot"></div>
-        <div class="step-text">Schreibe optional eine <strong>Notiz</strong> zum Besuch in das Textfeld.</div>
+        <div class="step-text">Tippe auf den gewünschten Kunden in der Liste.</div>
       </div>
       <div class="step">
         <div class="step-dot"></div>
-        <div class="step-text">Tippe auf <kbd class="kbd">Besuch speichern</kbd>, um den Besuch zu bestätigen.</div>
+        <div class="step-text">Es öffnet sich die Seite <strong>„Besuch bestätigen"</strong>. Die App erfasst automatisch deinen <strong>GPS-Standort</strong> — warte, bis oben „✅ GPS-Standort erfasst" erscheint.</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Wähle das <strong>Besuchsergebnis</strong> (Pflichtfeld):</div>
+      </div>
+      <div class="option-list">
+        <div class="option-item"><span>🛒</span><strong>Bestellung</strong></div>
+        <div class="option-item"><span>👁</span><strong>Präsentation</strong></div>
+        <div class="option-item"><span>🔧</span><strong>Reklamation / Service</strong></div>
+        <div class="option-item"><span>🚪</span><strong>Kunde nicht anwesend</strong></div>
+        <div class="option-item"><span>📅</span><strong>Folgetermin vereinbart</strong></div>
+        <div class="option-item"><span>❌</span><strong>Kein Interesse</strong></div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Schreibe optional eine <strong>Notiz</strong> in das Textfeld.</div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-text">Tippe auf <kbd class="kbd">KUNDENBESUCH BESTÄTIGEN</kbd>, um den Besuch zu speichern. Er erscheint danach in der Liste auf dem Startbildschirm.</div>
       </div>
       <div class="warn">
-        <strong>Wichtig:</strong> GPS muss aktiviert sein. Wenn der Standort zu weit vom Kunden entfernt ist, wird eine Warnung angezeigt — der Besuch kann trotzdem gespeichert werden.
+        <strong>Wichtig:</strong> GPS muss aktiviert sein. Wenn der Standort zu weit vom Kunden entfernt ist, erscheint eine Warnung — der Besuch kann trotzdem gespeichert werden.
       </div>
     </div>
 
@@ -300,65 +340,43 @@
       </div>
       <div class="step">
         <div class="step-dot"></div>
-        <div class="step-text">Im <strong>dunklen Bereich oben</strong> findest du die Schaltfläche <strong>„Übernachtung"</strong> — tippe darauf und wähle deinen Übernachtungsort.</div>
+        <div class="step-text">Auf dem Startbildschirm erscheint ein <strong>orangefarbener Hinweis</strong> <em>„🏨 Wo übernachtest du?"</em> — tippe darauf.</div>
       </div>
       <div class="step">
         <div class="step-dot"></div>
-        <div class="step-text">Wähle eine der drei Optionen:</div>
+        <div class="step-text">Wähle deinen heutigen Übernachtungsort:</div>
       </div>
-      <div style="margin: 8px 0 16px 24px; display: flex; flex-direction: column; gap: 10px;">
-        <div style="display:flex;align-items:center;gap:10px;background:white;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 16px;">
-          <span style="font-size:20px;">🏠</span>
-          <div>
-            <div style="font-weight:700;color:#111827;">Zu Hause</div>
-            <div style="font-size:13px;color:#6b7280;">Du schläfst heute zu Hause</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;background:white;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 16px;">
-          <span style="font-size:20px;">🏨</span>
-          <div>
-            <div style="font-weight:700;color:#111827;">Hotel</div>
-            <div style="font-size:13px;color:#6b7280;">Du übernachtest im Hotel</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;background:white;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 16px;">
-          <span style="font-size:20px;">📍</span>
-          <div>
-            <div style="font-weight:700;color:#111827;">Sonstiges</div>
-            <div style="font-size:13px;color:#6b7280;">Andere Unterkunft</div>
-          </div>
-        </div>
+      <div class="option-list">
+        <div class="option-item"><span>🏠</span><strong>Zu Hause</strong></div>
+        <div class="option-item"><span>🏨</span><strong>Hotel</strong></div>
+        <div class="option-item"><span>📍</span><strong>Sonstiges</strong></div>
       </div>
       <div class="step">
         <div class="step-dot"></div>
-        <div class="step-text">Die Angabe wird automatisch gespeichert und ist für die Abrechnung relevant.</div>
+        <div class="step-text">Tippe auf <kbd class="kbd">✓ BESTÄTIGEN</kbd>. Die Auswahl wird gespeichert und im KUNDENTOUR-Banner angezeigt.</div>
+      </div>
+      <div class="tip">
+        <strong>Tipp:</strong> Die Übernachtungsangabe ist für die Abrechnung relevant — trage sie täglich ein.
       </div>
     </div>
 
-    <!-- 5. Tagesabschluss -->
-    <div class="section" id="abschluss">
+    <!-- 5. Bearbeiten & Löschen -->
+    <div class="section" id="bearbeiten">
       <div class="section-header">
         <div class="section-num">5</div>
-        <div class="section-title">Tagesabschluss</div>
+        <div class="section-title">Bearbeiten &amp; Löschen</div>
       </div>
       <div class="step">
         <div class="step-dot"></div>
-        <div class="step-text">Am Ende des Arbeitstages stelle sicher, dass alle Besuche erfasst und gespeichert sind.</div>
+        <div class="step-text">Jeden Besuch in der heutigen Liste kannst du nachträglich ändern. Tippe auf das <strong>✏️ Stift-Symbol</strong> neben dem Besuch — es öffnet sich das Formular <strong>„Besuch bearbeiten"</strong>.</div>
       </div>
       <div class="step">
         <div class="step-dot"></div>
-        <div class="step-text">Tippe auf <kbd class="kbd">Tagesplanung einrichten</kbd> — die Schaltfläche findest du im <strong>dunklen Bereich oben am Bildschirm</strong> (auf dem Desktop: linke Leiste). Wähle aus, was du heute gemacht hast (z.&nbsp;B. <em>Kundentour</em>, <em>Homeoffice</em>, <em>Messe</em> …).</div>
+        <div class="step-text">Ändere das <strong>Ergebnis</strong> oder die <strong>Notiz</strong> und tippe auf <kbd class="kbd">Speichern</kbd>.</div>
       </div>
       <div class="step">
         <div class="step-dot"></div>
-        <div class="step-text">Bei Abwesenheit (Urlaub, Krankheit …) wähle den entsprechenden Status im Bereich <strong>„Abwesenheit"</strong>.</div>
-      </div>
-      <div class="step">
-        <div class="step-dot"></div>
-        <div class="step-text">Vergiss nicht, die <strong>Übernachtungsoption</strong> für diesen Tag einzutragen.</div>
-      </div>
-      <div class="tip">
-        <strong>Tipp:</strong> Alle Einträge werden lokal gespeichert und sind sofort in der Übersicht des Managers sichtbar. Du kannst Besuche auch nachträglich bearbeiten oder löschen.
+        <div class="step-text">Um einen Besuch zu löschen, tippe auf das <strong>🗑️ Papierkorb-Symbol</strong>. Es erscheint ein Bestätigungsdialog — tippe auf <kbd class="kbd">Löschen</kbd> (rot), um den Besuch endgültig zu entfernen, oder auf <kbd class="kbd">Abbrechen</kbd>, um abzubrechen.</div>
       </div>
     </div>
 
