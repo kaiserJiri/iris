@@ -128,6 +128,45 @@
       .app-sidebar-logo { display: none !important; }
       .app-sidebar-iris { display: none !important; }
     }
+
+    /* ── MOBILNÍ RESPONZIVITA (max 600px) ── */
+    @media (max-width: 600px) {
+      /* Menší padding na panelu */
+      .panel-body { padding: 12px !important; }
+
+      /* Inputs — iOS nezoomuje pod 16px, min tap target 44px */
+      input, textarea { min-height: 44px !important; font-size: 16px !important; }
+      .btn-primary { min-height: 44px !important; }
+
+      /* Dashboard: 4 stat boxy → 2×2 mřížka */
+      .stats-grid-4 { grid-template-columns: repeat(2,1fr) !important; }
+
+      /* 7 Tage — scroll wrapper + menší boxy */
+      .seven-day-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .seven-day-grid   { grid-template-columns: repeat(7, 44px) !important; gap: 3px !important; min-width: 320px; }
+
+      /* Heatmap — scroll wrapper */
+      .heatmap-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .heatmap-hd, .heatmap-week { grid-template-columns: repeat(7, 38px) !important; gap: 3px !important; min-width: 286px; }
+
+      /* SVG grafy — scroll wrapper */
+      .chart-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .chart-scroll svg { min-width: 400px; display: block; }
+
+      /* Teamübersicht dnes — skrýt Übernachtung sloupec */
+      .team-today-hd  { grid-template-columns: 1.5fr 1.5fr 70px !important; }
+      .team-today-row { grid-template-columns: 1.5fr 1.5fr 70px !important; }
+      .team-col-overnight { display: none !important; }
+      .team-today-hd > div:last-child { display: none !important; }
+
+      /* Monatsreport tabulka — užší fixní sloupce */
+      .team-month-hd  { grid-template-columns: 1fr 46px 54px 66px !important; }
+      .team-month-row { grid-template-columns: 1fr 46px 54px 66px !important; }
+
+      /* Word-break pro dlouhá firemní jména */
+      .cust-name { word-break: break-word !important; white-space: normal !important;
+                   overflow: visible !important; text-overflow: unset !important; }
+    }
   </style>
 </head>
 <body>
@@ -1263,7 +1302,7 @@ function DashboardScreen({visits,workdays}){
                       <span style={{fontSize:13,fontWeight:700,color:"#6366f1"}}>{fmtConv(repTotal,repOrders)}</span>
                     </div>
                   </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+                  <div className="seven-day-scroll"><div className="seven-day-grid" style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
                     {days.map(day=>{
                       const dv=day.dayVisits.filter(v=>v.rep_id===r.id);
                       const do_=dv.filter(v=>v.result==="order").length;
@@ -1281,7 +1320,7 @@ function DashboardScreen({visits,workdays}){
                         </div>
                       );
                     })}
-                  </div>
+                  </div></div>
                 </div>
               );
             })}
@@ -1312,7 +1351,7 @@ function DashboardScreen({visits,workdays}){
         <div className="panel-body">
           <div style={{maxWidth:680,width:"100%"}}>
             <div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
-              <div style={{display:"grid",gridTemplateColumns:"1.5fr 70px 80px 90px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
+              <div className="team-month-hd" style={{display:"grid",gridTemplateColumns:"1.5fr 70px 80px 90px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
                 {["Vertreter","AD-Tage","Besuche","Bestellungen"].map(h=>(
                   <div key={h} style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em"}}>{h}</div>
                 ))}
@@ -1323,7 +1362,7 @@ function DashboardScreen({visits,workdays}){
                 const totalOrders=mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===r.id&&v.result==="order").length,0);
                 return (
                   <button key={r.id} onClick={()=>setSelRep(r)}
-                    style={{display:"grid",gridTemplateColumns:"1.5fr 70px 80px 90px",width:"100%",padding:"13px 16px",background:"white",border:"none",borderBottom:i<reps.length-1?"1px solid #f9fafb":"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",alignItems:"center"}}
+                    className="team-month-row" style={{display:"grid",gridTemplateColumns:"1.5fr 70px 80px 90px",width:"100%",padding:"13px 16px",background:"white",border:"none",borderBottom:i<reps.length-1?"1px solid #f9fafb":"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",alignItems:"center"}}
                     onMouseOver={e=>e.currentTarget.style.background="#f9fafb"} onMouseOut={e=>e.currentTarget.style.background="white"}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
                       <div style={{width:32,height:32,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,flexShrink:0}}>{r.initials}</div>
@@ -1371,7 +1410,7 @@ function DashboardScreen({visits,workdays}){
                       </div>
                     </div>
                   )}
-                  <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:12}}>
+                  <div className="chart-scroll" style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:12}}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
                       <div style={{fontSize:13,fontWeight:700,color:"#374151"}}>Tagesübersicht</div>
                       <div style={{display:"flex",gap:14}}>
@@ -1411,7 +1450,7 @@ function DashboardScreen({visits,workdays}){
                     </svg>
                   </div>
                   {/* ── Line chart: Konversionsrate ── */}
-                  <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:10}}>
+                  <div className="chart-scroll" style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:10}}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
                       <div style={{fontSize:13,fontWeight:700,color:"#374151"}}>Konversionsrate</div>
                       <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,background:"#6366f1",borderRadius:99}}/><span style={{fontSize:11,color:"#6b7280"}}>Rate (%)</span></div>
@@ -1466,12 +1505,12 @@ function DashboardScreen({visits,workdays}){
                   )}
                   <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:12}}>
                     <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:12}}>Heatmap — {monthLabel()}</div>
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:6}}>
+                    <div className="heatmap-scroll"><div className="heatmap-hd" style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:6}}>
                       {wdLabels.map(d=><div key={d} style={{fontSize:11,fontWeight:700,color:"#9ca3af",textAlign:"center"}}>{d}</div>)}
                     </div>
                     <div style={{display:"flex",flexDirection:"column",gap:4}}>
                       {weeks.map((week,wi)=>(
-                        <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+                        <div key={wi} className="heatmap-week" style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
                           {Array.from({length:7},(_,ci)=>{
                             const cell=week[ci];
                             if(!cell) return <div key={ci}/>;
@@ -1490,7 +1529,7 @@ function DashboardScreen({visits,workdays}){
                       <span style={{fontSize:11,color:"#9ca3af"}}>Weniger</span>
                       {["#f3f4f6","#fed7aa","#fb923c","#e87722"].map((c,i)=><div key={i} style={{width:14,height:14,background:c,borderRadius:3}}/>)}
                       <span style={{fontSize:11,color:"#9ca3af"}}>Mehr</span>
-                    </div>
+                    </div></div>
                   </div>
                 </div>
               );
@@ -1570,21 +1609,21 @@ function DashboardScreen({visits,workdays}){
       </div>
       <div className="panel-body">
         <div style={{maxWidth:680,width:"100%"}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:28}}>
+        <div className="stats-grid-4" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:28}}>
           {[{l:"Besuche",v:tot.v,c:OG},{l:"Bestellungen",v:tot.o,c:"#16a34a"},{l:"Konversionsrate",v:tot.conv,c:"#6366f1"},{l:"Zur Überprüfung",v:tot.f,c:"#dc2626"}].map(s=>(
             <div key={s.l} className="stat-box"><div className="stat-num" style={{color:s.c,fontSize:typeof s.v==="string"?22:28}}>{s.v}</div><div className="stat-lbl">{s.l}</div></div>
           ))}
         </div>
         <div className="section-label">Teamübersicht — heute</div>
         <div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:24}}>
-          <div style={{display:"grid",gridTemplateColumns:"1.5fr 1.5fr 80px 100px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
+          <div className="team-today-hd" style={{display:"grid",gridTemplateColumns:"1.5fr 1.5fr 80px 100px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
             {["Vertreter","Status","Besuche","Übernachtung"].map(h=>(
               <div key={h} style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em"}}>{h}</div>
             ))}
           </div>
           {stats.map((r,i)=>(
             <button key={r.id} onClick={()=>setSelRep(r)}
-              style={{display:"grid",gridTemplateColumns:"1.5fr 1.5fr 80px 100px",width:"100%",padding:"13px 16px",background:"white",border:"none",borderBottom:i<stats.length-1?"1px solid #f9fafb":"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",transition:"background .1s",alignItems:"center"}}
+              className="team-today-row" style={{display:"grid",gridTemplateColumns:"1.5fr 1.5fr 80px 100px",width:"100%",padding:"13px 16px",background:"white",border:"none",borderBottom:i<stats.length-1?"1px solid #f9fafb":"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",transition:"background .1s",alignItems:"center"}}
               onMouseOver={e=>e.currentTarget.style.background="#f9fafb"} onMouseOut={e=>e.currentTarget.style.background="white"}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{width:32,height:32,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,flexShrink:0}}>{r.initials}</div>
@@ -1597,7 +1636,7 @@ function DashboardScreen({visits,workdays}){
               <div style={{textAlign:"center",fontSize:17,fontWeight:900,color:r.repVisits.length>0?OG:"#d1d5db"}}>
                 {r.wd?.day_status==="aussendienst"?r.repVisits.length:"—"}
               </div>
-              <div style={{fontSize:14,color:"#6b7280"}}>{r.overnight||"—"}</div>
+              <div className="team-col-overnight" style={{fontSize:14,color:"#6b7280"}}>{r.overnight||"—"}</div>
             </button>
           ))}
         </div>
