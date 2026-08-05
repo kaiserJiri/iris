@@ -705,21 +705,157 @@ function LoginScreen({onLogin}){
 }
 
 /* ── HOME ── */
-function HomeScreen({user,visits,workday,onNewVisit,onSetOvernight,onDeleteVisit,onEditVisit}){
+function HomeScreen({user,visits,workday,onNewVisit,onSetOvernight,onDeleteVisit,onEditVisit,onDeleteVisitAudit,onEditVisitAudit}){
   const mine=visits.filter(v=>v.rep_id===user.id&&v.confirmed_at.startsWith(TODAY));
   const [dialog,setDialog]=useState(null); // {type:'delete'|'edit', visit}
   const [editResult,setEditResult]=useState(""); const [editNote,setEditNote]=useState("");
+  const [showHistory,setShowHistory]=useState(false);
+  const [historyMonth,setHistoryMonth]=useState(TODAY.slice(0,7));
+  const [selectedHistoryDay,setSelectedHistoryDay]=useState(null);
+  const [histDialog,setHistDialog]=useState(null);
+  const [histEditResult,setHistEditResult]=useState("");
+  const [histEditNote,setHistEditNote]=useState("");
   const orders=mine.filter(v=>v.result==="order");
   const ds=workday?dsInfo(workday.day_status):null;
   const isAD=workday?.day_status==="aussendienst";
   const needOvernight=isAD&&!workday.overnight;
+
+  // ── VERLAUF (History Calendar) ──
+  if(showHistory){
+    const [hy,hm]=historyMonth.split("-").map(Number);
+    const daysInMonth=new Date(hy,hm,0).getDate();
+    const firstDow=new Date(hy,hm-1,1).getDay();
+    const adjHM=n=>{const d=new Date(hy,hm-1+n,1);setHistoryMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);setSelectedHistoryDay(null);};
+    const hML=()=>new Date(hy,hm-1,1).toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+    const hColor=cnt=>cnt===0?"#f3f4f6":cnt<=2?"#fed7aa":"#e87722";
+    const DOW7H=["So","Mo","Di","Mi","Do","Fr","Sa"];
+    const cells=[];
+    for(let i=0;i<firstDow;i++) cells.push(null);
+    for(let d=1;d<=daysInMonth;d++){
+      const dateStr=`${hy}-${String(hm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+      const dv=visits.filter(v=>v.rep_id===user.id&&v.confirmed_at.startsWith(dateStr));
+      cells.push({d,dateStr,dv});
+    }
+    const weeks=[];for(let i=0;i<cells.length;i+=7)weeks.push(cells.slice(i,i+7));
+    const selDV=selectedHistoryDay?[...visits.filter(v=>v.rep_id===user.id&&v.confirmed_at.startsWith(selectedHistoryDay))].sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at)):[];
+    return(
+      <div className="main-panel">
+        <div className="panel-header">
+          <button className="back-btn" onClick={()=>setShowHistory(false)}>‹</button>
+          <div style={{flex:1}}>
+            <div className="panel-header-title">Verlauf</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:2}}>
+              <button onClick={()=>adjHM(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 4px",color:"#9ca3af"}}>‹</button>
+              <span style={{fontSize:13,fontWeight:600,color:"#6b7280"}}>{hML()}</span>
+              <button onClick={()=>adjHM(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 4px",color:"#9ca3af"}}>›</button>
+            </div>
+          </div>
+        </div>
+        <div className="panel-body">
+          <div style={{maxWidth:580,width:"100%"}}>
+            <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px",marginBottom:16}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:6}}>
+                {DOW7H.map(d=><div key={d} style={{fontSize:11,fontWeight:700,color:"#9ca3af",textAlign:"center"}}>{d}</div>)}
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                {weeks.map((week,wi)=>(
+                  <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+                    {Array.from({length:7},(_,ci)=>{
+                      const cell=week[ci];
+                      if(!cell) return <div key={ci}/>;
+                      const cnt=cell.dv.length;
+                      const isSel=selectedHistoryDay===cell.dateStr;
+                      const isT=cell.dateStr===TODAY;
+                      return(
+                        <div key={cell.dateStr} onClick={()=>setSelectedHistoryDay(isSel?null:cell.dateStr)}
+                          style={{aspectRatio:"1",background:isSel?"#2C8CD1":hColor(cnt),borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",border:isT?"2px solid #2C8CD1":"2px solid transparent",transition:"all .1s"}}>
+                          <div style={{fontSize:11,fontWeight:700,color:isSel?"white":cnt>0?"#7c2d00":"#6b7280"}}>{cell.d}</div>
+                          {cnt>0&&<div style={{fontSize:10,fontWeight:900,color:isSel?"white":"#c2410c"}}>{cnt}</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"flex",gap:8,marginTop:12,alignItems:"center"}}>
+                <span style={{fontSize:11,color:"#9ca3af"}}>0</span>
+                {["#f3f4f6","#fed7aa","#e87722"].map((c,i)=><div key={i} style={{width:14,height:14,background:c,borderRadius:3}}/>)}
+                <span style={{fontSize:11,color:"#9ca3af"}}>3+</span>
+              </div>
+            </div>
+            {selectedHistoryDay&&(
+              <div>
+                <div className="section-label">{new Date(selectedHistoryDay+"T12:00:00").toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</div>
+                {selDV.length===0?(
+                  <div style={{textAlign:"center",padding:"24px",color:"#9ca3af",fontSize:15}}>Keine Besuche</div>
+                ):(
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {selDV.map(v=>{
+                      const c=CUSTOMERS.find(x=>x.id===v.customer_id);
+                      const iab={background:"none",border:"none",cursor:"pointer",fontSize:17,padding:"6px 8px",borderRadius:8,lineHeight:1};
+                      return(
+                        <div key={v.id} className="card" style={{display:"flex",alignItems:"center",gap:12}}>
+                          <div style={{fontSize:22,width:30,textAlign:"center",flexShrink:0}}>{ri(v.result)}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c?.name||v.customer_id}</div>
+                            <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}{v.note?` · ${v.note}`:""}</div>
+                          </div>
+                          <button onClick={()=>{setHistEditResult(v.result);setHistEditNote(v.note||"");setHistDialog({type:"edit",visit:v});}} style={{...iab,background:"#EFF6FC"}}>✏️</button>
+                          <button onClick={()=>setHistDialog({type:"delete",visit:v})} style={{...iab,background:"#FEF2F2"}}>🗑️</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            {histDialog&&(
+              <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setHistDialog(null)}>
+                <div style={{background:"white",borderRadius:20,padding:24,maxWidth:380,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}} onClick={e=>e.stopPropagation()}>
+                  {histDialog.type==="delete"?<>
+                    <div style={{textAlign:"center",fontSize:36,marginBottom:12}}>🗑️</div>
+                    <div style={{fontWeight:900,fontSize:18,textAlign:"center",marginBottom:6}}>Besuch löschen?</div>
+                    <div style={{fontSize:15,color:"#6b7280",textAlign:"center",marginBottom:24}}>{CUSTOMERS.find(x=>x.id===histDialog.visit.customer_id)?.name||histDialog.visit.customer_id} · {rl(histDialog.visit.result)}</div>
+                    <div style={{display:"flex",gap:10}}>
+                      <button onClick={()=>setHistDialog(null)} style={{flex:1,padding:"12px",borderRadius:10,background:"#f3f4f6",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Abbrechen</button>
+                      <button onClick={()=>{onDeleteVisitAudit(histDialog.visit.id,histDialog.visit);setHistDialog(null);}} style={{flex:1,padding:"12px",borderRadius:10,background:"#dc2626",color:"white",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Löschen</button>
+                    </div>
+                  </>:<>
+                    <div style={{fontWeight:900,fontSize:18,marginBottom:16}}>Besuch bearbeiten</div>
+                    <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:10}}>Ergebnis</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:16}}>
+                      {RESULTS.map(r=>(
+                        <button key={r.value} onClick={()=>setHistEditResult(r.value)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,border:`2px solid ${histEditResult===r.value?OG:"#e5e7eb"}`,background:histEditResult===r.value?"#EFF6FC":"white",cursor:"pointer",fontFamily:"inherit",fontWeight:histEditResult===r.value?700:500,textAlign:"left"}}>
+                          <span style={{fontSize:18,width:24,textAlign:"center"}}>{r.icon}</span>
+                          <span style={{fontSize:15}}>{r.label}</span>
+                          {histEditResult===r.value&&<span style={{marginLeft:"auto",color:OG}}>✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:8}}>Notiz</div>
+                    <textarea rows={2} value={histEditNote} onChange={e=>setHistEditNote(e.target.value)} placeholder="Kurze Notiz…" style={{resize:"none",marginBottom:16}}/>
+                    <div style={{display:"flex",gap:10}}>
+                      <button onClick={()=>setHistDialog(null)} style={{flex:1,padding:"12px",borderRadius:10,background:"#f3f4f6",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Abbrechen</button>
+                      <button onClick={()=>{onEditVisitAudit(histDialog.visit.id,{result:histEditResult,note:histEditNote},histDialog.visit);setHistDialog(null);}} style={{flex:1,padding:"12px",borderRadius:10,background:OG,color:"white",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Speichern</button>
+                    </div>
+                  </>}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="main-panel">
       <div className="panel-header">
-        <div>
+        <div style={{flex:1}}>
           <div className="panel-header-title">Hallo, {user.name.split(" ")[0]}</div>
           <div className="panel-header-sub">{new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
         </div>
+        <button onClick={()=>{setShowHistory(true);setSelectedHistoryDay(null);}} style={{background:"#f3f4f6",border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>📅 Verlauf</button>
       </div>
       <div className="panel-body">
         <div style={{maxWidth:580,width:"100%"}}>
@@ -1151,12 +1287,13 @@ function VisitConfirmScreen({user,customer,onBack,onConfirm}){
 }
 
 /* ── DASHBOARD ── */
-function DashboardScreen({visits,workdays}){
+function DashboardScreen({visits,workdays,auditLogs=[]}){
   const [selRep,setSelRep]=useState(null);
   const [view,setView]=useState("today");
   const [repMonth,setRepMonth]=useState(TODAY.slice(0,7));
   const [hoveredDay,setHoveredDay]=useState(null);
   const [chartView,setChartView]=useState("bar");
+  const [selectedManagerDay,setSelectedManagerDay]=useState(null);
   const reps=USERS.filter(u=>u.role==="rep");
   const tod=visits.filter(v=>v.confirmed_at.startsWith(TODAY));
   const DOW=["So","Mo","Di","Mi","Do","Fr","Sa"];
@@ -1377,9 +1514,9 @@ function DashboardScreen({visits,workdays}){
             </div>
             {/* ── Chart view toggle ── */}
             <div style={{display:"flex",gap:8,marginTop:12}}>
-              {["bar","heatmap"].map(cv=>(
-                <button key={cv} onClick={()=>{setChartView(cv);setHoveredDay(null);}} style={{padding:"5px 16px",borderRadius:8,border:"1.5px solid "+(chartView===cv?"#e87722":"#e5e7eb"),background:chartView===cv?"#fff7ed":"white",fontWeight:700,fontSize:12,cursor:"pointer",color:chartView===cv?"#e87722":"#6b7280",fontFamily:"inherit",transition:"all .15s"}}>
-                  {cv==="bar"?"Balken":"Heatmap"}
+              {["bar","heatmap","calendar"].map(cv=>(
+                <button key={cv} onClick={()=>{setChartView(cv);setHoveredDay(null);setSelectedManagerDay(null);}} style={{padding:"5px 16px",borderRadius:8,border:"1.5px solid "+(chartView===cv?"#e87722":"#e5e7eb"),background:chartView===cv?"#fff7ed":"white",fontWeight:700,fontSize:12,cursor:"pointer",color:chartView===cv?"#e87722":"#6b7280",fontFamily:"inherit",transition:"all .15s"}}>
+                  {cv==="bar"?"Balken":cv==="heatmap"?"Heatmap":"Kalender"}
                 </button>
               ))}
             </div>
@@ -1534,8 +1671,90 @@ function DashboardScreen({visits,workdays}){
                 </div>
               );
             })()}
+            {/* ── MANAGER CALENDAR ── */}
+            {chartView==="calendar"&&(()=>{
+              const [hy,hm]=repMonth.split("-").map(Number);
+              const daysInMonth=new Date(hy,hm,0).getDate();
+              const firstDow=(new Date(hy,hm-1,1).getDay()+6)%7;
+              const wdLabelsMgr=["Mo","Di","Mi","Do","Fr","Sa","So"];
+              const hColorMgr=cnt=>cnt===0?"#f3f4f6":cnt<=2?"#fed7aa":cnt<=5?"#fb923c":"#e87722";
+              const cellsMgr=[];
+              for(let i=0;i<firstDow;i++) cellsMgr.push(null);
+              for(let d=1;d<=daysInMonth;d++){
+                const dateStr=`${hy}-${String(hm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                const dv=visits.filter(v=>v.confirmed_at.startsWith(dateStr));
+                cellsMgr.push({d,dateStr,dv});
+              }
+              const weeksMgr=[];for(let i=0;i<cellsMgr.length;i+=7)weeksMgr.push(cellsMgr.slice(i,i+7));
+              const selDVMgr=selectedManagerDay?[...visits.filter(v=>v.confirmed_at.startsWith(selectedManagerDay))].sort((a,b)=>a.confirmed_at.localeCompare(b.confirmed_at)):[];
+              return(
+                <div>
+                  <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:12}}>
+                    <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:12}}>Kalender — {monthLabel()}</div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:6}}>
+                      {wdLabelsMgr.map(d=><div key={d} style={{fontSize:11,fontWeight:700,color:"#9ca3af",textAlign:"center"}}>{d}</div>)}
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      {weeksMgr.map((week,wi)=>(
+                        <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+                          {Array.from({length:7},(_,ci)=>{
+                            const cell=week[ci];
+                            if(!cell) return <div key={ci}/>;
+                            const cnt=cell.dv.length;
+                            const isSel=selectedManagerDay===cell.dateStr;
+                            const isT=cell.dateStr===TODAY;
+                            return(
+                              <div key={cell.dateStr} onClick={()=>setSelectedManagerDay(isSel?null:cell.dateStr)}
+                                style={{aspectRatio:"1",background:isSel?"#2C8CD1":hColorMgr(cnt),borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",border:isT?"2px solid #2C8CD1":"2px solid transparent",transition:"all .1s"}}>
+                                <div style={{fontSize:11,fontWeight:700,color:isSel?"white":cnt>0?"#7c2d00":"#6b7280"}}>{cell.d}</div>
+                                {cnt>0&&<div style={{fontSize:10,fontWeight:900,color:isSel?"white":"#c2410c"}}>{cnt}</div>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{display:"flex",gap:8,marginTop:12,alignItems:"center"}}>
+                      <span style={{fontSize:11,color:"#9ca3af"}}>Weniger</span>
+                      {["#f3f4f6","#fed7aa","#fb923c","#e87722"].map((c,i)=><div key={i} style={{width:14,height:14,background:c,borderRadius:3}}/>)}
+                      <span style={{fontSize:11,color:"#9ca3af"}}>Mehr</span>
+                    </div>
+                  </div>
+                  {selectedManagerDay&&(
+                    <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:10}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:12}}>
+                        {new Date(selectedManagerDay+"T12:00:00").toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
+                      </div>
+                      {selDVMgr.length===0?(
+                        <div style={{textAlign:"center",padding:"16px",color:"#9ca3af",fontSize:15}}>Keine Besuche</div>
+                      ):(
+                        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                          {selDVMgr.map(v=>{
+                            const c=CUSTOMERS.find(x=>x.id===v.customer_id);
+                            const r=USERS.find(u=>u.id===v.rep_id);
+                            return(
+                              <div key={v.id} className="card" style={{display:"flex",alignItems:"center",gap:12}}>
+                                <div style={{fontSize:22,width:30,textAlign:"center",flexShrink:0}}>{ri(v.result)}</div>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                                    <div style={{width:22,height:22,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:900,flexShrink:0}}>{r?.initials||"?"}</div>
+                                    <div style={{fontWeight:700,fontSize:13,color:"#374151"}}>{r?.name||"?"}</div>
+                                  </div>
+                                  <div style={{fontWeight:700,fontSize:15,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c?.name||v.customer_id}</div>
+                                  <div style={{fontSize:13,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}{v.note?` · ${v.note}`:""}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             {/* ── CHART 2: Vertreter im Überblick (progress bars + trends) ── */}
-            {(()=>{
+            {chartView!=="calendar"&&(()=>{
               const now=new Date();
               const dow=now.getDay();
               const daysFromMon=dow===0?6:dow-1;
@@ -1655,6 +1874,30 @@ function DashboardScreen({visits,workdays}){
             })}
           </div>
         </>}
+        {auditLogs.length>0&&<>
+          <div className="section-label" style={{marginTop:24}}>Änderungen</div>
+          <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",overflow:"hidden",marginBottom:8}}>
+            {auditLogs.map((log,i)=>{
+              const rep=USERS.find(u=>u.email===log.repEmail);
+              const c=log.before?CUSTOMERS.find(x=>x.id===log.before.customer_id):null;
+              const ts=log.timestamp?new Date(log.timestamp).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"-";
+              return(
+                <div key={log.id||i} style={{padding:"11px 16px",borderBottom:i<auditLogs.length-1?"1px solid #f9fafb":"none"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                    <span style={{fontSize:14,fontWeight:700,color:log.action==="deleted"?"#dc2626":"#e87722"}}>{log.action==="deleted"?"🗑️ gelöscht":"✏️ bearbeitet"}</span>
+                    <span style={{fontSize:13,color:"#374151",fontWeight:600}}>{rep?.name||log.repEmail}</span>
+                    <span style={{marginLeft:"auto",fontSize:12,color:"#9ca3af",flexShrink:0}}>{ts}</span>
+                  </div>
+                  <div style={{fontSize:13,color:"#6b7280"}}>
+                    {c?.name||log.before?.customer_id||"?"}
+                    {log.before?` · ${rl(log.before.result)}`:""}
+                    {log.action==="edited"&&log.after&&log.before?.result!==log.after?.result?<span style={{color:"#374151",fontWeight:700}}> → {rl(log.after.result)}</span>:""}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>}
         </div>
       </div>
     </div>
@@ -1693,6 +1936,7 @@ function App(){
   const [workdays,setWorkdays]=useState(()=>USE_FB?[]:loadAllLocalWorkdays());
   const [cust,setCust]=useState(null);
   const [fbLoading,setFbLoading]=useState(USE_FB);
+  const [auditLogs,setAuditLogs]=useState([]);
 
   /* ── Firebase real-time listenery ── */
   useEffect(()=>{
@@ -1709,7 +1953,11 @@ function App(){
       setWorkdays(snap.docs.map(d=>d.data()));
     },err=>{console.error("[Iris] workdays listener:",err);});
 
-    return()=>{unsubV();unsubW();};
+    const unsubA=DB.collection('audit_log').orderBy('timestamp','desc').limit(20).onSnapshot(snap=>{
+      setAuditLogs(snap.docs.map(d=>({...d.data(),id:d.id})));
+    },err=>{console.error("[Iris] audit_log listener:",err);});
+
+    return()=>{unsubV();unsubW();unsubA();};
   },[]);
 
   /* ── localStorage persistence (jen v fallback režimu) ── */
@@ -1750,6 +1998,22 @@ function App(){
       setVisits(p=>p.map(v=>v.id===id?{...v,...changes}:v));
     }
   };
+  const deleteVisitAudit=(id,before)=>{
+    if(USE_FB&&DB){
+      DB.collection('audit_log').add({repEmail:user.email,action:'deleted',timestamp:Date.now(),visitId:String(id),before,after:null}).catch(e=>console.error("[Iris] auditLog:",e));
+      DB.collection('visits').doc(String(id)).delete().catch(e=>console.error("[Iris] deleteVisitAudit:",e));
+    } else {
+      setVisits(p=>p.filter(v=>v.id!==id));
+    }
+  };
+  const editVisitAudit=(id,changes,before)=>{
+    if(USE_FB&&DB){
+      DB.collection('audit_log').add({repEmail:user.email,action:'edited',timestamp:Date.now(),visitId:String(id),before,after:{...before,...changes}}).catch(e=>console.error("[Iris] auditLog:",e));
+      DB.collection('visits').doc(String(id)).update(changes).catch(e=>console.error("[Iris] editVisitAudit:",e));
+    } else {
+      setVisits(p=>p.map(v=>v.id===id?{...v,...changes}:v));
+    }
+  };
 
   const myWorkday=user?workdays.find(w=>w.user_id===user.id&&w.date===TODAY):null;
 
@@ -1780,12 +2044,12 @@ function App(){
   return (
     <div className="app-root">
       <Sidebar user={user} workday={myWorkday} onLogout={logout} onSetDay={()=>setScreen("dayset")}/>
-      {screen==="home"      && <HomeScreen user={user} visits={visits} workday={myWorkday} onNewVisit={()=>setScreen("search")} onSetOvernight={()=>setScreen("overnight")} onDeleteVisit={deleteVisit} onEditVisit={editVisit}/>}
+      {screen==="home"      && <HomeScreen user={user} visits={visits} workday={myWorkday} onNewVisit={()=>setScreen("search")} onSetOvernight={()=>setScreen("overnight")} onDeleteVisit={deleteVisit} onEditVisit={editVisit} onDeleteVisitAudit={deleteVisitAudit} onEditVisitAudit={editVisitAudit}/>}
       {screen==="dayset"    && <DaySetupScreen user={user} existing={myWorkday} onBack={()=>setScreen("home")} onSave={saveWorkday}/>}
       {screen==="overnight" && <OvernightScreen workday={myWorkday} onBack={()=>setScreen("home")} onSave={saveOvernight}/>}
       {screen==="search"    && <CustomerSearchScreen user={user} visits={visits} onBack={()=>setScreen("home")} onSelect={c=>{setCust(c);setScreen("confirm");}}/>}
       {screen==="confirm"   && <VisitConfirmScreen user={user} customer={cust} onBack={()=>setScreen("search")} onConfirm={addVisit}/>}
-      {screen==="dashboard" && <DashboardScreen visits={visits} workdays={workdays}/>}
+      {screen==="dashboard" && <DashboardScreen visits={visits} workdays={workdays} auditLogs={auditLogs}/>}
     </div>
   );
 }
