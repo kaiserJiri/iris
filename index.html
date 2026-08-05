@@ -18,6 +18,36 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <!-- Firebase compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script>
+  /* ── FIREBASE CONFIG — vyplňte vlastními hodnotami z Firebase konzole ── */
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCR8PexpFykowW-4GLuDkU8oQa1MtUiwLQ",
+    authDomain: "axis-iris.firebaseapp.com",
+    projectId: "axis-iris",
+    storageBucket: "axis-iris.firebasestorage.app",
+    messagingSenderId: "716511265622",
+    appId: "1:716511265622:web:9359abcfae4e51a3418cf7",
+    measurementId: "G-TWF29ZCND0"
+  };
+  var USE_FIREBASE = FIREBASE_CONFIG.apiKey !== "FIREBASE_API_KEY";
+  var db = null;
+  if (USE_FIREBASE) {
+    try {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+      console.log("[Iris] Firebase: připojeno k Firestore");
+    } catch(e) {
+      console.error("[Iris] Firebase init chyba:", e);
+    }
+  } else {
+    console.log("[Iris] Firebase: config není nastaven — používám localStorage");
+  }
+  window.USE_FIREBASE = USE_FIREBASE;
+  window.db = db;
+  </script>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; font-family: Montserrat, system-ui, sans-serif; background: #232323; font-size: 16px; }
@@ -1093,7 +1123,7 @@ function DashboardScreen({visits,workdays}){
   const DOW=["So","Mo","Di","Mi","Do","Fr","Sa"];
   const adjMonth=n=>{const [y,m]=repMonth.split("-").map(Number);const d=new Date(y,m-1+n,1);setRepMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);};
   const monthLabel=()=>{const [y,m]=repMonth.split("-").map(Number);return new Date(y,m-1,1).toLocaleDateString("de-DE",{month:"long",year:"numeric"});};
-  const getMonthDays=()=>{const [y,m]=repMonth.split("-").map(Number);const dim=new Date(y,m,0).getDate();return Array.from({length:dim},(_,i)=>{const d=i+1;const dateStr=`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;const wds=ls("actio_wd_"+dateStr,[]);const dayVisits=visits.filter(v=>v.confirmed_at.startsWith(dateStr));return {dateStr,d,dow:new Date(y,m-1,d).getDay(),wds,dayVisits};});};
+  const getMonthDays=()=>{const [y,m]=repMonth.split("-").map(Number);const dim=new Date(y,m,0).getDate();return Array.from({length:dim},(_,i)=>{const d=i+1;const dateStr=`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;const wds=workdays.filter(w=>w.date===dateStr);const dayVisits=visits.filter(v=>v.confirmed_at.startsWith(dateStr));return {dateStr,d,dow:new Date(y,m-1,d).getDay(),wds,dayVisits};});};
   // Helper: get last N days as date strings
   const getLast7Days=()=>{return Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const ds=d.toISOString().slice(0,10);const dow=d.getDay();const isToday=ds===TODAY;return{dateStr:ds,d:d.getDate(),dow,isToday,dayVisits:visits.filter(v=>v.confirmed_at.startsWith(ds))};});};
   const fmtConv=(v,o)=>v===0?"—":`${Math.round(o/v*100)}%`;
@@ -1594,39 +1624,118 @@ function DashboardScreen({visits,workdays}){
 
 /* ── ROOT ── */
 function ls(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch{return def;}}
+
+/* Načte workdays z posledních 90 dní z localStorage (fallback režim) */
+function loadAllLocalWorkdays(){
+  const result=[];
+  for(let i=0;i<90;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const ds=d.toISOString().split("T")[0];
+    const wds=ls("actio_wd_"+ds,[]);
+    result.push(...wds);
+  }
+  return result;
+}
+
 function App(){
+  const USE_FB=window.USE_FIREBASE;
+  const DB=window.db;
+
   const savedId=localStorage.getItem("actio_uid");
   const savedUser=savedId?USERS.find(u=>u.id===parseInt(savedId)):null;
   const [screen,setScreen]=useState(savedUser?(savedUser.role==="manager"?"dashboard":"home"):"login");
   const [user,setUser]=useState(savedUser||null);
   const [visits,setVisits]=useState(()=>{
+    if(USE_FB) return [];
     const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
     const cutStr=cutoff.toISOString().split("T")[0];
-    const all=ls("actio_visits",INIT_VISITS);
-    return all.filter(v=>v.confirmed_at.split("T")[0]>=cutStr);
+    return ls("actio_visits",INIT_VISITS).filter(v=>v.confirmed_at.split("T")[0]>=cutStr);
   });
-  // workdays keyed by date — auto-resets each day
-  const [workdays,setWorkdays]=useState(()=>ls("actio_wd_"+TODAY,[]));
+  const [workdays,setWorkdays]=useState(()=>USE_FB?[]:loadAllLocalWorkdays());
   const [cust,setCust]=useState(null);
+  const [fbLoading,setFbLoading]=useState(USE_FB);
 
-  useEffect(()=>{localStorage.setItem("actio_visits",JSON.stringify(visits));},[visits]);
-  useEffect(()=>{localStorage.setItem("actio_wd_"+TODAY,JSON.stringify(workdays));},[workdays]);
+  /* ── Firebase real-time listenery ── */
+  useEffect(()=>{
+    if(!USE_FB||!DB) return;
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
+    const cutStr=cutoff.toISOString().split("T")[0];
+
+    const unsubV=DB.collection('visits').onSnapshot(snap=>{
+      setVisits(snap.docs.map(d=>({...d.data(),id:d.id})).filter(v=>v.confirmed_at.split("T")[0]>=cutStr));
+      setFbLoading(false);
+    },err=>{console.error("[Iris] visits listener:",err);setFbLoading(false);});
+
+    const unsubW=DB.collection('workdays').onSnapshot(snap=>{
+      setWorkdays(snap.docs.map(d=>d.data()));
+    },err=>{console.error("[Iris] workdays listener:",err);});
+
+    return()=>{unsubV();unsubW();};
+  },[]);
+
+  /* ── localStorage persistence (jen v fallback režimu) ── */
+  useEffect(()=>{
+    if(USE_FB) return;
+    localStorage.setItem("actio_visits",JSON.stringify(visits));
+  },[visits]);
+  useEffect(()=>{
+    if(USE_FB) return;
+    const byDate={};
+    workdays.forEach(w=>{if(!byDate[w.date])byDate[w.date]=[];byDate[w.date].push(w);});
+    Object.entries(byDate).forEach(([date,wds])=>localStorage.setItem("actio_wd_"+date,JSON.stringify(wds)));
+  },[workdays]);
 
   const login=u=>{localStorage.setItem("actio_uid",u.id);setUser(u);setScreen(u.role==="manager"?"dashboard":"home");};
   const logout=()=>{localStorage.removeItem("actio_uid");setUser(null);setScreen("login");};
-  const addVisit=v=>{setVisits(p=>[v,...p]);setScreen("home");};
-  const deleteVisit=id=>{setVisits(p=>p.filter(v=>v.id!==id));};
-  const editVisit=(id,changes)=>{setVisits(p=>p.map(v=>v.id===id?{...v,...changes}:v));};
+
+  const addVisit=v=>{
+    if(USE_FB&&DB){
+      const {id:_,...data}=v;
+      DB.collection('visits').add(data).catch(e=>console.error("[Iris] addVisit:",e));
+    } else {
+      setVisits(p=>[v,...p]);
+    }
+    setScreen("home");
+  };
+  const deleteVisit=id=>{
+    if(USE_FB&&DB){
+      DB.collection('visits').doc(String(id)).delete().catch(e=>console.error("[Iris] deleteVisit:",e));
+    } else {
+      setVisits(p=>p.filter(v=>v.id!==id));
+    }
+  };
+  const editVisit=(id,changes)=>{
+    if(USE_FB&&DB){
+      DB.collection('visits').doc(String(id)).update(changes).catch(e=>console.error("[Iris] editVisit:",e));
+    } else {
+      setVisits(p=>p.map(v=>v.id===id?{...v,...changes}:v));
+    }
+  };
+
   const myWorkday=user?workdays.find(w=>w.user_id===user.id&&w.date===TODAY):null;
+
   const saveWorkday=wd=>{
-    setWorkdays(p=>[...p.filter(w=>!(w.user_id===user.id&&w.date===TODAY)),{...wd,id:Date.now()}]);
+    const wdData={...wd,id:Date.now()};
+    if(USE_FB&&DB){
+      const docId=`${wd.user_id}_${wd.date}`;
+      DB.collection('workdays').doc(docId).set(wdData).catch(e=>console.error("[Iris] saveWorkday:",e));
+      /* Optimistický update — okamžitá odezva UI */
+      setWorkdays(p=>[...p.filter(w=>!(w.user_id===wd.user_id&&w.date===wd.date)),wdData]);
+    } else {
+      setWorkdays(p=>[...p.filter(w=>!(w.user_id===user.id&&w.date===TODAY)),wdData]);
+    }
     setScreen("home");
   };
   const saveOvernight=overnight=>{
+    if(USE_FB&&DB){
+      const docId=`${user.id}_${TODAY}`;
+      DB.collection('workdays').doc(docId).update({overnight}).catch(e=>console.error("[Iris] saveOvernight:",e));
+    }
     setWorkdays(p=>p.map(w=>(w.user_id===user.id&&w.date===TODAY)?{...w,overnight}:w));
     setScreen("home");
   };
 
+  if(fbLoading) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"#232323",color:"rgba(255,255,255,.75)",fontSize:16,fontWeight:700,fontFamily:"Montserrat,sans-serif",gap:12}}>⏳ Verbindung wird hergestellt…</div>;
   if(screen==="login") return <LoginScreen onLogin={login}/>;
 
   return (
