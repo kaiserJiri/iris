@@ -180,19 +180,13 @@ const DAY_STATUS_GROUPS = [
   { group: "Was machst du heute?", items: [
     { value:"aussendienst", label:"Kundentour",          icon:"🚗", note:null },
     { value:"homeoffice",   label:"Homeoffice",          icon:"🏠", note:null },
-    { value:"buro",         label:"Büro",                icon:"🏢", note:null },
     { value:"messe",        label:"Messe / Ausstellung", icon:"🎪", note:null },
-    { value:"schulung",     label:"Schulung",            icon:"📚", note:null },
-    { value:"inventur",     label:"Inventur",            icon:"📋", note:null },
     { value:"sonstige",     label:"Sonstige Arbeit",     icon:"💼", note:null },
   ]},
   { group: "Abwesenheit", items: [
     { value:"urlaub",       label:"Urlaub",              icon:"🏖", note:null },
     { value:"krankheit",    label:"Krankheit",           icon:"🤒", note:null },
-    { value:"feiertag",     label:"Feiertag",            icon:"🎉", note:null },
-    { value:"fza",          label:"Freizeitausgleich",   icon:"⏱", note:null },
-    { value:"sonderurlaub", label:"Sonderurlaub",        icon:"📅", note:null },
-    { value:"unbezahlt",    label:"Unbez. Abwesenheit",  icon:"❌", note:null },
+    { value:"sonstiges_abw",label:"Sonstiges",           icon:"📌", note:null },
   ]},
 ];
 
@@ -577,11 +571,10 @@ const INIT_WORKDAYS = [];
 
 const RESULTS = [
   { value:"order",        label:"Bestellung",              icon:"🛒" },
-  { value:"presentation", label:"Präsentation",              icon:"👁" },
-  { value:"complaint",    label:"Reklamation / Service",      icon:"🔧" },
-  { value:"absent",       label:"Kunde nicht anwesend", icon:"🚪" },
-  { value:"follow_up",    label:"Folgetermin vereinbart",   icon:"📅" },
-  { value:"no_interest",  label:"Kein Interesse",               icon:"❌" },
+  { value:"absent",       label:"Kunde nicht anwesend",   icon:"🚪" },
+  { value:"follow_up",    label:"Folgetermin vereinbart",  icon:"📅" },
+  { value:"no_interest",  label:"Kein Interesse",          icon:"❌" },
+  { value:"sonstige",     label:"Sonstige",                icon:"📝" },
 ];
 
 const rl=v=>RESULTS.find(r=>r.value===v)?.label||v;
@@ -863,11 +856,6 @@ function HomeScreen({user,visits,workday,onNewVisit,onSetOvernight,onDeleteVisit
           <button className="btn-primary" onClick={onNewVisit} style={{fontSize:17,padding:"18px 0",marginBottom:14}}>
             <span style={{fontSize:22}}>📍</span><span>KUNDENBESUCH BESTÄTIGEN</span>
           </button>
-          {needOvernight&&(
-            <button onClick={onSetOvernight} style={{width:"100%",marginBottom:14,padding:"13px",borderRadius:13,background:"#fff7ed",color:"#c2410c",border:"2px solid #fed7aa",cursor:"pointer",fontWeight:700,fontSize:15,display:"flex",alignItems:"center",gap:8,justifyContent:"center",fontFamily:"inherit"}}>
-              🏨 Wo übernachtest du?
-            </button>
-          )}
           {mine.length>0&&<>
             <div className="section-label" style={{marginTop:8}}>Kundenbesuche heute</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -1118,27 +1106,69 @@ function OvernightScreen({workday,onBack,onSave}){
   );
 }
 
-/* ── SEARCH ── */
-function CustomerSearchScreen({user,visits,onBack,onSelect}){
+/* ── NEUKUNDE ── */
+function NewCustomerScreen({user,onBack,onSave}){
   const NK_KEY="actio_new_cust_"+user.id;
-  const [q,setQ]=useState(""); const [pos,setPos]=useState(null);
   const [newCusts,setNewCusts]=useState(()=>ls(NK_KEY,[]));
   const [nkName,setNkName]=useState(""); const [nkCity,setNkCity]=useState("");
   const [editNkId,setEditNkId]=useState(null);
-  useEffect(()=>{if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(p=>setPos({lat:p.coords.latitude,lng:p.coords.longitude}),()=>{});},[]);
   useEffect(()=>{localStorage.setItem(NK_KEY,JSON.stringify(newCusts));},[newCusts]);
-  const mine=CUSTOMERS.filter(c=>c.rep_id===user.id);
-  const filtered=q.length>=1?mine.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())||c.city.toLowerCase().includes(q.toLowerCase())||c.postal.includes(q)):[];
-  const nearby=pos?[...mine].map(c=>({...c,_d:haversine(pos.lat,pos.lng,c.lat,c.lng)})).sort((a,b)=>a._d-b._d).slice(0,8):[];
   const saveNk=()=>{
     if(!nkName.trim())return;
     if(editNkId){setNewCusts(p=>p.map(c=>c.id===editNkId?{...c,name:nkName.trim(),city:nkCity.trim()}:c));setEditNkId(null);}
-    else{setNewCusts(p=>[{id:"new_"+Date.now(),name:nkName.trim(),city:nkCity.trim(),postal:"",street:"",rep_id:user.id,lat:null,lng:null,isNew:true},...p]);}
+    else{const nc={id:"new_"+Date.now(),name:nkName.trim(),city:nkCity.trim(),postal:"",street:"",rep_id:user.id,lat:null,lng:null,isNew:true};setNewCusts(p=>[nc,...p]);onSave(nc);return;}
     setNkName("");setNkCity("");
   };
   const editNk=c=>{setEditNkId(c.id);setNkName(c.name);setNkCity(c.city);};
   const cancelEdit=()=>{setEditNkId(null);setNkName("");setNkCity("");};
   const deleteNk=id=>{setNewCusts(p=>p.filter(c=>c.id!==id));if(editNkId===id)cancelEdit();};
+  const nkBtnStyle={background:"none",border:"none",borderRadius:8,padding:"7px 10px",cursor:"pointer",fontSize:17,lineHeight:1};
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <button className="back-btn" onClick={onBack}>‹</button>
+        <div className="panel-header-title">Neukunde hinzufügen</div>
+      </div>
+      <div className="panel-body">
+        <div style={{maxWidth:580,width:"100%"}}>
+          <div style={{background:"#f9fafb",borderRadius:14,padding:"16px",marginBottom:16,border:"1.5px solid #e5e7eb"}}>
+            <input placeholder="Geschäftsname" value={nkName} onChange={e=>setNkName(e.target.value)} style={{marginBottom:10}} onKeyDown={e=>e.key==="Enter"&&saveNk()}/>
+            <input placeholder="Stadt" value={nkCity} onChange={e=>setNkCity(e.target.value)} style={{marginBottom:12}} onKeyDown={e=>e.key==="Enter"&&saveNk()}/>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={saveNk} disabled={!nkName.trim()||!nkCity.trim()} style={{flex:1,background:(nkName.trim()&&nkCity.trim())?OG:"#d1d5db",color:"white",border:"none",borderRadius:8,padding:"11px",fontWeight:700,cursor:(nkName.trim()&&nkCity.trim())?"pointer":"default",fontFamily:"inherit",fontSize:15,transition:"background .2s"}}>
+                {editNkId?"Speichern ✓":"Hinzufügen +"}
+              </button>
+              {editNkId&&<button onClick={cancelEdit} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"11px 16px",cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:14}}>Abbrechen</button>}
+            </div>
+          </div>
+          {newCusts.length>0&&<>
+            <div className="section-label" style={{marginTop:4}}>Neue Kunden ({newCusts.length})</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {newCusts.map(c=>(
+                <div key={c.id} style={{display:"flex",alignItems:"center",gap:6,background:"white",borderRadius:12,border:editNkId===c.id?"2px solid "+OG:"1.5px solid #e5e7eb",padding:"12px 14px",boxSizing:"border-box"}}>
+                  <button onClick={()=>onSave(c)} style={{flex:1,background:"none",border:"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",padding:0}}>
+                    <div style={{fontWeight:700,fontSize:15,color:"#111827"}}>{c.name}</div>
+                    {c.city&&<div style={{fontSize:13,color:"#9ca3af",marginTop:2}}>{c.city}</div>}
+                  </button>
+                  <button onClick={()=>editNk(c)} title="Bearbeiten" style={{...nkBtnStyle,background:"#EFF6FC"}}>✏️</button>
+                  <button onClick={()=>deleteNk(c.id)} title="Löschen" style={{...nkBtnStyle,background:"#FEF2F2"}}>🗑️</button>
+                </div>
+              ))}
+            </div>
+          </>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── SEARCH ── */
+function CustomerSearchScreen({user,visits,onBack,onSelect,onNewCustomer}){
+  const [q,setQ]=useState(""); const [pos,setPos]=useState(null);
+  useEffect(()=>{if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(p=>setPos({lat:p.coords.latitude,lng:p.coords.longitude}),()=>{});},[]);
+  const mine=CUSTOMERS.filter(c=>c.rep_id===user.id);
+  const filtered=q.length>=1?mine.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())||c.city.toLowerCase().includes(q.toLowerCase())||c.postal.includes(q)):[];
+  const nearby=pos?[...mine].map(c=>({...c,_d:haversine(pos.lat,pos.lng,c.lat,c.lng)})).sort((a,b)=>a._d-b._d).slice(0,8):[];
   const Row=({c,dist})=>{
     const last=[...visits].filter(v=>v.rep_id===user.id&&v.customer_id===c.id).sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at))[0];
     const tod=last?.confirmed_at?.startsWith(TODAY);
@@ -1156,7 +1186,6 @@ function CustomerSearchScreen({user,visits,onBack,onSelect}){
       </button>
     );
   };
-  const nkBtnStyle={background:"none",border:"none",borderRadius:8,padding:"7px 10px",cursor:"pointer",fontSize:17,lineHeight:1};
   return (
     <div className="main-panel">
       <div className="panel-header">
@@ -1176,32 +1205,9 @@ function CustomerSearchScreen({user,visits,onBack,onSelect}){
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>{nearby.map(c=><Row key={c.id} c={c} dist={c._d}/>)}</div>
             </>}
             {nearby.length===0&&<div style={{textAlign:"center",padding:"32px 0 24px",color:"#d1d5db"}}><div style={{fontSize:36,marginBottom:10}}>🔍</div><div style={{fontSize:16}}>GPS lädt oder nicht verfügbar</div></div>}
-            <div className="section-label">Neukunde</div>
-            <div style={{background:"#f9fafb",borderRadius:14,padding:"16px",marginBottom:8,border:"1.5px solid #e5e7eb"}}>
-              <input placeholder="Geschäftsname" value={nkName} onChange={e=>setNkName(e.target.value)} style={{marginBottom:10}} onKeyDown={e=>e.key==="Enter"&&saveNk()}/>
-              <input placeholder="Stadt & PLZ (z. B. München 80333)" value={nkCity} onChange={e=>setNkCity(e.target.value)} style={{marginBottom:12}} onKeyDown={e=>e.key==="Enter"&&saveNk()}/>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={saveNk} disabled={!nkName.trim()||!nkCity.trim()} style={{flex:1,background:(nkName.trim()&&nkCity.trim())?OG:"#d1d5db",color:"white",border:"none",borderRadius:8,padding:"11px",fontWeight:700,cursor:(nkName.trim()&&nkCity.trim())?"pointer":"default",fontFamily:"inherit",fontSize:15,transition:"background .2s"}}>
-                  {editNkId?"Speichern ✓":"Hinzufügen +"}
-                </button>
-                {editNkId&&<button onClick={cancelEdit} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"11px 16px",cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:14}}>Abbrechen</button>}
-              </div>
-            </div>
-            {newCusts.length>0&&<>
-              <div className="section-label" style={{marginTop:20}}>Neue Kunden ({newCusts.length})</div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {newCusts.map(c=>(
-                  <div key={c.id} style={{display:"flex",alignItems:"center",gap:6,background:"white",borderRadius:12,border:editNkId===c.id?"2px solid "+OG:"1.5px solid #e5e7eb",padding:"12px 14px",boxSizing:"border-box"}}>
-                    <button onClick={()=>onSelect(c)} style={{flex:1,background:"none",border:"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",padding:0}}>
-                      <div style={{fontWeight:700,fontSize:15,color:"#111827"}}>{c.name}</div>
-                      {c.city&&<div style={{fontSize:13,color:"#9ca3af",marginTop:2}}>{c.city}</div>}
-                    </button>
-                    <button onClick={()=>editNk(c)} title="Bearbeiten" style={{...nkBtnStyle,background:"#EFF6FC"}}>✏️</button>
-                    <button onClick={()=>deleteNk(c.id)} title="Löschen" style={{...nkBtnStyle,background:"#FEF2F2"}}>🗑️</button>
-                  </div>
-                ))}
-              </div>
-            </>}
+            <button onClick={onNewCustomer} style={{width:"100%",padding:"15px 18px",borderRadius:13,background:"#f0f9ff",color:"#1A5F8A",border:"2px solid #BFDFEF",cursor:"pointer",fontWeight:700,fontSize:15,display:"flex",alignItems:"center",gap:10,justifyContent:"center",fontFamily:"inherit",marginTop:8}}>
+              <span style={{fontSize:20}}>➕</span> NEUKUNDE / KUNDE NICHT IN AUSWAHL →
+            </button>
           </>}
         </div>
       </div>
@@ -2047,7 +2053,8 @@ function App(){
       {screen==="home"      && <HomeScreen user={user} visits={visits} workday={myWorkday} onNewVisit={()=>setScreen("search")} onSetOvernight={()=>setScreen("overnight")} onDeleteVisit={deleteVisit} onEditVisit={editVisit} onDeleteVisitAudit={deleteVisitAudit} onEditVisitAudit={editVisitAudit}/>}
       {screen==="dayset"    && <DaySetupScreen user={user} existing={myWorkday} onBack={()=>setScreen("home")} onSave={saveWorkday}/>}
       {screen==="overnight" && <OvernightScreen workday={myWorkday} onBack={()=>setScreen("home")} onSave={saveOvernight}/>}
-      {screen==="search"    && <CustomerSearchScreen user={user} visits={visits} onBack={()=>setScreen("home")} onSelect={c=>{setCust(c);setScreen("confirm");}}/>}
+      {screen==="search"    && <CustomerSearchScreen user={user} visits={visits} onBack={()=>setScreen("home")} onSelect={c=>{setCust(c);setScreen("confirm");}} onNewCustomer={()=>setScreen("neukunde")}/>}
+      {screen==="neukunde"  && <NewCustomerScreen user={user} onBack={()=>setScreen("search")} onSave={c=>{setCust(c);setScreen("confirm");}}/>}
       {screen==="confirm"   && <VisitConfirmScreen user={user} customer={cust} onBack={()=>setScreen("search")} onConfirm={addVisit}/>}
       {screen==="dashboard" && <DashboardScreen visits={visits} workdays={workdays} auditLogs={auditLogs}/>}
     </div>
