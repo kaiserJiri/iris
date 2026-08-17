@@ -698,10 +698,13 @@ function LoginScreen({onLogin}){
 }
 
 /* ── HOME ── */
-function HomeScreen({user,visits,workday,onNewVisit,onSetOvernight,onDeleteVisit,onEditVisit,onDeleteVisitAudit,onEditVisitAudit}){
+function HomeScreen({user,visits,workday,newCusts,onNewVisit,onSetOvernight,onDeleteVisit,onEditVisit,onEditNewCust,onDeleteVisitAudit,onEditVisitAudit}){
   const mine=visits.filter(v=>v.rep_id===user.id&&v.confirmed_at.startsWith(TODAY));
+  const allCusts=React.useMemo(()=>[...CUSTOMERS,...(newCusts||[])],[newCusts]);
+  const lookupCust=id=>allCusts.find(c=>String(c.id)===String(id));
   const [dialog,setDialog]=useState(null); // {type:'delete'|'edit', visit}
   const [editResult,setEditResult]=useState(""); const [editNote,setEditNote]=useState("");
+  const [editCustName,setEditCustName]=useState(""); const [editCustCity,setEditCustCity]=useState("");
   const [showHistory,setShowHistory]=useState(false);
   const [historyMonth,setHistoryMonth]=useState(TODAY.slice(0,7));
   const [selectedHistoryDay,setSelectedHistoryDay]=useState(null);
@@ -784,7 +787,7 @@ function HomeScreen({user,visits,workday,onNewVisit,onSetOvernight,onDeleteVisit
                 ):(
                   <div style={{display:"flex",flexDirection:"column",gap:8}}>
                     {selDV.map(v=>{
-                      const c=CUSTOMERS.find(x=>x.id===v.customer_id);
+                      const c=lookupCust(v.customer_id);
                       const iab={background:"none",border:"none",cursor:"pointer",fontSize:17,padding:"6px 8px",borderRadius:8,lineHeight:1};
                       return(
                         <div key={v.id} className="card" style={{display:"flex",alignItems:"center",gap:12}}>
@@ -808,7 +811,7 @@ function HomeScreen({user,visits,workday,onNewVisit,onSetOvernight,onDeleteVisit
                   {histDialog.type==="delete"?<>
                     <div style={{textAlign:"center",fontSize:36,marginBottom:12}}>🗑️</div>
                     <div style={{fontWeight:900,fontSize:18,textAlign:"center",marginBottom:6}}>Besuch löschen?</div>
-                    <div style={{fontSize:15,color:"#6b7280",textAlign:"center",marginBottom:24}}>{CUSTOMERS.find(x=>x.id===histDialog.visit.customer_id)?.name||histDialog.visit.customer_id} · {rl(histDialog.visit.result)}</div>
+                    <div style={{fontSize:15,color:"#6b7280",textAlign:"center",marginBottom:24}}>{lookupCust(histDialog.visit.customer_id)?.name||histDialog.visit.customer_id} · {rl(histDialog.visit.result)}</div>
                     <div style={{display:"flex",gap:10}}>
                       <button onClick={()=>setHistDialog(null)} style={{flex:1,padding:"12px",borderRadius:10,background:"#f3f4f6",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Abbrechen</button>
                       <button onClick={()=>{onDeleteVisitAudit(histDialog.visit.id,histDialog.visit);setHistDialog(null);}} style={{flex:1,padding:"12px",borderRadius:10,background:"#dc2626",color:"white",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Löschen</button>
@@ -860,7 +863,7 @@ function HomeScreen({user,visits,workday,onNewVisit,onSetOvernight,onDeleteVisit
             <div className="section-label" style={{marginTop:8}}>Kundenbesuche heute</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {[...mine].sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at)).map(v=>{
-                const c=CUSTOMERS.find(c=>c.id===v.customer_id);
+                const c=lookupCust(v.customer_id);
                 const iab={background:"none",border:"none",cursor:"pointer",fontSize:17,padding:"6px 8px",borderRadius:8,lineHeight:1};
                 return (
                   <div key={v.id} className="card" style={{display:"flex",alignItems:"center",gap:12}}>
@@ -870,7 +873,7 @@ function HomeScreen({user,visits,workday,onNewVisit,onSetOvernight,onDeleteVisit
                       <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}{v.note?` · ${v.note}`:""}</div>
                     </div>
                     <Badge status={v.status}/>
-                    <button onClick={()=>{setEditResult(v.result);setEditNote(v.note||"");setDialog({type:"edit",visit:v});}} style={{...iab,background:"#EFF6FC"}}>✏️</button>
+                    <button onClick={()=>{setEditResult(v.result);setEditNote(v.note||"");setEditCustName("");setEditCustCity("");setDialog({type:"edit",visit:v});}} style={{...iab,background:"#EFF6FC"}}>✏️</button>
                     <button onClick={()=>setDialog({type:"delete",visit:v})} style={{...iab,background:"#FEF2F2"}}>🗑️</button>
                   </div>
                 );
@@ -883,13 +886,21 @@ function HomeScreen({user,visits,workday,onNewVisit,onSetOvernight,onDeleteVisit
                 {dialog.type==="delete"?<>
                   <div style={{textAlign:"center",fontSize:36,marginBottom:12}}>🗑️</div>
                   <div style={{fontWeight:900,fontSize:18,textAlign:"center",marginBottom:6}}>Besuch löschen?</div>
-                  <div style={{fontSize:15,color:"#6b7280",textAlign:"center",marginBottom:24}}>{CUSTOMERS.find(c=>c.id===dialog.visit.customer_id)?.name||dialog.visit.customer_id} · {rl(dialog.visit.result)}</div>
+                  <div style={{fontSize:15,color:"#6b7280",textAlign:"center",marginBottom:24}}>{lookupCust(dialog.visit.customer_id)?.name||dialog.visit.customer_id} · {rl(dialog.visit.result)}</div>
                   <div style={{display:"flex",gap:10}}>
                     <button onClick={()=>setDialog(null)} style={{flex:1,padding:"12px",borderRadius:10,background:"#f3f4f6",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Abbrechen</button>
                     <button onClick={()=>{onDeleteVisit(dialog.visit.id);setDialog(null);}} style={{flex:1,padding:"12px",borderRadius:10,background:"#dc2626",color:"white",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Löschen</button>
                   </div>
                 </>:<>
                   <div style={{fontWeight:900,fontSize:18,marginBottom:16}}>Besuch bearbeiten</div>
+                  {String(dialog.visit.customer_id).startsWith('new_')&&(()=>{
+                    const nc=lookupCust(dialog.visit.customer_id);
+                    return(<div style={{marginBottom:16}}>
+                      <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:8}}>Kundenname</div>
+                      <input value={editCustName} onChange={e=>setEditCustName(e.target.value)} placeholder={nc?.name||"Firmenname"} style={{marginBottom:8}}/>
+                      <input value={editCustCity} onChange={e=>setEditCustCity(e.target.value)} placeholder={nc?.city||"Stadt"} style={{marginBottom:0}}/>
+                    </div>);
+                  })()}
                   <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:10}}>Ergebnis</div>
                   <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:16}}>
                     {RESULTS.map(r=>(
@@ -904,7 +915,16 @@ function HomeScreen({user,visits,workday,onNewVisit,onSetOvernight,onDeleteVisit
                   <textarea rows={2} value={editNote} onChange={e=>setEditNote(e.target.value)} placeholder="Kurze Notiz…" style={{resize:"none",marginBottom:16}}/>
                   <div style={{display:"flex",gap:10}}>
                     <button onClick={()=>setDialog(null)} style={{flex:1,padding:"12px",borderRadius:10,background:"#f3f4f6",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Abbrechen</button>
-                    <button onClick={()=>{onEditVisit(dialog.visit.id,{result:editResult,note:editNote});setDialog(null);}} style={{flex:1,padding:"12px",borderRadius:10,background:OG,color:"white",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Speichern</button>
+                    <button onClick={()=>{
+                      onEditVisit(dialog.visit.id,{result:editResult,note:editNote});
+                      if(String(dialog.visit.customer_id).startsWith('new_')){
+                        const changes={};
+                        if(editCustName.trim())changes.name=editCustName.trim();
+                        if(editCustCity.trim())changes.city=editCustCity.trim();
+                        if(Object.keys(changes).length)onEditNewCust(dialog.visit.customer_id,changes);
+                      }
+                      setDialog(null);
+                    }} style={{flex:1,padding:"12px",borderRadius:10,background:OG,color:"white",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Speichern</button>
                   </div>
                 </>}
               </div>
@@ -1293,7 +1313,9 @@ function VisitConfirmScreen({user,customer,onBack,onConfirm}){
 }
 
 /* ── DASHBOARD ── */
-function DashboardScreen({visits,workdays,auditLogs=[]}){
+function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
+  const allCusts=React.useMemo(()=>[...CUSTOMERS,...newCusts],[newCusts]);
+  const lookupCust=id=>allCusts.find(c=>String(c.id)===String(id));
   const [selRep,setSelRep]=useState(null);
   const [view,setView]=useState("today");
   const [repMonth,setRepMonth]=useState(TODAY.slice(0,7));
@@ -1385,7 +1407,7 @@ function DashboardScreen({visits,workdays,auditLogs=[]}){
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {rv.length===0&&<div style={{textAlign:"center",padding:"48px 0",color:"#d1d5db"}}><div style={{fontSize:40,marginBottom:12}}>📭</div>Keine Einträge heute</div>}
             {rv.map(v=>{
-              const c=CUSTOMERS.find(c=>c.id===v.customer_id);
+              const c=lookupCust(v.customer_id);
               return (
                 <div key={v.id} className="card">
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
@@ -1736,7 +1758,7 @@ function DashboardScreen({visits,workdays,auditLogs=[]}){
                       ):(
                         <div style={{display:"flex",flexDirection:"column",gap:8}}>
                           {selDVMgr.map(v=>{
-                            const c=CUSTOMERS.find(x=>x.id===v.customer_id);
+                            const c=lookupCust(v.customer_id);
                             const r=USERS.find(u=>u.id===v.rep_id);
                             return(
                               <div key={v.id} className="card" style={{display:"flex",alignItems:"center",gap:12}}>
@@ -1869,7 +1891,7 @@ function DashboardScreen({visits,workdays,auditLogs=[]}){
           <div className="section-label" style={{color:"#f87171"}}>⚠ Zur Überprüfung ({tot.f})</div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {tod.filter(v=>v.status==="rejected").map(v=>{
-              const c=CUSTOMERS.find(c=>c.id===v.customer_id);
+              const c=lookupCust(v.customer_id);
               const r=USERS.find(u=>u.id===v.rep_id);
               return (
                 <div key={v.id} style={{background:"#fef2f2",border:"1.5px solid #fca5a5",borderRadius:12,padding:12}}>
@@ -1885,7 +1907,7 @@ function DashboardScreen({visits,workdays,auditLogs=[]}){
           <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",overflow:"hidden",marginBottom:8}}>
             {auditLogs.map((log,i)=>{
               const rep=USERS.find(u=>u.email===log.repEmail);
-              const c=log.before?CUSTOMERS.find(x=>x.id===log.before.customer_id):null;
+              const c=log.before?lookupCust(log.before.customer_id):null;
               const ts=log.timestamp?new Date(log.timestamp).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"-";
               return(
                 <div key={log.id||i} style={{padding:"11px 16px",borderBottom:i<auditLogs.length-1?"1px solid #f9fafb":"none"}}>
@@ -1943,6 +1965,15 @@ function App(){
   const [cust,setCust]=useState(null);
   const [fbLoading,setFbLoading]=useState(USE_FB);
   const [auditLogs,setAuditLogs]=useState([]);
+  const [newCusts,setNewCusts]=useState(()=>{
+    // fallback: načti ze všech uživatelů z localStorage
+    const all=[];
+    USERS.forEach(u=>{
+      const k="actio_new_cust_"+u.id;
+      try{const v=localStorage.getItem(k);if(v)all.push(...JSON.parse(v));}catch{}
+    });
+    return all;
+  });
 
   /* ── Firebase real-time listenery ── */
   useEffect(()=>{
@@ -1963,7 +1994,11 @@ function App(){
       setAuditLogs(snap.docs.map(d=>({...d.data(),id:d.id})));
     },err=>{console.error("[Iris] audit_log listener:",err);});
 
-    return()=>{unsubV();unsubW();unsubA();};
+    const unsubNC=DB.collection('new_customers').onSnapshot(snap=>{
+      setNewCusts(snap.docs.map(d=>({...d.data(),id:d.id})));
+    },err=>{console.error("[Iris] new_customers listener:",err);});
+
+    return()=>{unsubV();unsubW();unsubA();unsubNC();};
   },[]);
 
   /* ── localStorage persistence (jen v fallback režimu) ── */
@@ -2021,6 +2056,25 @@ function App(){
     }
   };
 
+  /* ── New customers CRUD ── */
+  const addNewCustomer=nc=>{
+    if(USE_FB&&DB){
+      DB.collection('new_customers').doc(nc.id).set(nc).catch(e=>console.error("[Iris] addNewCustomer:",e));
+    } else {
+      setNewCusts(p=>[nc,...p.filter(c=>c.id!==nc.id)]);
+      // fallback: uložit do localStorage pro konkrétního usera
+      const k="actio_new_cust_"+nc.rep_id;
+      try{const prev=JSON.parse(localStorage.getItem(k)||"[]");localStorage.setItem(k,JSON.stringify([nc,...prev.filter(c=>c.id!==nc.id)]));}catch{}
+    }
+  };
+  const editNewCustomer=(id,changes)=>{
+    if(USE_FB&&DB){
+      DB.collection('new_customers').doc(String(id)).update(changes).catch(e=>console.error("[Iris] editNewCustomer:",e));
+    } else {
+      setNewCusts(p=>p.map(c=>c.id===id?{...c,...changes}:c));
+    }
+  };
+
   const myWorkday=user?workdays.find(w=>w.user_id===user.id&&w.date===TODAY):null;
 
   const saveWorkday=wd=>{
@@ -2050,13 +2104,13 @@ function App(){
   return (
     <div className="app-root">
       <Sidebar user={user} workday={myWorkday} onLogout={logout} onSetDay={()=>setScreen("dayset")}/>
-      {screen==="home"      && <HomeScreen user={user} visits={visits} workday={myWorkday} onNewVisit={()=>setScreen("search")} onSetOvernight={()=>setScreen("overnight")} onDeleteVisit={deleteVisit} onEditVisit={editVisit} onDeleteVisitAudit={deleteVisitAudit} onEditVisitAudit={editVisitAudit}/>}
+      {screen==="home"      && <HomeScreen user={user} visits={visits} workday={myWorkday} newCusts={newCusts} onNewVisit={()=>setScreen("search")} onSetOvernight={()=>setScreen("overnight")} onDeleteVisit={deleteVisit} onEditVisit={editVisit} onEditNewCust={editNewCustomer} onDeleteVisitAudit={deleteVisitAudit} onEditVisitAudit={editVisitAudit}/>}
       {screen==="dayset"    && <DaySetupScreen user={user} existing={myWorkday} onBack={()=>setScreen("home")} onSave={saveWorkday}/>}
       {screen==="overnight" && <OvernightScreen workday={myWorkday} onBack={()=>setScreen("home")} onSave={saveOvernight}/>}
-      {screen==="search"    && <CustomerSearchScreen user={user} visits={visits} onBack={()=>setScreen("home")} onSelect={c=>{setCust(c);setScreen("confirm");}} onNewCustomer={()=>setScreen("neukunde")}/>}
-      {screen==="neukunde"  && <NewCustomerScreen user={user} onBack={()=>setScreen("search")} onSave={c=>{setCust(c);setScreen("confirm");}}/>}
+      {screen==="search"    && <CustomerSearchScreen user={user} visits={visits} newCusts={newCusts} onBack={()=>setScreen("home")} onSelect={c=>{setCust(c);setScreen("confirm");}} onNewCustomer={()=>setScreen("neukunde")}/>}
+      {screen==="neukunde"  && <NewCustomerScreen user={user} onBack={()=>setScreen("search")} onSave={c=>{addNewCustomer(c);setCust(c);setScreen("confirm");}}/>}
       {screen==="confirm"   && <VisitConfirmScreen user={user} customer={cust} onBack={()=>setScreen("search")} onConfirm={addVisit}/>}
-      {screen==="dashboard" && <DashboardScreen visits={visits} workdays={workdays} auditLogs={auditLogs}/>}
+      {screen==="dashboard" && <DashboardScreen visits={visits} workdays={workdays} auditLogs={auditLogs} newCusts={newCusts}/>}
     </div>
   );
 }
