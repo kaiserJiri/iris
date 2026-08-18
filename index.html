@@ -1237,9 +1237,9 @@ function CustomerSearchScreen({user,visits,onBack,onSelect,onNewCustomer}){
 }
 
 async function geocodeCustomer(c){
-  const tryQ=async q=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}&countrycodes=de`,{headers:{'Accept-Language':'de','User-Agent':'iris-prague-eyewear'}});const d=await r.json();return d.length>0?{lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)}:null;}catch{return null;}};
+  const tryQ=async q=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}&countrycodes=de,cz`,{headers:{'Accept-Language':'de','User-Agent':'iris-prague-eyewear'}});const d=await r.json();return d.length>0?{lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)}:null;}catch{return null;}};
   const addr=[c.street,c.postal,c.city].filter(Boolean).join(' ');
-  return (await tryQ(addr))||(await tryQ(`${c.name||''}  ${c.city||''} Deutschland`))||null;
+  return (await tryQ(addr))||(await tryQ(`${c.name||''} ${c.city||''}`))||null;
 }
 
 /* ── CONFIRM ── */
