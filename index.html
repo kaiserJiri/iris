@@ -585,12 +585,11 @@ function haversine(la1,lo1,la2,lo2){
   const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)**2;
   return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
 }
-function gpsInfo(dist_m,gps_ok,geocoding){
-  if(geocoding) return{cls:"load",icon:"⏳",text:"GPS wird ermittelt…",ok:false};
-  if(dist_m===null) return{cls:"load",icon:"⏳",text:"GPS: nicht verfügbar",ok:false};
-  const km=(dist_m/1000).toFixed(1);
-  if(gps_ok) return{cls:"ok",icon:"✓",text:"GPS ok · "+km+" km",ok:true};
-  return{cls:"err",icon:"✗",text:"GPS nicht ok · "+km+" km",ok:false};
+function gpsInfo(d){
+  if(d===null) return{cls:"load",icon:"⏳",text:"GPS wird geladen...",ok:false};
+  if(d<=150)   return{cls:"ok",  icon:"✓", text:d+" m — Bestätigt",ok:true};
+  if(d<=300)   return{cls:"warn",icon:"⚠", text:d+" m — Warnung",ok:true};
+  return            {cls:"err", icon:"✗", text:d+" m — Außerhalb",ok:false};
 }
 function fmtT(iso){try{return new Date(iso).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});}catch{return "";}}
 
@@ -795,7 +794,7 @@ function HomeScreen({user,visits,workday,newCusts,onNewVisit,onSetOvernight,onDe
                           <div style={{fontSize:22,width:30,textAlign:"center",flexShrink:0}}>{ri(v.result)}</div>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c?.name||v.customer_id}</div>
-                            <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}{v.note?` · ${v.note}`:""}{v.gps_ok!==undefined&&<span style={{fontSize:11,fontWeight:600,color:v.gps_ok?"#16a34a":"#dc2626",marginLeft:6}}>{v.gps_ok?"✓":"✗"} GPS{v.distance&&v.distance<9999?" · "+(v.distance/1000).toFixed(1)+" km":""}</span>}</div>
+                            <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}{v.note?` · ${v.note}`:""}</div>
                           </div>
                           <button onClick={()=>{setHistEditResult(v.result);setHistEditNote(v.note||"");setHistDialog({type:"edit",visit:v});}} style={{...iab,background:"#EFF6FC"}}>✏️</button>
                           <button onClick={()=>setHistDialog({type:"delete",visit:v})} style={{...iab,background:"#FEF2F2"}}>🗑️</button>
@@ -1189,7 +1188,7 @@ function CustomerSearchScreen({user,visits,onBack,onSelect,onNewCustomer}){
   useEffect(()=>{if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(p=>setPos({lat:p.coords.latitude,lng:p.coords.longitude}),()=>{});},[]);
   const mine=CUSTOMERS.filter(c=>c.rep_id===user.id);
   const filtered=q.length>=1?mine.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())||c.city.toLowerCase().includes(q.toLowerCase())||c.postal.includes(q)):[];
-  const nearby=pos?[...mine].map(c=>({...c,_d:c.lat&&c.lng?haversine(pos.lat,pos.lng,c.lat,c.lng):undefined})).sort((a,b)=>(a._d??Infinity)-(b._d??Infinity)).slice(0,8):[];
+  const nearby=pos?[...mine].map(c=>({...c,_d:haversine(pos.lat,pos.lng,c.lat,c.lng)})).sort((a,b)=>a._d-b._d).slice(0,8):[];
   const Row=({c,dist})=>{
     const last=[...visits].filter(v=>v.rep_id===user.id&&v.customer_id===c.id).sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at))[0];
     const tod=last?.confirmed_at?.startsWith(TODAY);
@@ -1236,15 +1235,9 @@ function CustomerSearchScreen({user,visits,onBack,onSelect,onNewCustomer}){
   );
 }
 
-async function geocodeCustomer(c){
-  const tryQ=async q=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}&countrycodes=de,cz`,{headers:{'Accept-Language':'de','User-Agent':'iris-prague-eyewear'}});const d=await r.json();return d.length>0?{lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)}:null;}catch{return null;}};
-  const addr=[c.street,c.postal,c.city].filter(Boolean).join(' ');
-  return (await tryQ(addr))||(await tryQ(`${c.name||''} ${c.city||''}`))||null;
-}
-
 /* ── CONFIRM ── */
 function VisitConfirmScreen({user,customer,onBack,onConfirm}){
-  const [pos,setPos]=useState(null); const [gpsErr,setGpsErr]=useState(null); const [custCoords,setCustCoords]=useState(null); const [geocoding,setGeocoding]=useState(false); const [loading,setLoading]=useState(true);
+  const [pos,setPos]=useState(null); const [gpsErr,setGpsErr]=useState(null); const [loading,setLoading]=useState(true);
   const [result,setResult]=useState(""); const [units,setUnits]=useState(""); const [note,setNote]=useState("");
   const [saving,setSaving]=useState(false); const [done,setDone]=useState(false);
   useEffect(()=>{
@@ -1255,14 +1248,17 @@ function VisitConfirmScreen({user,customer,onBack,onConfirm}){
       {enableHighAccuracy:true,timeout:12000}
     );
   },[]);
-  const cc=custCoords||{lat:customer.lat,lng:customer.lng};
-  const dist_m=pos&&cc.lat&&cc.lng?haversine(pos.lat,pos.lng,cc.lat,cc.lng):null;
-  const gps_ok=dist_m!==null&&dist_m<=25000;
-  const gi=gpsInfo(dist_m,gps_ok,geocoding||loading);
-  const vs=dist_m===null?"unknown":gps_ok?"confirmed":"rejected";
+  const dist=(pos&&!customer.isNew&&customer.lat!=null&&customer.lng!=null)?haversine(pos.lat,pos.lng,customer.lat,customer.lng):null;
+  const noGps=customer.isNew||customer.lat==null;
+  const gi=customer.isNew
+    ?{cls:"ok",icon:"✅",text:"Neukunde – GPS nicht erforderlich",ok:true}
+    :customer.lat==null
+      ?{cls:"load",icon:"📍",text:"Kundenstandort nicht hinterlegt – Besuch wird erfasst",ok:true}
+      :gpsInfo(loading?null:dist);
+  const vs=noGps?(pos?"confirmed":"unknown"):dist===null?"unknown":dist<=150?"confirmed":dist<=300?"warning":"rejected";
   const go=()=>{
     if(!result||saving)return; setSaving(true);
-    setTimeout(()=>{onConfirm({id:Date.now(),rep_id:user.id,customer_id:customer.id,confirmed_at:new Date().toISOString(),distance:dist_m??9999,gps_ok,gps_lat:pos?.lat??null,gps_lng:pos?.lng??null,status:vs,result,units:result==="order"?(parseInt(units)||0):0,note});setDone(true);},900);
+    setTimeout(()=>{onConfirm({id:Date.now(),rep_id:user.id,customer_id:customer.id,confirmed_at:new Date().toISOString(),distance:dist,status:vs,result,units:result==="order"?(parseInt(units)||0):0,note});setDone(true);},900);
   };
   if(done) return (
     <div className="main-panel" style={{alignItems:"center",justifyContent:"center",textAlign:"center"}}>
@@ -1286,7 +1282,7 @@ function VisitConfirmScreen({user,customer,onBack,onConfirm}){
       <div className="panel-body">
         <div style={{maxWidth:520,width:"100%",display:"flex",flexDirection:"column",gap:14}}>
           <div className={"gps-box "+gi.cls}>
-            <div className="gps-text"><span style={{fontSize:18}}>{gi.icon}</span><span>{gpsErr||gi.text}</span></div>
+            <div className="gps-text"><span style={{fontSize:18}}>{gi.icon}</span><span>{(!noGps&&gpsErr)||gi.text}</span></div>
             {pos&&<div style={{fontSize:14,color:"#6b7280",marginTop:4}}>GPS-Genauigkeit: ±{pos.acc} m</div>}
             {!customer.isNew&&dist!==null&&dist>300&&<div style={{fontSize:14,color:"#b91c1c",marginTop:6,fontWeight:600}}>Sie sind zu weit entfernt. Der Besuch wird zur Überprüfung markiert.</div>}
           </div>
@@ -1416,7 +1412,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
                 <div key={v.id} className="card">
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
                     <span style={{fontSize:15,fontWeight:900,color:"#4b5563"}}>{fmtT(v.confirmed_at)}</span>
-                    <span className={"badge "+(v.status==="confirmed"?"badge-ok":v.status==="warning"?"badge-warn":"badge-err")}>{v.distance&&v.distance<9999?v.distance+' m':'–'}</span>
+                    <span className={"badge "+(v.status==="confirmed"?"badge-ok":v.status==="warning"?"badge-warn":"badge-err")}>{(v.distance!=null&&v.distance>=0&&v.distance!==9999)?v.distance+' m':'–'}</span>
                     <span style={{marginLeft:"auto",fontSize:16}}>{ri(v.result)}</span>
                   </div>
                   <div style={{fontWeight:700,fontSize:14,color:"#111827"}}>{c?.name}</div>
@@ -1754,10 +1750,8 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
                   </div>
                   {selectedManagerDay&&(
                     <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:10}}>
-                      <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                        <button onClick={()=>{const d=new Date(selectedManagerDay+"T12:00:00");d.setDate(d.getDate()-1);setSelectedManagerDay(d.toISOString().slice(0,10));}} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#374151",padding:"0 6px",lineHeight:1}}>◀</button>
-                        <span>{new Date(selectedManagerDay+"T12:00:00").toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</span>
-                        <button onClick={()=>{const d=new Date(selectedManagerDay+"T12:00:00");d.setDate(d.getDate()+1);setSelectedManagerDay(d.toISOString().slice(0,10));}} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#374151",padding:"0 6px",lineHeight:1}}>▶</button>
+                      <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:12}}>
+                        {new Date(selectedManagerDay+"T12:00:00").toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
                       </div>
                       {selDVMgr.length===0?(
                         <div style={{textAlign:"center",padding:"16px",color:"#9ca3af",fontSize:15}}>Keine Besuche</div>
@@ -1902,7 +1896,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
               return (
                 <div key={v.id} style={{background:"#fef2f2",border:"1.5px solid #fca5a5",borderRadius:12,padding:12}}>
                   <div style={{fontSize:16,fontWeight:700,color:"#b91c1c"}}>{r?.name} · {c?.name}</div>
-                  <div style={{fontSize:14,color:"#ef4444"}}>{fmtT(v.confirmed_at)}{v.distance&&v.distance<9999?' · '+v.distance+' m':''} · {rl(v.result)}</div>
+                  <div style={{fontSize:14,color:"#ef4444"}}>{fmtT(v.confirmed_at)} · {(v.distance!=null&&v.distance>=0&&v.distance!==9999)?v.distance+' m':'–'} · {rl(v.result)}</div>
                 </div>
               );
             })}
