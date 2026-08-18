@@ -585,11 +585,12 @@ function haversine(la1,lo1,la2,lo2){
   const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)**2;
   return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
 }
-function gpsInfo(d){
-  if(d===null) return{cls:"load",icon:"⏳",text:"GPS wird geladen...",ok:false};
-  if(d<=150)   return{cls:"ok",  icon:"✓", text:d+" m — Bestätigt",ok:true};
-  if(d<=300)   return{cls:"warn",icon:"⚠", text:d+" m — Warnung",ok:true};
-  return            {cls:"err", icon:"✗", text:d+" m — Außerhalb",ok:false};
+function gpsInfo(dist_m,gps_ok,geocoding){
+  if(geocoding) return{cls:"load",icon:"⏳",text:"GPS wird ermittelt…",ok:false};
+  if(dist_m===null) return{cls:"load",icon:"⏳",text:"GPS: nicht verfügbar",ok:false};
+  const km=(dist_m/1000).toFixed(1);
+  if(gps_ok) return{cls:"ok",icon:"✓",text:"GPS ok · "+km+" km",ok:true};
+  return{cls:"err",icon:"✗",text:"GPS nicht ok · "+km+" km",ok:false};
 }
 function fmtT(iso){try{return new Date(iso).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});}catch{return "";}}
 
@@ -794,7 +795,7 @@ function HomeScreen({user,visits,workday,newCusts,onNewVisit,onSetOvernight,onDe
                           <div style={{fontSize:22,width:30,textAlign:"center",flexShrink:0}}>{ri(v.result)}</div>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c?.name||v.customer_id}</div>
-                            <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}{v.note?` · ${v.note}`:""}</div>
+                            <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}{v.note?` · ${v.note}`:""}{v.gps_ok!==undefined&&<span style={{fontSize:11,fontWeight:600,color:v.gps_ok?"#16a34a":"#dc2626",marginLeft:6}}>{v.gps_ok?"✓":"✗"} GPS{v.distance&&v.distance<9999?" · "+(v.distance/1000).toFixed(1)+" km":""}</span>}</div>
                           </div>
                           <button onClick={()=>{setHistEditResult(v.result);setHistEditNote(v.note||"");setHistDialog({type:"edit",visit:v});}} style={{...iab,background:"#EFF6FC"}}>✏️</button>
                           <button onClick={()=>setHistDialog({type:"delete",visit:v})} style={{...iab,background:"#FEF2F2"}}>🗑️</button>
@@ -1235,9 +1236,15 @@ function CustomerSearchScreen({user,visits,onBack,onSelect,onNewCustomer}){
   );
 }
 
+async function geocodeCustomer(c){
+  const tryQ=async q=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}&countrycodes=de`,{headers:{'Accept-Language':'de','User-Agent':'iris-prague-eyewear'}});const d=await r.json();return d.length>0?{lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)}:null;}catch{return null;}};
+  const addr=[c.street,c.postal,c.city].filter(Boolean).join(' ');
+  return (await tryQ(addr))||(await tryQ(`${c.name||''}  ${c.city||''} Deutschland`))||null;
+}
+
 /* ── CONFIRM ── */
 function VisitConfirmScreen({user,customer,onBack,onConfirm}){
-  const [pos,setPos]=useState(null); const [gpsErr,setGpsErr]=useState(null); const [loading,setLoading]=useState(true);
+  const [pos,setPos]=useState(null); const [gpsErr,setGpsErr]=useState(null); const [custCoords,setCustCoords]=useState(null); const [geocoding,setGeocoding]=useState(false); const [loading,setLoading]=useState(true);
   const [result,setResult]=useState(""); const [units,setUnits]=useState(""); const [note,setNote]=useState("");
   const [saving,setSaving]=useState(false); const [done,setDone]=useState(false);
   useEffect(()=>{
@@ -1248,17 +1255,14 @@ function VisitConfirmScreen({user,customer,onBack,onConfirm}){
       {enableHighAccuracy:true,timeout:12000}
     );
   },[]);
-  const dist=(pos&&!customer.isNew&&customer.lat!=null&&customer.lng!=null)?haversine(pos.lat,pos.lng,customer.lat,customer.lng):null;
-  const noGps=customer.isNew||customer.lat==null;
-  const gi=noGps
-    ?(loading?{cls:"load",icon:"⏳",text:"GPS wird geladen...",ok:false}
-      :pos?{cls:"ok",icon:"✅",text:"GPS-Standort erfasst",ok:true}
-      :{cls:"err",icon:"⚠️",text:"GPS nicht verfügbar",ok:false})
-    :gpsInfo(loading?null:dist);
-  const vs=noGps?(pos?"confirmed":"unknown"):dist===null?"unknown":dist<=150?"confirmed":dist<=300?"warning":"rejected";
+  const cc=custCoords||{lat:customer.lat,lng:customer.lng};
+  const dist_m=pos&&cc.lat&&cc.lng?haversine(pos.lat,pos.lng,cc.lat,cc.lng):null;
+  const gps_ok=dist_m!==null&&dist_m<=25000;
+  const gi=gpsInfo(dist_m,gps_ok,geocoding||loading);
+  const vs=dist_m===null?"unknown":gps_ok?"confirmed":"rejected";
   const go=()=>{
     if(!result||saving)return; setSaving(true);
-    setTimeout(()=>{onConfirm({id:Date.now(),rep_id:user.id,customer_id:customer.id,confirmed_at:new Date().toISOString(),distance:dist??9999,status:vs,result,units:result==="order"?(parseInt(units)||0):0,note});setDone(true);},900);
+    setTimeout(()=>{onConfirm({id:Date.now(),rep_id:user.id,customer_id:customer.id,confirmed_at:new Date().toISOString(),distance:dist_m??9999,gps_ok,gps_lat:pos?.lat??null,gps_lng:pos?.lng??null,status:vs,result,units:result==="order"?(parseInt(units)||0):0,note});setDone(true);},900);
   };
   if(done) return (
     <div className="main-panel" style={{alignItems:"center",justifyContent:"center",textAlign:"center"}}>
