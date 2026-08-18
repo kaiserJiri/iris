@@ -1416,7 +1416,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
                 <div key={v.id} className="card">
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
                     <span style={{fontSize:15,fontWeight:900,color:"#4b5563"}}>{fmtT(v.confirmed_at)}</span>
-                    <span className={"badge "+(v.status==="confirmed"?"badge-ok":v.status==="warning"?"badge-warn":"badge-err")}>{v.distance} m</span>
+                    <span className={"badge "+(v.status==="confirmed"?"badge-ok":v.status==="warning"?"badge-warn":"badge-err")}>{v.distance&&v.distance<9999?v.distance+' m':'–'}</span>
                     <span style={{marginLeft:"auto",fontSize:16}}>{ri(v.result)}</span>
                   </div>
                   <div style={{fontWeight:700,fontSize:14,color:"#111827"}}>{c?.name}</div>
@@ -1902,7 +1902,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
               return (
                 <div key={v.id} style={{background:"#fef2f2",border:"1.5px solid #fca5a5",borderRadius:12,padding:12}}>
                   <div style={{fontSize:16,fontWeight:700,color:"#b91c1c"}}>{r?.name} · {c?.name}</div>
-                  <div style={{fontSize:14,color:"#ef4444"}}>{fmtT(v.confirmed_at)} · {v.distance} m · {rl(v.result)}</div>
+                  <div style={{fontSize:14,color:"#ef4444"}}>{fmtT(v.confirmed_at)}{v.distance&&v.distance<9999?' · '+v.distance+' m':''} · {rl(v.result)}</div>
                 </div>
               );
             })}
