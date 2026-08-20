@@ -210,7 +210,7 @@ function locInfo(val) { return LOCATION_TYPES.find(l=>l.value===val); }
 function overnightLocInfo(val) { return OVERNIGHT_TYPES.find(l=>l.value===val); }
 
 const USERS = [
-  { id:1, name:"Jens Heeren",       email:"heeren@prague-eyewear.de",       role:"rep",     territory:"PLZ 7, 8, 9", initials:"JH" },
+  { id:1, name:"Jens Heeren",       email:"heeren@prague-eyewear.de",       role:"rep",     territory:"PLZ 7, 8, 9 (Süden)", initials:"JH" },
   { id:2, name:"Jan Otten",         email:"otten@prague-eyewear.de",        role:"rep",     territory:"PLZ 1-5 (Nord)", initials:"JO" },
   { id:3, name:"Yvette Hirt",       email:"hirt@prague-eyewear.de",         role:"rep",     territory:"PLZ 0-1 (Ost)", initials:"YH" },
   { id:4, name:"Horst Temeschinko", email:"temeschinko@prague-eyewear.de",  role:"rep",     territory:"PLZ 3-6 (West)", initials:"HT" },
@@ -1077,9 +1077,8 @@ function haversine(la1,lo1,la2,lo2){
 }
 function gpsInfo(d){
   if(d===null) return{cls:"load",icon:"⏳",text:"GPS wird geladen...",ok:false};
-  if(d<=150)   return{cls:"ok",  icon:"✓", text:d+" m — Bestätigt",ok:true};
-  if(d<=300)   return{cls:"warn",icon:"⚠", text:d+" m — Warnung",ok:true};
-  return            {cls:"err", icon:"✗", text:d+" m — Außerhalb",ok:false};
+  if(d<=25000) return{cls:"ok",  icon:"✓", text:(d<1000?d+" m":(d/1000).toFixed(1)+" km")+" — Bestätigt",ok:true};
+  return            {cls:"err", icon:"✗", text:(d/1000).toFixed(1)+" km — Außerhalb (Limit 25 km)",ok:false};
 }
 function fmtT(iso){try{return new Date(iso).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});}catch{return "";}}
 
@@ -1765,7 +1764,7 @@ function VisitConfirmScreen({user,customer,onBack,onConfirm}){
       :gpsInfo(loading?null:dist);
   const vs=customer.isNew
     ?(dist===null?"unknown":dist<=25000?"confirmed":"rejected")
-    :(noGps?(pos?"confirmed":"unknown"):dist===null?"unknown":dist<=150?"confirmed":dist<=300?"warning":"rejected");
+    :(noGps?(pos?"confirmed":"unknown"):dist===null?"unknown":dist<=25000?"confirmed":"rejected");
   const go=()=>{
     if(!result||saving)return; setSaving(true);
     setTimeout(()=>{onConfirm({id:Date.now(),rep_id:user.id,customer_id:customer.id,confirmed_at:new Date().toISOString(),distance:dist,status:vs,result,units:result==="order"?(parseInt(units)||0):0,note});setDone(true);},900);
@@ -1911,7 +1910,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
           {wd&&<div className="card" style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
             <span style={{fontSize:24}}>{ds?.icon||"❓"}</span>
             <div><div style={{fontWeight:700,fontSize:16}}>{ds?.label}</div>
-              {wd.day_status==="aussendienst"&&<div style={{fontSize:12,color:"#9ca3af"}}>Start: {locInfo(wd.start_location)?.label||"—"} · Übernachtung: {wd.overnight?overnightLocInfo(wd.overnight)?.label:"—"}</div>}
+              {wd.day_status==="aussendienst"&&<div style={{fontSize:12,color:"#9ca3af"}}>Start: {locInfo(wd.start_location)?.label||"—"}{wd.overnight?` · Übernachtung: ${overnightLocInfo(wd.overnight)?.label}`:""}</div>}
               {wd.day_status==="messe"&&<div style={{fontSize:14,color:"#9ca3af"}}>{wd.event_name}{wd.event_city?" · "+wd.event_city:""}</div>}
             </div>
           </div>}
