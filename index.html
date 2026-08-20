@@ -214,7 +214,7 @@ const USERS = [
   { id:2, name:"Jan Otten",         email:"otten@prague-eyewear.de",        role:"rep",     territory:"PLZ 1-5 (Nord)", initials:"JO" },
   { id:3, name:"Yvette Hirt",       email:"hirt@prague-eyewear.de",         role:"rep",     territory:"PLZ 0-1 (Ost)", initials:"YH" },
   { id:4, name:"Horst Temeschinko", email:"temeschinko@prague-eyewear.de",  role:"rep",     territory:"PLZ 3-6 (West)", initials:"HT" },
-  { id:5, name:"Michael Boss",      email:"demo",                           role:"manager", territory:"ALL",            initials:"MB" },
+  { id:5, name:"Manager view",      email:"demo",                           role:"manager", territory:"ALL",            initials:"MB" },
 ];
 
 const CUSTOMERS = [
@@ -1832,6 +1832,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
   const [hoveredDay,setHoveredDay]=useState(null);
   const [chartView,setChartView]=useState("bar");
   const [selectedManagerDay,setSelectedManagerDay]=useState(null);
+  const [chartRepId,setChartRepId]=useState(null);
   const reps=USERS.filter(u=>u.role==="rep");
   const tod=visits.filter(v=>v.confirmed_at.startsWith(TODAY));
   const DOW=["So","Mo","Di","Mi","Do","Fr","Sa"];
@@ -2014,6 +2015,8 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
   // Monthly overview
   if(view==="month"){
     const mdays=getMonthDays();
+    const chartVis=chartRepId?visits.filter(v=>v.rep_id===chartRepId):visits;
+    const chartMdays=mdays.map(d=>({...d,dayVisits:chartVis.filter(v=>v.confirmed_at.startsWith(d.dateStr))}));
     return (
       <div className="main-panel">
         <div className="panel-header">
@@ -2056,8 +2059,22 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
                 );
               })}
             </div>
+            {/* ── Rep filter ── */}
+            <div style={{display:"flex",gap:6,marginTop:16,flexWrap:"wrap",alignItems:"center"}}>
+              <span style={{fontSize:11,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",marginRight:2}}>Vertreter:</span>
+              {[null,...reps].map(r=>{
+                const active=chartRepId===(r?r.id:null);
+                return(
+                  <button key={r?r.id:"all"} onClick={()=>{setChartRepId(r?r.id:null);setHoveredDay(null);setSelectedManagerDay(null);}}
+                    style={{display:"flex",alignItems:"center",gap:5,padding:"4px 12px",borderRadius:20,border:"1.5px solid "+(active?"#e87722":"#e5e7eb"),background:active?"#fff7ed":"white",fontWeight:700,fontSize:12,cursor:"pointer",color:active?"#e87722":"#6b7280",fontFamily:"inherit",transition:"all .15s"}}>
+                    {r&&<span style={{width:16,height:16,borderRadius:"50%",background:"#e87722",color:"white",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900,flexShrink:0}}>{r.initials}</span>}
+                    {r?r.name.split(" ")[0]:"Alle"}
+                  </button>
+                );
+              })}
+            </div>
             {/* ── Chart view toggle ── */}
-            <div style={{display:"flex",gap:8,marginTop:12}}>
+            <div style={{display:"flex",gap:8,marginTop:10}}>
               {["bar","heatmap","calendar"].map(cv=>(
                 <button key={cv} onClick={()=>{setChartView(cv);setHoveredDay(null);setSelectedManagerDay(null);}} style={{padding:"5px 16px",borderRadius:8,border:"1.5px solid "+(chartView===cv?"#e87722":"#e5e7eb"),background:chartView===cv?"#fff7ed":"white",fontWeight:700,fontSize:12,cursor:"pointer",color:chartView===cv?"#e87722":"#6b7280",fontFamily:"inherit",transition:"all .15s"}}>
                   {cv==="bar"?"Balken":cv==="heatmap"?"Heatmap":"Kalender"}
@@ -2066,14 +2083,14 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
             </div>
             {/* ── CHART 1: Tagesübersicht (bar chart + tooltip) + Line chart ── */}
             {chartView==="bar"&&(()=>{
-              const maxV=Math.max(1,...mdays.map(d=>d.dayVisits.length));
-              const n=mdays.length;
+              const maxV=Math.max(1,...chartMdays.map(d=>d.dayVisits.length));
+              const n=chartMdays.length;
               const W=640,H=160,pL=36,pR=8,pT=8,pB=24;
               const pw=W-pL-pR,ph=H-pT-pB;
               const slotW=pw/n;
               const bw=Math.max(3,Math.min(9,slotW*0.38));
               const lineH=90,linePT=10,linePB=20,linePH=lineH-linePT-linePB;
-              const linePoints=mdays.map((day,i)=>{
+              const linePoints=chartMdays.map((day,i)=>{
                 const v=day.dayVisits.length;
                 if(v===0) return null;
                 const o=day.dayVisits.filter(x=>x.result==="order").length;
@@ -2109,7 +2126,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
                           </g>
                         );
                       })}
-                      {mdays.map((day,i)=>{
+                      {chartMdays.map((day,i)=>{
                         const v=day.dayVisits.length;
                         const o=day.dayVisits.filter(x=>x.result==="order").length;
                         const cx=pL+i*slotW+slotW/2;
@@ -2167,8 +2184,8 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
               for(let i=0;i<firstDow;i++) cells.push(null);
               for(let d=1;d<=daysInMonth;d++){
                 const dateStr=`${hy}-${String(hm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-                const cnt=visits.filter(v=>v.confirmed_at.startsWith(dateStr)).length;
-                const ord=visits.filter(v=>v.confirmed_at.startsWith(dateStr)&&v.result==="order").length;
+                const cnt=chartVis.filter(v=>v.confirmed_at.startsWith(dateStr)).length;
+                const ord=chartVis.filter(v=>v.confirmed_at.startsWith(dateStr)&&v.result==="order").length;
                 cells.push({d,dateStr,cnt,ord});
               }
               const weeks=[];
@@ -2226,11 +2243,11 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
               for(let i=0;i<firstDow;i++) cellsMgr.push(null);
               for(let d=1;d<=daysInMonth;d++){
                 const dateStr=`${hy}-${String(hm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-                const dv=visits.filter(v=>v.confirmed_at.startsWith(dateStr));
+                const dv=chartVis.filter(v=>v.confirmed_at.startsWith(dateStr));
                 cellsMgr.push({d,dateStr,dv});
               }
               const weeksMgr=[];for(let i=0;i<cellsMgr.length;i+=7)weeksMgr.push(cellsMgr.slice(i,i+7));
-              const selDVMgr=selectedManagerDay?[...visits.filter(v=>v.confirmed_at.startsWith(selectedManagerDay))].sort((a,b)=>a.confirmed_at.localeCompare(b.confirmed_at)):[];
+              const selDVMgr=selectedManagerDay?[...chartVis.filter(v=>v.confirmed_at.startsWith(selectedManagerDay))].sort((a,b)=>a.confirmed_at.localeCompare(b.confirmed_at)):[];
               return(
                 <div>
                   <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:12}}>
