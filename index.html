@@ -1105,7 +1105,6 @@ function Sidebar({user,workday,onLogout,onSetDay}){
             <div style={av}>{user.initials}</div>
             <div>
               <div style={{fontSize:18,fontWeight:900,color:"white",lineHeight:1.2}}>{user.name}</div>
-              <div style={{fontSize:14,color:"rgba(255,255,255,.5)",marginTop:3}}>{user.territory}</div>
             </div>
           </div>
           {/* Tagesstatus — nur für Vertreter */}
@@ -1438,7 +1437,7 @@ function HomeScreen({user,visits,workday,newCusts,onNewVisit,onSetOvernight,onDe
             {workday.note&&<div style={{fontSize:16,color:"#9ca3af",marginTop:8,fontStyle:"italic"}}>{workday.note}</div>}
           </div>
         )}
-        {!workday&&<div style={{textAlign:"center",padding:"60px 0",color:"#d1d5db"}}><div style={{fontSize:48,marginBottom:12}}>📋</div><div style={{fontSize:16}}>Bitte richte den Tag im linken Bereich ein</div></div>}
+        {!workday&&<div style={{textAlign:"center",padding:"60px 0",color:"#d1d5db"}}><div style={{fontSize:48,marginBottom:12}}>📋</div><div style={{fontSize:16}}>Tippe oben auf TAG EINRICHTEN um zu starten</div></div>}
         </div>
       </div>
     </div>
@@ -1903,7 +1902,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
       <div className="main-panel">
         <div className="panel-header">
           <button className="back-btn" onClick={()=>setSelRep(null)}>‹</button>
-          <div><div className="panel-header-title">{selRep.name}</div><div className="panel-header-sub">{ds?ds.label:"—"} · {selRep.territory}</div></div>
+          <div><div className="panel-header-title">{selRep.name}</div><div className="panel-header-sub">{ds?ds.label:"—"}</div></div>
         </div>
         <div className="panel-body">
           <div style={{maxWidth:600,width:"100%"}}>
@@ -2049,7 +2048,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
                     onMouseOver={e=>e.currentTarget.style.background="#f9fafb"} onMouseOut={e=>e.currentTarget.style.background="white"}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
                       <div style={{width:32,height:32,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,flexShrink:0}}>{r.initials}</div>
-                      <div><div style={{fontSize:15,fontWeight:700,color:"#111827"}}>{r.name}</div><div style={{fontSize:12,color:"#9ca3af"}}>{r.territory}</div></div>
+                      <div><div style={{fontSize:15,fontWeight:700,color:"#111827"}}>{r.name}</div></div>
                     </div>
                     <div style={{fontSize:17,fontWeight:900,color:totalAD>0?OG:"#d1d5db",textAlign:"center"}}>{totalAD||"—"}</div>
                     <div style={{fontSize:17,fontWeight:900,color:totalVisits>0?"#374151":"#d1d5db",textAlign:"center"}}>{totalVisits||"—"}</div>
@@ -2406,7 +2405,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
               onMouseOver={e=>e.currentTarget.style.background="#f9fafb"} onMouseOut={e=>e.currentTarget.style.background="white"}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{width:32,height:32,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,flexShrink:0}}>{r.initials}</div>
-                <div><div style={{fontSize:15,fontWeight:700,color:"#111827"}}>{r.name}</div><div style={{fontSize:13,color:"#9ca3af"}}>{r.territory}</div></div>
+                <div><div style={{fontSize:15,fontWeight:700,color:"#111827"}}>{r.name}</div></div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontSize:16}}>{r.ds?.icon||"❓"}</span>
