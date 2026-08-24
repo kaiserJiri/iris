@@ -1821,7 +1821,7 @@ function VisitConfirmScreen({user,customer,onBack,onConfirm}){
 }
 
 /* ── DASHBOARD ── */
-function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
+function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog}){
   const allCusts=React.useMemo(()=>[...CUSTOMERS,...newCusts],[newCusts]);
   const lookupCust=id=>allCusts.find(c=>String(c.id)===String(id));
   const [selRep,setSelRep]=useState(null);
@@ -2434,7 +2434,10 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[]}){
           </div>
         </>}
         {auditLogs.length>0&&<>
-          <div className="section-label" style={{marginTop:24}}>Änderungen</div>
+          <div style={{display:"flex",alignItems:"center",marginTop:24,marginBottom:0}}>
+            <div className="section-label" style={{marginTop:0,flex:1}}>Änderungen</div>
+            {clearAuditLog&&<button onClick={()=>{if(window.confirm("Alle Änderungseinträge löschen?"))clearAuditLog();}} style={{fontSize:12,color:"#dc2626",background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:8,padding:"4px 10px",cursor:"pointer",fontWeight:600}}>🗑 Alle löschen</button>}
+          </div>
           <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",overflow:"hidden",marginBottom:8}}>
             {auditLogs.map((log,i)=>{
               const rep=USERS.find(u=>u.email===log.repEmail);
@@ -2505,6 +2508,15 @@ function App(){
     });
     return all;
   });
+
+  /* ── Smaž všechny záznamy v audit_log ── */
+  async function clearAuditLog(){
+    if(!USE_FB||!DB) return;
+    const snap=await DB.collection('audit_log').get();
+    const batch=DB.batch();
+    snap.docs.forEach(d=>batch.delete(d.ref));
+    await batch.commit();
+  }
 
   /* ── Firebase real-time listenery ── */
   useEffect(()=>{
@@ -2642,7 +2654,7 @@ function App(){
       {screen==="search"    && <CustomerSearchScreen user={user} visits={visits} newCusts={newCusts} onBack={()=>setScreen("home")} onSelect={c=>{setCust(c);setScreen("confirm");}} onNewCustomer={()=>setScreen("neukunde")}/>}
       {screen==="neukunde"  && <NewCustomerScreen user={user} onBack={()=>setScreen("search")} onSave={c=>{addNewCustomer(c);setCust(c);setScreen("confirm");}}/>}
       {screen==="confirm"   && <VisitConfirmScreen user={user} customer={cust} onBack={()=>setScreen("search")} onConfirm={addVisit}/>}
-      {screen==="dashboard" && <DashboardScreen visits={visits} workdays={workdays} auditLogs={auditLogs} newCusts={newCusts}/>}
+      {screen==="dashboard" && <DashboardScreen visits={visits} workdays={workdays} auditLogs={auditLogs} newCusts={newCusts} clearAuditLog={clearAuditLog}/>}
     </div>
   );
 }
