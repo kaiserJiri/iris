@@ -1727,7 +1727,7 @@ function CustomerSearchScreen({user,visits,onBack,onSelect,onNewCustomer}){
 
 /* ── CONFIRM ── */
 function VisitConfirmScreen({user,customer,onBack,onConfirm}){
-  const [pos,setPos]=useState(null); const [gpsErr,setGpsErr]=useState(null); const [loading,setLoading]=useState(true);
+  const [pos,setPos]=useState(null); const [gpsErr,setGpsErr]=useState(null); const [gpsErrCode,setGpsErrCode]=useState(null); const [loading,setLoading]=useState(true);
   const [cityPos,setCityPos]=useState(null); const [cityLoading,setCityLoading]=useState(customer.isNew);
   const [result,setResult]=useState(""); const [units,setUnits]=useState(""); const [note,setNote]=useState("");
   const [saving,setSaving]=useState(false); const [done,setDone]=useState(false);
@@ -1735,7 +1735,7 @@ function VisitConfirmScreen({user,customer,onBack,onConfirm}){
     if(!navigator.geolocation){setGpsErr("GPS nicht verfügbar");setLoading(false);return;}
     navigator.geolocation.getCurrentPosition(
       p=>{setPos({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)});setLoading(false);},
-      ()=>{setGpsErr("GPS nicht verfügbar");setLoading(false);},
+      e=>{setGpsErrCode(e?.code||0);setGpsErr("GPS nicht verfügbar");setLoading(false);},
       {enableHighAccuracy:true,timeout:12000}
     );
   },[]);
@@ -1768,7 +1768,7 @@ function VisitConfirmScreen({user,customer,onBack,onConfirm}){
     :(noGps?(pos?"confirmed":"unknown"):dist===null?"unknown":dist<=25000?"confirmed":"rejected");
   const go=()=>{
     if(!result||saving)return; setSaving(true);
-    setTimeout(()=>{onConfirm({id:Date.now(),rep_id:user.id,customer_id:customer.id,confirmed_at:new Date().toISOString(),distance:dist,status:vs,result,units:result==="order"?(parseInt(units)||0):0,note});setDone(true);},900);
+    setTimeout(()=>{onConfirm({id:Date.now(),rep_id:user.id,customer_id:customer.id,confirmed_at:new Date().toISOString(),distance:dist,status:vs,result,units:result==="order"?(parseInt(units)||0):0,note,gps_err:gpsErrCode});setDone(true);},900);
   };
   if(done) return (
     <div className="main-panel" style={{alignItems:"center",justifyContent:"center",textAlign:"center"}}>
@@ -1968,7 +1968,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
                     <span style={{fontSize:15,fontWeight:900,color:"#4b5563"}}>{fmtT(v.confirmed_at)}</span>
                     {(()=>{
                       const hasGps=v.distance!=null&&v.distance>=0&&v.distance!==9999;
-                      if(!hasGps) return <span className="badge" style={{background:"#f3f4f6",color:"#9ca3af",border:"1px solid #e5e7eb"}}>📍 GPS n/a</span>;
+                      if(!hasGps){const denied=v.gps_err===1;return <span className="badge" style={{background:denied?"#fef3c7":"#f3f4f6",color:denied?"#92400e":"#9ca3af",border:denied?"1px solid #fcd34d":"1px solid #e5e7eb"}}>{denied?"🚫 GPS gesperrt":"📍 GPS n/a"}</span>;}
                       const cls=v.status==="confirmed"?"badge-ok":v.status==="warning"?"badge-warn":"badge-err";
                       const icon=v.status==="confirmed"?"✓":v.status==="warning"?"⚠":"✗";
                       return <span className={"badge "+cls}>{icon} GPS · {v.distance} m</span>;
@@ -2479,7 +2479,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
               return (
                 <div key={v.id} style={{background:"#fef2f2",border:"1.5px solid #fca5a5",borderRadius:12,padding:12}}>
                   <div style={{fontSize:16,fontWeight:700,color:"#b91c1c"}}>{r?.name} · {c?.name}</div>
-                  <div style={{fontSize:14,color:"#ef4444"}}>{fmtT(v.confirmed_at)} · ✗ GPS · {(v.distance!=null&&v.distance>=0&&v.distance!==9999)?v.distance+' m':'n/a'} · {rl(v.result)}</div>
+                  <div style={{fontSize:14,color:"#ef4444"}}>{fmtT(v.confirmed_at)} · {v.gps_err===1?"🚫 GPS gesperrt":"✗ GPS"} · {(v.distance!=null&&v.distance>=0&&v.distance!==9999)?v.distance+' m':'n/a'} · {rl(v.result)}</div>
                 </div>
               );
             })}
