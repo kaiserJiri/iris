@@ -19,6 +19,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- Firebase compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -1821,6 +1823,48 @@ function VisitConfirmScreen({user,customer,onBack,onConfirm}){
 }
 
 /* ── DASHBOARD ── */
+function RepMap({visits,custs}){
+  const divRef=React.useRef(null);
+  const mapRef=React.useRef(null);
+  const markersRef=React.useRef([]);
+  React.useEffect(()=>{
+    if(!divRef.current||typeof L==='undefined') return;
+    if(!mapRef.current){
+      mapRef.current=L.map(divRef.current).setView([51.0,10.5],5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(mapRef.current);
+    }
+    markersRef.current.forEach(m=>m.remove());
+    markersRef.current=[];
+    const bounds=[];
+    visits.forEach(v=>{
+      const c=custs.find(x=>String(x.id)===String(v.customer_id));
+      if(!c?.lat||!c?.lng) return;
+      const ok=v.status!=='rejected';
+      const color=ok?'#16a34a':'#dc2626';
+      const rep=USERS.find(u=>u.id===v.rep_id);
+      const popup=`<b>${c.name}</b><br><span style="color:#6b7280">${rep?.name||''}</span><br>${new Date(v.confirmed_at).toLocaleDateString('de-DE')} ${fmtT(v.confirmed_at)}<br>${rl(v.result)}${v.distance!=null&&v.distance>=0&&v.distance!==9999?'<br>📍 '+v.distance+' m':''}`;
+      const m=L.circleMarker([c.lat,c.lng],{radius:8,color,fillColor:color,fillOpacity:0.85,weight:2}).bindPopup(popup);
+      m.addTo(mapRef.current);
+      markersRef.current.push(m);
+      bounds.push([c.lat,c.lng]);
+    });
+    if(bounds.length>0) mapRef.current.fitBounds(bounds,{padding:[30,30]});
+    else mapRef.current.setView([51.0,10.5],5);
+  },[visits,custs]);
+  React.useEffect(()=>()=>{if(mapRef.current){mapRef.current.remove();mapRef.current=null;}},[]);
+  const withGps=visits.filter(v=>{const c=custs.find(x=>String(x.id)===String(v.customer_id));return c?.lat&&c?.lng;}).length;
+  return(
+    <div style={{marginTop:12}}>
+      <div style={{fontSize:12,color:"#9ca3af",marginBottom:6,display:"flex",gap:16,alignItems:"center"}}>
+        <span><span style={{display:"inline-block",width:10,height:10,borderRadius:"50%",background:"#16a34a",marginRight:4}}/>OK</span>
+        <span><span style={{display:"inline-block",width:10,height:10,borderRadius:"50%",background:"#dc2626",marginRight:4}}/>Abgelehnt</span>
+        <span style={{marginLeft:"auto"}}>{withGps} / {visits.length} mit GPS</span>
+      </div>
+      <div ref={divRef} style={{height:400,borderRadius:12,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}/>
+    </div>
+  );
+}
+
 function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog}){
   const allCusts=React.useMemo(()=>[...CUSTOMERS,...newCusts],[newCusts]);
   const lookupCust=id=>allCusts.find(c=>String(c.id)===String(id));
@@ -2073,9 +2117,9 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
             </div>
             {/* ── Chart view toggle ── */}
             <div style={{display:"flex",gap:8,marginTop:10}}>
-              {["bar","heatmap","calendar"].map(cv=>(
+              {["bar","heatmap","calendar","map"].map(cv=>(
                 <button key={cv} onClick={()=>{setChartView(cv);setHoveredDay(null);setSelectedManagerDay(null);}} style={{padding:"5px 16px",borderRadius:8,border:"1.5px solid "+(chartView===cv?"#e87722":"#e5e7eb"),background:chartView===cv?"#fff7ed":"white",fontWeight:700,fontSize:12,cursor:"pointer",color:chartView===cv?"#e87722":"#6b7280",fontFamily:"inherit",transition:"all .15s"}}>
-                  {cv==="bar"?"Balken":cv==="heatmap"?"Heatmap":"Kalender"}
+                  {cv==="bar"?"Balken":cv==="heatmap"?"Heatmap":cv==="calendar"?"Kalender":"🗺 Karte"}
                 </button>
               ))}
             </div>
@@ -2366,6 +2410,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
                 </div>
               );
             })()}
+            {chartView==="map"&&<RepMap visits={chartRepId?visits.filter(v=>v.rep_id===chartRepId):visits} custs={allCusts}/>}
           </div>
         </div>
       </div>
