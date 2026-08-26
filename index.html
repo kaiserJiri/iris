@@ -1870,6 +1870,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
   const lookupCust=id=>allCusts.find(c=>String(c.id)===String(id));
   const [selRep,setSelRep]=useState(null);
   const [view,setView]=useState("today");
+  const [showMap,setShowMap]=useState(false);
   const [repMonth,setRepMonth]=useState(TODAY.slice(0,7));
   const [hoveredDay,setHoveredDay]=useState(null);
   const [chartView,setChartView]=useState("bar");
@@ -2007,10 +2008,14 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
             <div className="panel-header-title">Letzte 7 Tage</div>
             <div className="panel-header-sub">Teamübersicht</div>
           </div>
-          <button onClick={()=>setView("today")} style={{background:"none",border:"1.5px solid #e5e7eb",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>Heute</button>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>setShowMap(m=>!m)} style={{background:showMap?"#fff7ed":"none",border:"1.5px solid "+(showMap?"#e87722":"#e5e7eb"),borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700,fontSize:13,color:showMap?"#e87722":"#374151",fontFamily:"inherit"}}>🗺 Karte</button>
+            <button onClick={()=>setView("today")} style={{background:"none",border:"1.5px solid #e5e7eb",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>Heute</button>
+          </div>
         </div>
         <div className="panel-body">
           <div style={{maxWidth:680,width:"100%"}}>
+            {showMap&&<RepMap visits={visits.filter(v=>{const d=new Date();d.setDate(d.getDate()-7);return v.confirmed_at>=d.toISOString().slice(0,10);})} custs={allCusts}/>}
             {/* Summary row */}
             {reps.map(r=>{
               const repTotal=days.reduce((s,d)=>s+d.dayVisits.filter(v=>v.rep_id===r.id).length,0);
@@ -2426,7 +2431,8 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
           <div className="panel-header-sub">{new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>setView("week")} style={{background:view==="week"?"#4b5563":"#f3f4f6",border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:view==="week"?"white":"#374151",fontFamily:"inherit"}}>7 Tage</button>
+          <button onClick={()=>setShowMap(m=>!m)} style={{background:showMap?"#fff7ed":"#f3f4f6",border:"1.5px solid "+(showMap?"#e87722":"transparent"),borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:showMap?"#e87722":"#374151",fontFamily:"inherit"}}>🗺 Karte</button>
+          <button onClick={()=>setView("week")} style={{background:"#f3f4f6",border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>7 Tage</button>
           <button onClick={()=>setView("month")} style={{background:OG,border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"white",fontFamily:"inherit"}}>Monatsreport</button>
         </div>
       </div>
@@ -2437,6 +2443,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
             <div key={s.l} className="stat-box"><div className="stat-num" style={{color:s.c,fontSize:typeof s.v==="string"?22:28}}>{s.v}</div><div className="stat-lbl">{s.l}</div></div>
           ))}
         </div>
+{showMap&&<RepMap visits={tod} custs={allCusts}/>}
         <div className="section-label">Teamübersicht — heute</div>
         <div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:24}}>
           <div className="team-today-hd" style={{display:"grid",gridTemplateColumns:"1.5fr 1.5fr 80px 100px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
