@@ -1768,7 +1768,7 @@ function VisitConfirmScreen({user,customer,onBack,onConfirm}){
     :(noGps?(pos?"confirmed":"unknown"):dist===null?"unknown":dist<=25000?"confirmed":"rejected");
   const go=()=>{
     if(!result||saving)return; setSaving(true);
-    setTimeout(()=>{onConfirm({id:Date.now(),rep_id:user.id,customer_id:customer.id,confirmed_at:new Date().toISOString(),distance:dist,status:vs,result,units:result==="order"?(parseInt(units)||0):0,note,gps_err:gpsErrCode});setDone(true);},900);
+    setTimeout(()=>{onConfirm({id:Date.now(),rep_id:user.id,customer_id:customer.id,confirmed_at:new Date().toISOString(),distance:dist,status:vs,result,units:result==="order"?(parseInt(units)||0):0,note,gps_err:gpsErrCode,_cityPos:customer.isNew?cityPos:null});setDone(true);},900);
   };
   if(done) return (
     <div className="main-panel" style={{alignItems:"center",justifyContent:"center",textAlign:"center"}}>
@@ -2629,11 +2629,15 @@ function App(){
   const logout=()=>{localStorage.removeItem("actio_uid");setUser(null);setScreen("login");};
 
   const addVisit=v=>{
+    const {_cityPos,...vClean}=v;
+    if(_cityPos&&String(v.customer_id).startsWith("new_")){
+      editNewCustomer(v.customer_id,{lat:_cityPos.lat,lng:_cityPos.lng});
+    }
     if(USE_FB&&DB){
-      const {id:_,...data}=v;
+      const {id:_,...data}=vClean;
       DB.collection('visits').add(data).catch(e=>console.error("[Iris] addVisit:",e));
     } else {
-      setVisits(p=>[v,...p]);
+      setVisits(p=>[vClean,...p]);
     }
     setScreen("home");
   };
