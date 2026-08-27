@@ -1871,6 +1871,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
   const [selRep,setSelRep]=useState(null);
   const [view,setView]=useState("today");
   const [showMap,setShowMap]=useState(false);
+  const [mapRepFilter,setMapRepFilter]=useState(null);
   const [repMonth,setRepMonth]=useState(TODAY.slice(0,7));
   const [hoveredDay,setHoveredDay]=useState(null);
   const [chartView,setChartView]=useState("bar");
@@ -2015,7 +2016,15 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
         </div>
         <div className="panel-body">
           <div style={{maxWidth:680,width:"100%"}}>
-            {showMap&&<RepMap visits={visits.filter(v=>{const d=new Date();d.setDate(d.getDate()-7);return v.confirmed_at>=d.toISOString().slice(0,10);})} custs={allCusts}/>}
+            {showMap&&(()=>{const cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);const sv=visits.filter(v=>v.confirmed_at>=cutoff.toISOString().slice(0,10));return(<>
+  <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+    {[{id:null,label:"Alle"},...reps.filter(r=>sv.some(v=>v.rep_id===r.id)).map(r=>({id:r.id,label:r.name.split(" ").map(n=>n[0]).join("")+" "+r.name.split(" ")[0]}))].map(({id,label})=>{
+      const active=mapRepFilter===id;
+      return <button key={String(id)} onClick={()=>setMapRepFilter(id)} style={{background:active?OG:"#f3f4f6",color:active?"white":"#374151",border:"none",borderRadius:20,padding:"5px 13px",cursor:"pointer",fontWeight:700,fontSize:12,fontFamily:"inherit"}}>{label}</button>;
+    })}
+  </div>
+  <RepMap visits={mapRepFilter?sv.filter(v=>v.rep_id===mapRepFilter):sv} custs={allCusts}/>
+</>);})()}
             {/* Summary row */}
             {reps.map(r=>{
               const repTotal=days.reduce((s,d)=>s+d.dayVisits.filter(v=>v.rep_id===r.id).length,0);
@@ -2443,7 +2452,15 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
             <div key={s.l} className="stat-box"><div className="stat-num" style={{color:s.c,fontSize:typeof s.v==="string"?22:28}}>{s.v}</div><div className="stat-lbl">{s.l}</div></div>
           ))}
         </div>
-{showMap&&<RepMap visits={tod} custs={allCusts}/>}
+{showMap&&<>
+  <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+    {[{id:null,label:"Alle"},...reps.filter(r=>tod.some(v=>v.rep_id===r.id)).map(r=>({id:r.id,label:r.name.split(" ").map(n=>n[0]).join("")+" "+r.name.split(" ")[0]}))].map(({id,label})=>{
+      const active=mapRepFilter===id;
+      return <button key={String(id)} onClick={()=>setMapRepFilter(id)} style={{background:active?OG:"#f3f4f6",color:active?"white":"#374151",border:"none",borderRadius:20,padding:"5px 13px",cursor:"pointer",fontWeight:700,fontSize:12,fontFamily:"inherit"}}>{label}</button>;
+    })}
+  </div>
+  <RepMap visits={mapRepFilter?tod.filter(v=>v.rep_id===mapRepFilter):tod} custs={allCusts}/>
+</>}
         <div className="section-label">Teamübersicht — heute</div>
         <div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:24}}>
           <div className="team-today-hd" style={{display:"grid",gridTemplateColumns:"1.5fr 1.5fr 80px 100px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
