@@ -2454,7 +2454,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
         </div>
 {showMap&&<>
   <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
-    {[{id:null,label:"Alle"},...reps.filter(r=>tod.some(v=>v.rep_id===r.id)).map(r=>({id:r.id,label:r.name.split(" ").map(n=>n[0]).join("")+" "+r.name.split(" ")[0]}))].map(({id,label})=>{
+    {[{id:null,label:"Alle"},...reps.map(r=>({id:r.id,label:r.name.split(" ").map(n=>n[0]).join("")+" "+r.name.split(" ")[0]}))].map(({id,label})=>{
       const active=mapRepFilter===id;
       return <button key={String(id)} onClick={()=>setMapRepFilter(id)} style={{background:active?OG:"#f3f4f6",color:active?"white":"#374151",border:"none",borderRadius:20,padding:"5px 13px",cursor:"pointer",fontWeight:700,fontSize:12,fontFamily:"inherit"}}>{label}</button>;
     })}
