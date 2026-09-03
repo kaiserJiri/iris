@@ -213,20 +213,40 @@
     body.dark .login-right { background: #0f172a !important; }
     body.dark .overdue-btn { background: #1a0a00 !important; border-color: #7c2d12 !important; }
     body.dark .det-row { border-color: #334155 !important; }
-    /* Override hardcoded inline dark text colors inside main panel */
-    body.dark .main-panel div[style*="color: rgb(17, 24, 39)"],
-    body.dark .main-panel div[style*="color: rgb(31, 41, 55)"],
-    body.dark .main-panel div[style*="color: rgb(55, 65, 81)"],
-    body.dark .main-panel div[style*="color: rgb(75, 85, 99)"],
-    body.dark .main-panel span[style*="color: rgb(17, 24, 39)"],
-    body.dark .main-panel span[style*="color: rgb(55, 65, 81)"] { color: #cbd5e1 !important; }
-    /* White backgrounds in card inline styles */
-    body.dark .main-panel div[style*="background: white"],
-    body.dark .main-panel div[style*="background:white"],
-    body.dark .main-panel div[style*="background-color: white"] { background: #1e293b !important; }
-    body.dark .main-panel div[style*="background: rgb(249, 250, 251)"],
-    body.dark .main-panel div[style*="background: rgb(248, 250, 252)"] { background: #0f172a !important; }
-    body.dark .main-panel div[style*="border-bottom: 1px solid rgb(249, 250, 251)"] { border-color: #334155 !important; }
+    /* ── Team table rows (named classes) ── */
+    body.dark .team-today-hd,body.dark .team-month-hd { background: #0f172a !important; border-color: #334155 !important; }
+    body.dark .team-today-row,body.dark .team-month-row { background: #1e293b !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+    body.dark .team-today-row:hover,body.dark .team-month-row:hover { background: #253354 !important; }
+    /* ── Chart containers ── */
+    body.dark .chart-scroll { background: #1e293b !important; border-color: #334155 !important; }
+    body.dark .seven-day-grid > div { background: #1e293b !important; border-color: #334155 !important; }
+    /* ── Panel-header buttons ── */
+    body.dark .panel-header button { background: #334155 !important; color: #e2e8f0 !important; border-color: #475569 !important; }
+    /* Restore orange for active Monatsreport button */
+    body.dark .panel-header button[style*="rgb(232, 119, 34)"],
+    body.dark .panel-header button[style*="e87722"] { background: #e87722 !important; color: white !important; border-color: #e87722 !important; }
+    /* Month nav ‹ › arrows — keep transparent */
+    body.dark .panel-header button[style*="border: none"][style*="background: none"] { background: transparent !important; border: none !important; color: #94a3b8 !important; }
+    body.dark .panel-header .back-btn { background: transparent !important; border: none !important; color: #94a3b8 !important; }
+    /* ── Rankliste outer card ── */
+    body.dark .team-ranklist-card { background: #1e293b !important; border-color: #334155 !important; }
+    /* ── CSV / action buttons inside panel-body section labels ── */
+    body.dark .panel-body button[style*="f3f4f6"] { background: #334155 !important; color: #e2e8f0 !important; }
+    /* ── Month label spans in panel-header ── */
+    body.dark .panel-header span { color: #94a3b8 !important; }
+    /* ── White card fallback (Chrome normalizes 'white' → rgb(255,255,255)) ── */
+    body.dark .main-panel div[style*="background: rgb(255, 255, 255)"] { background: #1e293b !important; }
+    body.dark .main-panel div[style*="background: white"] { background: #1e293b !important; }
+    /* ── Progress bar track backgrounds in compare view ── */
+    body.dark .main-panel div[style*="background: rgb(243, 244, 246)"] { background: #334155 !important; }
+    /* ── Stats grid row ── */
+    body.dark .stats-grid-4 .stat-box { background: #1e293b !important; }
+    /* ── Fix all inline-styled white/light containers in main panel ── */
+    body.dark .main-panel { --force-white: #1e293b; }
+    /* Section headings with hardcoded dark color */
+    body.dark .panel-header-title { color: #f1f5f9 !important; }
+    body.dark .panel-header-sub { color: #94a3b8 !important; }
+    body.dark .section-label { color: #64748b !important; }
   </style>
 </head>
 <body>
@@ -2097,6 +2117,14 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
     return {...r,wd,ds,repVisits,overnight,statusText};
   });
   const tot={v:tod.length,o:tod.filter(v=>v.result==="order").length,f:tod.filter(v=>v.status==="rejected").length,conv:fmtConv(tod.length,tod.filter(v=>v.result==="order").length)};
+  // Monthly rankliste for dashboard
+  const curMo=TODAY.slice(0,7);
+  const rankList=reps.map(r=>{
+    const moV=visits.filter(v=>v.rep_id===r.id&&v.confirmed_at.startsWith(curMo));
+    const moB=moV.filter(v=>v.result==="order");
+    return{...r,moVisits:moV.length,moOrders:moB.length,moConv:moV.length>0?Math.round(moB.length/moV.length*100):null};
+  }).sort((a,b)=>b.moVisits-a.moVisits||b.moOrders-a.moOrders);
+  const moName=new Date(curMo+"-01").toLocaleDateString("de-DE",{month:"long",year:"numeric"});
 
   // 7-day overview
   if(view==="week"){
@@ -2680,33 +2708,33 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
   <RepMap visits={mapRepFilter?tod.filter(v=>v.rep_id===mapRepFilter):tod} custs={allCusts}/>
 </>}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:0}}>
-          <div className="section-label" style={{marginBottom:6}}>Teamübersicht — heute</div>
+          <div className="section-label" style={{marginBottom:6}}>Rangliste — {moName}</div>
           <button onClick={exportVisitsCSV} style={{fontSize:12,fontWeight:700,color:"#374151",background:"#f3f4f6",border:"none",borderRadius:8,padding:"5px 11px",cursor:"pointer",fontFamily:"inherit",marginBottom:6}}>⬇ CSV</button>
         </div>
-        <div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:24}}>
-          <div className="team-today-hd" style={{display:"grid",gridTemplateColumns:"1.5fr 1.5fr 80px 100px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
-            {["Vertreter","Status","Besuche","Übernachtung"].map(h=>(
-              <div key={h} style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em"}}>{h}</div>
+        <div className="team-ranklist-card" style={{borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:24}}>
+          <div className="team-today-hd" style={{display:"grid",gridTemplateColumns:"40px 1fr 60px 60px 70px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
+            {["#","Vertreter","Bes.","Best.","Konv."].map(h=>(
+              <div key={h} style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em",textAlign:["Bes.","Best.","Konv."].includes(h)?"center":"left"}}>{h}</div>
             ))}
           </div>
-          {stats.map((r,i)=>(
-            <button key={r.id} onClick={()=>setSelRep(r)}
-              className="team-today-row" style={{display:"grid",gridTemplateColumns:"1.5fr 1.5fr 80px 100px",width:"100%",padding:"13px 16px",background:"white",border:"none",borderBottom:i<stats.length-1?"1px solid #f9fafb":"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",transition:"background .1s",alignItems:"center"}}
-              onMouseOver={e=>e.currentTarget.style.background="#f9fafb"} onMouseOut={e=>e.currentTarget.style.background="white"}>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div style={{width:32,height:32,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,flexShrink:0}}>{r.initials}</div>
-                <div><div style={{fontSize:15,fontWeight:700,color:"#111827"}}>{r.name}</div></div>
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:6}}>
-                <span style={{fontSize:16}}>{r.ds?.icon||"❓"}</span>
-                <span style={{fontSize:15,color:"#374151"}}>{r.statusText}</span>
-              </div>
-              <div style={{textAlign:"center",fontSize:17,fontWeight:900,color:r.repVisits.length>0?OG:"#d1d5db"}}>
-                {r.wd?.day_status==="aussendienst"?r.repVisits.length:"—"}
-              </div>
-              <div className="team-col-overnight" style={{fontSize:14,color:"#6b7280"}}>{r.overnight||"—"}</div>
-            </button>
-          ))}
+          {rankList.map((r,i)=>{
+            const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":null;
+            const rankColor=i===0?"#f59e0b":i===1?"#94a3b8":i===2?"#cd7c2f":"#94a3b8";
+            return(
+              <button key={r.id} onClick={()=>setSelRep(r)}
+                className="team-today-row" style={{display:"grid",gridTemplateColumns:"40px 1fr 60px 60px 70px",width:"100%",padding:"13px 16px",background:"white",border:"none",borderBottom:i<rankList.length-1?"1px solid #f9fafb":"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",transition:"background .1s",alignItems:"center"}}
+                onMouseOver={e=>e.currentTarget.style.background="#f9fafb"} onMouseOut={e=>e.currentTarget.style.background="white"}>
+                <div style={{fontSize:16,fontWeight:900,color:rankColor,textAlign:"center"}}>{medal||`${i+1}`}</div>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:30,height:30,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,flexShrink:0}}>{r.initials}</div>
+                  <div style={{fontSize:14,fontWeight:700,color:"#111827"}}>{r.name}</div>
+                </div>
+                <div style={{textAlign:"center",fontSize:16,fontWeight:900,color:r.moVisits>0?OG:"#d1d5db"}}>{r.moVisits||"—"}</div>
+                <div style={{textAlign:"center",fontSize:16,fontWeight:900,color:r.moOrders>0?"#16a34a":"#d1d5db"}}>{r.moOrders||"—"}</div>
+                <div style={{textAlign:"center",fontSize:14,fontWeight:700,color:"#6b7280"}}>{r.moConv!==null?r.moConv+"%":"—"}</div>
+              </button>
+            );
+          })}
         </div>
         {tot.f>0&&<>
           <div className="section-label" style={{color:"#f87171"}}>⚠ Zur Überprüfung ({tot.f})</div>
