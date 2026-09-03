@@ -118,6 +118,8 @@
     .panel-nav-btn { transition: filter .12s, transform .1s; }
     .panel-nav-btn:hover { filter: brightness(0.88); }
     .panel-nav-btn:active { filter: brightness(0.75); transform: scale(0.95); }
+    .panel-nav-btn[data-active="true"] { background: #e87722 !important; color: white !important; }
+    body.dark .panel-nav-btn[data-active="true"] { background: #e87722 !important; color: white !important; }
 
     @media (max-width: 900px) {
       .login-root { flex-direction: column; }
@@ -2033,11 +2035,11 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
   const btnSt=(active)=>({background:active?OG:"#f3f4f6",border:"none",borderRadius:8,padding:"7px 10px",cursor:"pointer",fontWeight:700,fontSize:12,color:active?"white":"#374151",fontFamily:"inherit",flex:"1 1 calc(50% - 3px)",minWidth:0,textAlign:"center"});
   const navBtns=(
     <div style={{display:"flex",flexWrap:"wrap",gap:5,justifyContent:"flex-end",alignSelf:"flex-start"}}>
-      <button className="panel-nav-btn" style={btnSt(view==="today"&&!showMap&&!selRep)} onClick={()=>{setSelRep(null);setView("today");setShowMap(false);}}>📍 Heute</button>
-      <button className="panel-nav-btn" style={btnSt(view==="today"&&showMap&&!selRep)} onClick={()=>{if(view==="today"&&!selRep){setShowMap(m=>!m);}else{setSelRep(null);setView("today");setShowMap(true);}}}>🗺 Karte</button>
-      <button className="panel-nav-btn" style={btnSt(view==="week"&&!selRep)} onClick={()=>{setSelRep(null);setView("week");setShowMap(false);}}>📅 7 Tage</button>
-      <button className="panel-nav-btn" style={btnSt(view==="compare"&&!selRep)} onClick={()=>{setSelRep(null);setView("compare");setShowMap(false);}}>📊 Vergleich</button>
-      <button className="panel-nav-btn" style={btnSt(view==="month"&&!selRep)} onClick={()=>{setSelRep(null);setView("month");setShowMap(false);}}>📋 Monat</button>
+      <button className="panel-nav-btn" data-active={view==="today"&&!showMap&&!selRep} style={btnSt(view==="today"&&!showMap&&!selRep)} onClick={()=>{setSelRep(null);setView("today");setShowMap(false);}}>📍 Heute</button>
+      <button className="panel-nav-btn" data-active={view==="today"&&showMap&&!selRep} style={btnSt(view==="today"&&showMap&&!selRep)} onClick={()=>{if(view==="today"&&!selRep){setShowMap(m=>!m);}else{setSelRep(null);setView("today");setShowMap(true);}}}>🗺 Karte</button>
+      <button className="panel-nav-btn" data-active={view==="week"&&!selRep} style={btnSt(view==="week"&&!selRep)} onClick={()=>{setSelRep(null);setView("week");setShowMap(false);}}>📅 7 Tage</button>
+      <button className="panel-nav-btn" data-active={view==="compare"&&!selRep} style={btnSt(view==="compare"&&!selRep)} onClick={()=>{setSelRep(null);setView("compare");setShowMap(false);}}>📊 Vergleich</button>
+      <button className="panel-nav-btn" data-active={view==="month"&&!selRep} style={btnSt(view==="month"&&!selRep)} onClick={()=>{setSelRep(null);setView("month");setShowMap(false);}}>📋 Monat</button>
     </div>
   );
 
@@ -2161,14 +2163,13 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
     return {...r,wd,ds,repVisits,overnight,statusText};
   });
   const tot={v:tod.length,o:tod.filter(v=>v.result==="order").length,f:tod.filter(v=>v.status==="rejected").length,conv:fmtConv(tod.length,tod.filter(v=>v.result==="order").length)};
-  // Monthly rankliste for dashboard
-  const curMo=TODAY.slice(0,7);
+  // Daily rankliste for dashboard
   const rankList=reps.map(r=>{
-    const moV=visits.filter(v=>v.rep_id===r.id&&v.confirmed_at.startsWith(curMo));
-    const moB=moV.filter(v=>v.result==="order");
-    return{...r,moVisits:moV.length,moOrders:moB.length,moConv:moV.length>0?Math.round(moB.length/moV.length*100):null};
+    const todV=tod.filter(v=>v.rep_id===r.id);
+    const todB=todV.filter(v=>v.result==="order");
+    return{...r,moVisits:todV.length,moOrders:todB.length,moConv:todV.length>0?Math.round(todB.length/todV.length*100):null};
   }).sort((a,b)=>b.moVisits-a.moVisits||b.moOrders-a.moOrders);
-  const moName=new Date(curMo+"-01").toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+  const todayLabel=new Date().toLocaleDateString("de-DE",{day:"numeric",month:"long",year:"numeric"});
 
   // 7-day overview
   if(view==="week"){
@@ -2739,7 +2740,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
   <RepMap visits={mapRepFilter?tod.filter(v=>v.rep_id===mapRepFilter):tod} custs={allCusts}/>
 </>}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:0}}>
-          <div className="section-label" style={{marginBottom:6}}>Rangliste — {moName}</div>
+          <div className="section-label" style={{marginBottom:6}}>Rangliste — {todayLabel}</div>
           <button onClick={exportVisitsCSV} style={{fontSize:12,fontWeight:700,color:"#374151",background:"#f3f4f6",border:"none",borderRadius:8,padding:"5px 11px",cursor:"pointer",fontFamily:"inherit",marginBottom:6}}>⬇ CSV</button>
         </div>
         <div className="team-ranklist-card" style={{borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:24}}>
