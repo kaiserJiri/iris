@@ -115,6 +115,9 @@
     .panel-body { flex: 1; padding: 40px 40px; overflow: auto; display: flex; flex-direction: column; align-items: center; }
     .panel-body > * { width: 100%; }
     .back-btn { font-size: 32px; font-weight: 700; color: #374151; background: none; border: none; cursor: pointer; padding: 0; line-height: 1; }
+    .panel-nav-btn { transition: filter .12s, transform .1s; }
+    .panel-nav-btn:hover { filter: brightness(0.88); }
+    .panel-nav-btn:active { filter: brightness(0.75); transform: scale(0.95); }
 
     @media (max-width: 900px) {
       .login-root { flex-direction: column; }
