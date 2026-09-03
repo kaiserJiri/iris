@@ -2730,7 +2730,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
             ))}
           </div>
           {rankList.map((r,i)=>(
-            <button key={r.id} onClick={()=>setSelRep(r)}
+            <button key={r.id} onClick={()=>{setSelRep(r);setRepMonth(curMo);setView("month");}}
               className="team-today-row" style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 80px",width:"100%",padding:"13px 16px",background:"white",border:"none",borderBottom:i<rankList.length-1?"1px solid #f9fafb":"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",transition:"background .1s",alignItems:"center"}}
               onMouseOver={e=>e.currentTarget.style.background="#f9fafb"} onMouseOut={e=>e.currentTarget.style.background="white"}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
