@@ -216,6 +216,7 @@
     /* ── Team table rows (named classes) ── */
     body.dark .team-today-hd,body.dark .team-month-hd { background: #0f172a !important; border-color: #334155 !important; }
     body.dark .team-today-row,body.dark .team-month-row { background: #1e293b !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+    body.dark .team-today-row *,body.dark .team-month-row * { color: inherit; }
     body.dark .team-today-row:hover,body.dark .team-month-row:hover { background: #253354 !important; }
     /* ── Chart containers ── */
     body.dark .chart-scroll { background: #1e293b !important; border-color: #334155 !important; }
@@ -239,6 +240,17 @@
     body.dark .main-panel div[style*="background: white"] { background: #1e293b !important; }
     /* ── Progress bar track backgrounds in compare view ── */
     body.dark .main-panel div[style*="background: rgb(243, 244, 246)"] { background: #334155 !important; }
+    /* ── Inline dark text colors throughout main panel ── */
+    body.dark .main-panel div[style*="color: rgb(17, 24, 39)"],
+    body.dark .main-panel span[style*="color: rgb(17, 24, 39)"],
+    body.dark .main-panel div[style*="color: rgb(31, 41, 55)"],
+    body.dark .main-panel div[style*="color: rgb(55, 65, 81)"],
+    body.dark .main-panel span[style*="color: rgb(55, 65, 81)"],
+    body.dark .main-panel div[style*="color: rgb(75, 85, 99)"],
+    body.dark .main-panel span[style*="color: rgb(75, 85, 99)"] { color: #cbd5e1 !important; }
+    /* calendar grid light rows */
+    body.dark .main-panel div[style*="background: rgb(250, 250, 250)"],
+    body.dark .main-panel div[style*="background: rgb(249, 250, 251)"] { background: #0f172a !important; }
     /* ── Stats grid row ── */
     body.dark .stats-grid-4 .stat-box { background: #1e293b !important; }
     /* ── Fix all inline-styled white/light containers in main panel ── */
@@ -2712,29 +2724,24 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
           <button onClick={exportVisitsCSV} style={{fontSize:12,fontWeight:700,color:"#374151",background:"#f3f4f6",border:"none",borderRadius:8,padding:"5px 11px",cursor:"pointer",fontFamily:"inherit",marginBottom:6}}>⬇ CSV</button>
         </div>
         <div className="team-ranklist-card" style={{borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:24}}>
-          <div className="team-today-hd" style={{display:"grid",gridTemplateColumns:"40px 1fr 60px 60px 70px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
-            {["#","Vertreter","Bes.","Best.","Konv."].map(h=>(
+          <div className="team-today-hd" style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 80px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
+            {["Vertreter","Bes.","Best.","Konv."].map(h=>(
               <div key={h} style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em",textAlign:["Bes.","Best.","Konv."].includes(h)?"center":"left"}}>{h}</div>
             ))}
           </div>
-          {rankList.map((r,i)=>{
-            const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":null;
-            const rankColor=i===0?"#f59e0b":i===1?"#94a3b8":i===2?"#cd7c2f":"#94a3b8";
-            return(
-              <button key={r.id} onClick={()=>setSelRep(r)}
-                className="team-today-row" style={{display:"grid",gridTemplateColumns:"40px 1fr 60px 60px 70px",width:"100%",padding:"13px 16px",background:"white",border:"none",borderBottom:i<rankList.length-1?"1px solid #f9fafb":"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",transition:"background .1s",alignItems:"center"}}
-                onMouseOver={e=>e.currentTarget.style.background="#f9fafb"} onMouseOut={e=>e.currentTarget.style.background="white"}>
-                <div style={{fontSize:16,fontWeight:900,color:rankColor,textAlign:"center"}}>{medal||`${i+1}`}</div>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:30,height:30,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,flexShrink:0}}>{r.initials}</div>
-                  <div style={{fontSize:14,fontWeight:700,color:"#111827"}}>{r.name}</div>
-                </div>
-                <div style={{textAlign:"center",fontSize:16,fontWeight:900,color:r.moVisits>0?OG:"#d1d5db"}}>{r.moVisits||"—"}</div>
-                <div style={{textAlign:"center",fontSize:16,fontWeight:900,color:r.moOrders>0?"#16a34a":"#d1d5db"}}>{r.moOrders||"—"}</div>
-                <div style={{textAlign:"center",fontSize:14,fontWeight:700,color:"#6b7280"}}>{r.moConv!==null?r.moConv+"%":"—"}</div>
-              </button>
-            );
-          })}
+          {rankList.map((r,i)=>(
+            <button key={r.id} onClick={()=>setSelRep(r)}
+              className="team-today-row" style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 80px",width:"100%",padding:"13px 16px",background:"white",border:"none",borderBottom:i<rankList.length-1?"1px solid #f9fafb":"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",transition:"background .1s",alignItems:"center"}}
+              onMouseOver={e=>e.currentTarget.style.background="#f9fafb"} onMouseOut={e=>e.currentTarget.style.background="white"}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:30,height:30,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,flexShrink:0}}>{r.initials}</div>
+                <div style={{fontSize:14,fontWeight:700}}>{r.name}</div>
+              </div>
+              <div style={{textAlign:"center",fontSize:16,fontWeight:900,color:r.moVisits>0?OG:"#d1d5db"}}>{r.moVisits||"—"}</div>
+              <div style={{textAlign:"center",fontSize:16,fontWeight:900,color:r.moOrders>0?"#16a34a":"#d1d5db"}}>{r.moOrders||"—"}</div>
+              <div style={{textAlign:"center",fontSize:14,fontWeight:700,color:"#6b7280"}}>{r.moConv!==null?r.moConv+"%":"—"}</div>
+            </button>
+          ))}
         </div>
         {tot.f>0&&<>
           <div className="section-label" style={{color:"#f87171"}}>⚠ Zur Überprüfung ({tot.f})</div>
