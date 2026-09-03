@@ -2030,6 +2030,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
   const btnSt=(active)=>({background:active?OG:"#f3f4f6",border:"none",borderRadius:8,padding:"7px 10px",cursor:"pointer",fontWeight:700,fontSize:12,color:active?"white":"#374151",fontFamily:"inherit",flex:"1 1 calc(50% - 3px)",minWidth:0,textAlign:"center"});
   const navBtns=(
     <div style={{display:"flex",flexWrap:"wrap",gap:5,justifyContent:"flex-end",alignSelf:"flex-start"}}>
+      <button className="panel-nav-btn" style={btnSt(view==="today"&&!showMap&&!selRep)} onClick={()=>{setSelRep(null);setView("today");setShowMap(false);}}>📍 Heute</button>
       <button className="panel-nav-btn" style={btnSt(view==="today"&&showMap&&!selRep)} onClick={()=>{if(view==="today"&&!selRep){setShowMap(m=>!m);}else{setSelRep(null);setView("today");setShowMap(true);}}}>🗺 Karte</button>
       <button className="panel-nav-btn" style={btnSt(view==="week"&&!selRep)} onClick={()=>{setSelRep(null);setView("week");setShowMap(false);}}>📅 7 Tage</button>
       <button className="panel-nav-btn" style={btnSt(view==="compare"&&!selRep)} onClick={()=>{setSelRep(null);setView("compare");setShowMap(false);}}>📊 Vergleich</button>
