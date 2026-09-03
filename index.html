@@ -118,6 +118,20 @@
     .panel-nav-btn { transition: filter .12s, transform .1s; }
     .panel-nav-btn:hover { filter: brightness(0.88); }
     .panel-nav-btn:active { filter: brightness(0.75); transform: scale(0.95); }
+    /* ── Animations ── */
+    @keyframes iris-fade { from{opacity:0} to{opacity:1} }
+    @keyframes iris-up { from{opacity:0;transform:translateY(9px)} to{opacity:1;transform:translateY(0)} }
+    .main-panel { animation: iris-fade .2s ease; }
+    .panel-header { animation: iris-up .18s ease both; }
+    .card { animation: iris-up .2s ease both; }
+    .stat-box { animation: iris-up .2s ease both; }
+    .stat-box:nth-child(2){animation-delay:.05s} .stat-box:nth-child(3){animation-delay:.1s} .stat-box:nth-child(4){animation-delay:.15s}
+    .team-today-row,.team-month-row { animation: iris-up .18s ease both; }
+    .team-today-row:nth-child(2),.team-month-row:nth-child(2){animation-delay:.04s}
+    .team-today-row:nth-child(3),.team-month-row:nth-child(3){animation-delay:.08s}
+    .team-today-row:nth-child(4),.team-month-row:nth-child(4){animation-delay:.12s}
+    .team-today-row:nth-child(5),.team-month-row:nth-child(5){animation-delay:.16s}
+    .team-today-row:nth-child(6),.team-month-row:nth-child(6){animation-delay:.2s}
     .panel-nav-btn[data-active="true"] { background: #e87722 !important; color: white !important; }
     body.dark .panel-nav-btn[data-active="true"] { background: #e87722 !important; color: white !important; }
 
