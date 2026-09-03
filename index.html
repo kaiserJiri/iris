@@ -156,7 +156,10 @@
       .chart-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .chart-scroll svg { min-width: 400px; display: block; }
 
-      /* Teamübersicht dnes — skrýt Übernachtung sloupec */
+      /* Rankliste a team-today grid na mobilu */
+      .team-ranklist-card .team-today-hd  { grid-template-columns: 1fr 52px 52px 62px !important; }
+      .team-ranklist-card .team-today-row { grid-template-columns: 1fr 52px 52px 62px !important; }
+      /* Starý team-today (dnes view) — skrýt Übernachtung */
       .team-today-hd  { grid-template-columns: 1.5fr 1.5fr 70px !important; }
       .team-today-row { grid-template-columns: 1.5fr 1.5fr 70px !important; }
       .team-col-overnight { display: none !important; }
@@ -165,6 +168,11 @@
       /* Monatsreport tabulka — užší fixní sloupce */
       .team-month-hd  { grid-template-columns: 1fr 46px 54px 66px !important; }
       .team-month-row { grid-template-columns: 1fr 46px 54px 66px !important; }
+
+      /* Panel-header navigační tlačítka — menší na mobilu */
+      .panel-header { flex-wrap: wrap; padding: 10px 12px !important; }
+      .panel-header > div:first-child { flex: 1 1 100%; margin-bottom: 4px; }
+      .panel-header > div:last-child { display: flex; flex-wrap: wrap; gap: 5px; }
 
       /* Word-break pro dlouhá firemní jména */
       .cust-name { word-break: break-word !important; white-space: normal !important;
@@ -2700,7 +2708,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
           <button onClick={()=>setShowMap(m=>!m)} style={{background:showMap?"#fff7ed":"#f3f4f6",border:"1.5px solid "+(showMap?"#e87722":"transparent"),borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:showMap?"#e87722":"#374151",fontFamily:"inherit"}}>🗺 Karte</button>
           <button onClick={()=>setView("week")} style={{background:"#f3f4f6",border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>7 Tage</button>
           <button onClick={()=>setView("compare")} style={{background:"#f3f4f6",border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>📊 Vergleich</button>
-          <button onClick={()=>setView("month")} style={{background:OG,border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"white",fontFamily:"inherit"}}>Monatsreport</button>
+          <button onClick={()=>setView("month")} style={{background:OG,border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"white",fontFamily:"inherit"}}>📋 Monat</button>
         </div>
       </div>
       <div className="panel-body">
