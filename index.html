@@ -194,6 +194,24 @@
       body { background: white !important; }
       .stat-box { box-shadow: none !important; }
     }
+    /* ── DARK MODE ── */
+    body.dark .main-panel { background: #0f172a !important; }
+    body.dark .panel-header { background: #1e293b !important; border-color: #334155 !important; }
+    body.dark .panel-header-title { color: #e2e8f0 !important; }
+    body.dark .panel-header-sub { color: #94a3b8 !important; }
+    body.dark .card { background: #1e293b !important; border-color: #334155 !important; }
+    body.dark .stat-box { background: #1e293b !important; border-color: #334155 !important; }
+    body.dark .stat-lbl { color: #94a3b8 !important; }
+    body.dark .section-label { color: #64748b !important; }
+    body.dark .group-label { background: #1e293b !important; color: #94a3b8 !important; }
+    body.dark .cust-row { background: #1e293b !important; border-color: #334155 !important; }
+    body.dark input, body.dark textarea { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+    body.dark .result-btn { background: #1e293b !important; border-color: #334155 !important; }
+    body.dark .result-lbl { color: #e2e8f0 !important; }
+    body.dark .result-btn.active { background: #172554 !important; border-color: #2C8CD1 !important; }
+    body.dark .login-right { background: #0f172a !important; }
+    body.dark .overdue-btn { background: #1a0a00 !important; border-color: #7c2d12 !important; }
+    body.dark .det-row { border-color: #1e293b !important; }
   </style>
 </head>
 <body>
@@ -1119,6 +1137,8 @@ function Sidebar({user,workday,visits,onLogout,onSetDay}){
   const ds=workday?dsInfo(workday.day_status):null;
   const av={width:54,height:54,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,flexShrink:0};
   const weekStart=(()=>{const d=new Date();const day=d.getDay();const diff=d.getDate()-day+(day===0?-6:1);const nd=new Date(d);nd.setDate(diff);return nd.toISOString().split("T")[0];})();
+  const [dark,setDark]=useState(()=>localStorage.getItem("iris_dark")==="1");
+  useEffect(()=>{document.body.classList.toggle("dark",dark);localStorage.setItem("iris_dark",dark?"1":"0");},[dark]);
   const wv=(visits||[]).filter(v=>v.rep_id===user.id&&v.confirmed_at.split("T")[0]>=weekStart);
   const wo=wv.filter(v=>v.result==="order");
   const visitPct=Math.min(100,wv.length/14*100);
@@ -1174,8 +1194,12 @@ function Sidebar({user,workday,visits,onLogout,onSetDay}){
               </div>
             ))}
           </div>}
+          {/* Dark mode toggle */}
+          <button onClick={()=>setDark(d=>!d)} style={{background:"rgba(255,255,255,.1)",border:"none",cursor:"pointer",fontFamily:"inherit",padding:"8px 14px",fontSize:12,fontWeight:600,color:"rgba(255,255,255,.6)",borderRadius:10,marginTop:12,width:"100%",textAlign:"left"}}>
+            {dark?"☀ Heller Modus":"🌙 Dunkler Modus"}
+          </button>
           {/* Abmelden */}
-          <button onClick={onLogout} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:"8px 0",fontSize:13,fontWeight:600,color:"rgba(255,255,255,.4)",letterSpacing:".04em",marginTop:12}}>
+          <button onClick={onLogout} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:"8px 0",fontSize:13,fontWeight:600,color:"rgba(255,255,255,.4)",letterSpacing:".04em",marginTop:8}}>
             Abmelden →
           </button>
         </div>
@@ -2491,6 +2515,124 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
     );
   }
 
+  // Helper: export all visits to CSV
+  const exportVisitsCSV=()=>{
+    const hdr=["Datum","Uhrzeit","Vertreter","Kunde","PLZ","Ort","Ergebnis","GPS-Status","Distanz (m)","Notiz"];
+    const rows=[...visits].sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at)).map(v=>{
+      const rep=USERS.find(u=>u.id===v.rep_id);
+      const c=allCusts.find(cu=>String(cu.id)===String(v.customer_id));
+      const dt=new Date(v.confirmed_at);
+      return [
+        dt.toLocaleDateString("de-DE"),
+        dt.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
+        rep?.name||v.rep_id,
+        c?.name||v.customer_id,
+        c?.postal||"",
+        c?.city||"",
+        rl(v.result),
+        v.status,
+        (v.distance!=null&&v.distance!==9999)?v.distance:"",
+        v.note||"",
+      ].map(s=>`"${String(s).replace(/"/g,'""')}"`).join(",");
+    });
+    const csv=[hdr.join(","),...rows].join("\n");
+    const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=`iris_besuche_${TODAY}.csv`;a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Comparison view
+  if(view==="compare"){
+    const now2=new Date();
+    const wsDate=new Date(now2);
+    const dow2=wsDate.getDay();
+    wsDate.setDate(wsDate.getDate()-(dow2===0?6:dow2-1));
+    const weekStartStr=wsDate.toISOString().slice(0,10);
+    const lwsDate=new Date(wsDate);lwsDate.setDate(lwsDate.getDate()-7);
+    const lWeekStartStr=lwsDate.toISOString().slice(0,10);
+    const lWeekEndStr=new Date(wsDate.getTime()-86400000).toISOString().slice(0,10);
+    const repStats2=reps.map(r=>{
+      const wV=visits.filter(v=>v.rep_id===r.id&&v.confirmed_at.slice(0,10)>=weekStartStr);
+      const mV=visits.filter(v=>v.rep_id===r.id&&v.confirmed_at.slice(0,7)===repMonth);
+      const mO=mV.filter(v=>v.result==="order");
+      const lwV=visits.filter(v=>v.rep_id===r.id&&v.confirmed_at.slice(0,10)>=lWeekStartStr&&v.confirmed_at.slice(0,10)<=lWeekEndStr);
+      const conv=mV.length>0?Math.round(mO.length/mV.length*100):0;
+      const trend=lwV.length===0?(wV.length>0?100:0):Math.round((wV.length-lwV.length)/lwV.length*100);
+      return{...r,wV:wV.length,wO:wV.filter(v=>v.result==="order").length,mV:mV.length,mO:mO.length,conv,trend};
+    });
+    const maxMV2=Math.max(1,...repStats2.map(r=>r.mV));
+    const ranked=[...repStats2].sort((a,b)=>b.mV-a.mV);
+    return(
+      <div className="main-panel">
+        <div className="panel-header">
+          <div style={{flex:1}}>
+            <div className="panel-header-title">Vertretervergleich</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
+              <button onClick={()=>adjMonth(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:"2px 6px",color:"#9ca3af"}}>‹</button>
+              <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>{monthLabel()}</span>
+              <button onClick={()=>adjMonth(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:"2px 6px",color:"#9ca3af"}}>›</button>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={exportVisitsCSV} style={{background:"none",border:"1.5px solid #e5e7eb",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>⬇ CSV</button>
+            <button onClick={()=>setView("today")} style={{background:"none",border:"1.5px solid #e5e7eb",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>Heute</button>
+          </div>
+        </div>
+        <div className="panel-body">
+          <div style={{maxWidth:680,width:"100%"}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>Diese Woche (ab {weekStartStr})</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:24}}>
+              {repStats2.map(r=>(
+                <div key={r.id} className="stat-box" style={{textAlign:"center"}}>
+                  <div style={{width:36,height:36,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,margin:"0 auto 8px"}}>{r.initials}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",marginBottom:4}}>{r.name.split(" ")[0]}</div>
+                  <div style={{fontSize:22,fontWeight:900,color:OG,lineHeight:1}}>{r.wV}</div>
+                  <div style={{fontSize:11,color:"#9ca3af",marginBottom:4}}>Besuche</div>
+                  <div style={{fontSize:15,fontWeight:700,color:"#16a34a"}}>{r.wO} Best.</div>
+                  <div style={{fontSize:11,fontWeight:700,marginTop:4,color:r.trend>5?"#16a34a":r.trend<-5?"#dc2626":"#9ca3af"}}>{r.trend>0?"+":""}{r.trend}% vs VW</div>
+                </div>
+              ))}
+            </div>
+            <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>Monatsvergleich — {monthLabel()}</div>
+            <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginBottom:20}}>
+              {repStats2.map((r,i)=>(
+                <div key={r.id} style={{marginBottom:i<repStats2.length-1?18:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                    <div style={{width:28,height:28,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,flexShrink:0}}>{r.initials}</div>
+                    <div style={{flex:1,fontWeight:700,fontSize:14,color:"#111827"}}>{r.name}</div>
+                    <div style={{fontSize:12,color:"#6b7280"}}><span style={{fontWeight:700,color:OG}}>{r.mV}</span> Bes. · <span style={{fontWeight:700,color:"#16a34a"}}>{r.mO}</span> Best.</div>
+                    <div style={{fontSize:12,fontWeight:700,color:r.conv>0?"#6366f1":"#9ca3af",minWidth:55,textAlign:"right"}}>{r.conv>0?r.conv+"%":"—"} Konv.</div>
+                  </div>
+                  <div style={{height:9,background:"#f3f4f6",borderRadius:5,overflow:"hidden",marginBottom:3}}>
+                    <div style={{height:"100%",width:(r.mV/maxMV2*100)+"%",background:OG,borderRadius:5}}/>
+                  </div>
+                  <div style={{height:6,background:"#f3f4f6",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:r.conv+"%",background:"#16a34a",borderRadius:3}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>Rangliste — {monthLabel()}</div>
+            <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",overflow:"hidden"}}>
+              {ranked.map((r,i)=>(
+                <div key={r.id} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 16px",borderBottom:i<ranked.length-1?"1px solid #f9fafb":"none"}}>
+                  <div style={{width:24,height:24,borderRadius:"50%",background:i===0?"#fbbf24":i===1?"#94a3b8":i===2?"#b45309":"#f1f5f9",color:i<3?"white":"#9ca3af",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,flexShrink:0}}>{i+1}</div>
+                  <div style={{width:28,height:28,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,flexShrink:0}}>{r.initials}</div>
+                  <div style={{flex:1,fontWeight:700,fontSize:14,color:"#111827"}}>{r.name}</div>
+                  <div style={{fontSize:13,color:"#6b7280"}}>{r.mV} Bes.</div>
+                  <div style={{fontSize:13,fontWeight:700,color:"#16a34a"}}>{r.mO} Best.</div>
+                  <div style={{fontSize:13,fontWeight:700,color:"#6366f1",minWidth:50,textAlign:"right"}}>{r.conv>0?r.conv+"%":"—"}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Default: today
   return (
     <div className="main-panel">
@@ -2502,6 +2644,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>setShowMap(m=>!m)} style={{background:showMap?"#fff7ed":"#f3f4f6",border:"1.5px solid "+(showMap?"#e87722":"transparent"),borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:showMap?"#e87722":"#374151",fontFamily:"inherit"}}>🗺 Karte</button>
           <button onClick={()=>setView("week")} style={{background:"#f3f4f6",border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>7 Tage</button>
+          <button onClick={()=>setView("compare")} style={{background:"#f3f4f6",border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>📊 Vergleich</button>
           <button onClick={()=>setView("month")} style={{background:OG,border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"white",fontFamily:"inherit"}}>Monatsreport</button>
         </div>
       </div>
@@ -2521,7 +2664,10 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
   </div>
   <RepMap visits={mapRepFilter?tod.filter(v=>v.rep_id===mapRepFilter):tod} custs={allCusts}/>
 </>}
-        <div className="section-label">Teamübersicht — heute</div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:0}}>
+          <div className="section-label" style={{marginBottom:6}}>Teamübersicht — heute</div>
+          <button onClick={exportVisitsCSV} style={{fontSize:12,fontWeight:700,color:"#374151",background:"#f3f4f6",border:"none",borderRadius:8,padding:"5px 11px",cursor:"pointer",fontFamily:"inherit",marginBottom:6}}>⬇ CSV</button>
+        </div>
         <div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:24}}>
           <div className="team-today-hd" style={{display:"grid",gridTemplateColumns:"1.5fr 1.5fr 80px 100px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
             {["Vertreter","Status","Besuche","Übernachtung"].map(h=>(
