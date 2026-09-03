@@ -172,7 +172,7 @@
       /* Panel-header navigační tlačítka — menší na mobilu */
       .panel-header { flex-wrap: wrap; padding: 10px 12px !important; }
       .panel-header > div:first-child { flex: 1 1 100%; margin-bottom: 4px; }
-      .panel-header > div:last-child { display: flex; flex-wrap: wrap; gap: 5px; }
+      .panel-header > div:last-child { display: flex; flex-wrap: wrap; gap: 5px; flex: 1 1 100%; }
 
       /* Word-break pro dlouhá firemní jména */
       .cust-name { word-break: break-word !important; white-space: normal !important;
@@ -2026,6 +2026,17 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
   const getLast7Days=()=>{return Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const ds=d.toISOString().slice(0,10);const dow=d.getDay();const isToday=ds===TODAY;return{dateStr:ds,d:d.getDate(),dow,isToday,dayVisits:visits.filter(v=>v.confirmed_at.startsWith(ds))};});};
   const fmtConv=(v,o)=>v===0?"—":`${Math.round(o/v*100)}%`;
 
+  // Unified nav buttons — always shown in every panel-header
+  const btnSt=(active)=>({background:active?OG:"#f3f4f6",border:"none",borderRadius:8,padding:"7px 10px",cursor:"pointer",fontWeight:700,fontSize:12,color:active?"white":"#374151",fontFamily:"inherit",flex:"1 1 calc(50% - 3px)",minWidth:0,textAlign:"center"});
+  const navBtns=(
+    <div style={{display:"flex",flexWrap:"wrap",gap:5,justifyContent:"flex-end",alignSelf:"flex-start"}}>
+      <button className="panel-nav-btn" style={btnSt(view==="today"&&showMap&&!selRep)} onClick={()=>{if(view==="today"&&!selRep){setShowMap(m=>!m);}else{setSelRep(null);setView("today");setShowMap(true);}}}>🗺 Karte</button>
+      <button className="panel-nav-btn" style={btnSt(view==="week"&&!selRep)} onClick={()=>{setSelRep(null);setView("week");setShowMap(false);}}>📅 7 Tage</button>
+      <button className="panel-nav-btn" style={btnSt(view==="compare"&&!selRep)} onClick={()=>{setSelRep(null);setView("compare");setShowMap(false);}}>📊 Vergleich</button>
+      <button className="panel-nav-btn" style={btnSt(view==="month"&&!selRep)} onClick={()=>{setSelRep(null);setView("month");setShowMap(false);}}>📋 Monat</button>
+    </div>
+  );
+
   // Monthly detail for one rep
   if(selRep&&view==="month"){
     const mdays=getMonthDays();
@@ -2035,16 +2046,19 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
     const totalOrders=mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===selRep.id&&v.result==="order").length,0);
     return (
       <div className="main-panel">
-        <div className="panel-header">
-          <button className="back-btn" onClick={()=>setSelRep(null)}>‹</button>
-          <div style={{flex:1}}>
-            <div className="panel-header-title">{selRep.name}</div>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:2}}>
-              <button onClick={()=>adjMonth(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 4px",color:"#9ca3af"}}>‹</button>
-              <span style={{fontSize:13,fontWeight:600,color:"#6b7280"}}>{monthLabel()}</span>
-              <button onClick={()=>adjMonth(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 4px",color:"#9ca3af"}}>›</button>
+        <div className="panel-header" style={{flexWrap:"wrap",gap:6}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+            <button className="back-btn" onClick={()=>setSelRep(null)}>‹</button>
+            <div>
+              <div className="panel-header-title">{selRep.name}</div>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>
+                <button onClick={()=>adjMonth(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 4px",color:"#9ca3af"}}>‹</button>
+                <span style={{fontSize:13,fontWeight:600,color:"#6b7280"}}>{monthLabel()}</span>
+                <button onClick={()=>adjMonth(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 4px",color:"#9ca3af"}}>›</button>
+              </div>
             </div>
           </div>
+          {navBtns}
         </div>
         <div className="panel-body">
           <div style={{maxWidth:600,width:"100%"}}>
@@ -2085,9 +2099,15 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
     const ds=wd?dsInfo(wd.day_status):null;
     return (
       <div className="main-panel">
-        <div className="panel-header">
-          <button className="back-btn" onClick={()=>setSelRep(null)}>‹</button>
-          <div><div className="panel-header-title">{selRep.name}</div><div className="panel-header-sub">{ds?ds.label:"—"}</div></div>
+        <div className="panel-header" style={{flexWrap:"wrap",gap:6}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+            <button className="back-btn" onClick={()=>setSelRep(null)}>‹</button>
+            <div>
+              <div className="panel-header-title">{selRep.name}</div>
+              <div className="panel-header-sub">{ds?ds.label:"—"}</div>
+            </div>
+          </div>
+          {navBtns}
         </div>
         <div className="panel-body">
           <div style={{maxWidth:600,width:"100%"}}>
@@ -2151,15 +2171,12 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
     const days=getLast7Days();
     return (
       <div className="main-panel">
-        <div className="panel-header">
+        <div className="panel-header" style={{flexWrap:"wrap",gap:6}}>
           <div style={{flex:1}}>
             <div className="panel-header-title">Letzte 7 Tage</div>
             <div className="panel-header-sub">Teamübersicht</div>
           </div>
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>setShowMap(m=>!m)} style={{background:showMap?"#fff7ed":"none",border:"1.5px solid "+(showMap?"#e87722":"#e5e7eb"),borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700,fontSize:13,color:showMap?"#e87722":"#374151",fontFamily:"inherit"}}>🗺 Karte</button>
-            <button onClick={()=>setView("today")} style={{background:"none",border:"1.5px solid #e5e7eb",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>Heute</button>
-          </div>
+          {navBtns}
         </div>
         <div className="panel-body">
           <div style={{maxWidth:680,width:"100%"}}>
@@ -2222,18 +2239,16 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
     const chartMdays=mdays.map(d=>({...d,dayVisits:chartVis.filter(v=>v.confirmed_at.startsWith(d.dateStr))}));
     return (
       <div className="main-panel">
-        <div className="panel-header">
+        <div className="panel-header" style={{flexWrap:"wrap",gap:6}}>
           <div style={{flex:1}}>
             <div className="panel-header-title">Monatsreport</div>
             <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
               <button onClick={()=>adjMonth(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:"2px 6px",color:"#9ca3af"}}>‹</button>
-              <span style={{fontSize:14,fontWeight:600,color:"#374151"}}>{monthLabel()}</span>
+              <span className="panel-header-sub">{monthLabel()}</span>
               <button onClick={()=>adjMonth(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:"2px 6px",color:"#9ca3af"}}>›</button>
             </div>
           </div>
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>setView("today")} style={{background:"none",border:"1.5px solid #e5e7eb",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>Heute</button>
-          </div>
+          {navBtns}
         </div>
         <div className="panel-body">
           <div style={{maxWidth:680,width:"100%"}}>
@@ -2629,19 +2644,16 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
     const ranked=[...repStats2].sort((a,b)=>b.mV-a.mV);
     return(
       <div className="main-panel">
-        <div className="panel-header">
+        <div className="panel-header" style={{flexWrap:"wrap",gap:6}}>
           <div style={{flex:1}}>
             <div className="panel-header-title">Vertretervergleich</div>
             <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
               <button onClick={()=>adjMonth(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:"2px 6px",color:"#9ca3af"}}>‹</button>
-              <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>{monthLabel()}</span>
+              <span className="panel-header-sub">{monthLabel()}</span>
               <button onClick={()=>adjMonth(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:"2px 6px",color:"#9ca3af"}}>›</button>
             </div>
           </div>
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={exportVisitsCSV} style={{background:"none",border:"1.5px solid #e5e7eb",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>⬇ CSV</button>
-            <button onClick={()=>setView("today")} style={{background:"none",border:"1.5px solid #e5e7eb",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>Heute</button>
-          </div>
+          {navBtns}
         </div>
         <div className="panel-body">
           <div style={{maxWidth:680,width:"100%"}}>
@@ -2699,17 +2711,12 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
   // Default: today
   return (
     <div className="main-panel">
-      <div className="panel-header">
+      <div className="panel-header" style={{flexWrap:"wrap",gap:6}}>
         <div style={{flex:1}}>
           <div className="panel-header-title">Dashboard</div>
           <div className="panel-header-sub">{new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
         </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>setShowMap(m=>!m)} style={{background:showMap?"#fff7ed":"#f3f4f6",border:"1.5px solid "+(showMap?"#e87722":"transparent"),borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:showMap?"#e87722":"#374151",fontFamily:"inherit"}}>🗺 Karte</button>
-          <button onClick={()=>setView("week")} style={{background:"#f3f4f6",border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>7 Tage</button>
-          <button onClick={()=>setView("compare")} style={{background:"#f3f4f6",border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>📊 Vergleich</button>
-          <button onClick={()=>setView("month")} style={{background:OG,border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"white",fontFamily:"inherit"}}>📋 Monat</button>
-        </div>
+        {navBtns}
       </div>
       <div className="panel-body">
         <div style={{maxWidth:680,width:"100%"}}>
