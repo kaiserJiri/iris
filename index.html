@@ -195,23 +195,38 @@
       .stat-box { box-shadow: none !important; }
     }
     /* ── DARK MODE ── */
-    body.dark .main-panel { background: #0f172a !important; }
+    body.dark .main-panel { background: #0f172a !important; color: #e2e8f0 !important; }
     body.dark .panel-header { background: #1e293b !important; border-color: #334155 !important; }
     body.dark .panel-header-title { color: #e2e8f0 !important; }
     body.dark .panel-header-sub { color: #94a3b8 !important; }
-    body.dark .card { background: #1e293b !important; border-color: #334155 !important; }
+    body.dark .panel-body { color: #e2e8f0; }
+    body.dark .card { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
     body.dark .stat-box { background: #1e293b !important; border-color: #334155 !important; }
     body.dark .stat-lbl { color: #94a3b8 !important; }
     body.dark .section-label { color: #64748b !important; }
     body.dark .group-label { background: #1e293b !important; color: #94a3b8 !important; }
-    body.dark .cust-row { background: #1e293b !important; border-color: #334155 !important; }
+    body.dark .cust-row { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
     body.dark input, body.dark textarea { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
     body.dark .result-btn { background: #1e293b !important; border-color: #334155 !important; }
     body.dark .result-lbl { color: #e2e8f0 !important; }
     body.dark .result-btn.active { background: #172554 !important; border-color: #2C8CD1 !important; }
     body.dark .login-right { background: #0f172a !important; }
     body.dark .overdue-btn { background: #1a0a00 !important; border-color: #7c2d12 !important; }
-    body.dark .det-row { border-color: #1e293b !important; }
+    body.dark .det-row { border-color: #334155 !important; }
+    /* Override hardcoded inline dark text colors inside main panel */
+    body.dark .main-panel div[style*="color: rgb(17, 24, 39)"],
+    body.dark .main-panel div[style*="color: rgb(31, 41, 55)"],
+    body.dark .main-panel div[style*="color: rgb(55, 65, 81)"],
+    body.dark .main-panel div[style*="color: rgb(75, 85, 99)"],
+    body.dark .main-panel span[style*="color: rgb(17, 24, 39)"],
+    body.dark .main-panel span[style*="color: rgb(55, 65, 81)"] { color: #cbd5e1 !important; }
+    /* White backgrounds in card inline styles */
+    body.dark .main-panel div[style*="background: white"],
+    body.dark .main-panel div[style*="background:white"],
+    body.dark .main-panel div[style*="background-color: white"] { background: #1e293b !important; }
+    body.dark .main-panel div[style*="background: rgb(249, 250, 251)"],
+    body.dark .main-panel div[style*="background: rgb(248, 250, 252)"] { background: #0f172a !important; }
+    body.dark .main-panel div[style*="border-bottom: 1px solid rgb(249, 250, 251)"] { border-color: #334155 !important; }
   </style>
 </head>
 <body>
