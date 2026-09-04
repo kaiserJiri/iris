@@ -1571,19 +1571,6 @@ function HomeScreen({user,visits,workday,newCusts,onNewVisit,onSetOvernight,onDe
               </div>
             ))}
           </div>
-          {overdueList.length>0&&<>
-            <div className="section-label" style={{color:"#c2410c",marginTop:20}}>⏰ Lange nicht besucht</div>
-            {overdueList.map(c=>(
-              <button key={c.id} className="overdue-btn" onClick={()=>onCustDetail&&onCustDetail(c)}>
-                <div className="overdue-days">{c.days===999?"NEU":c.days+"T"}</div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:700,fontSize:14,color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
-                  <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{c.postal} {c.city}{c.lastDate?` · ${new Date(c.lastDate).toLocaleDateString("de-DE")}`:" · noch nie besucht"}</div>
-                </div>
-                <div style={{fontSize:14,color:"#c2410c",fontWeight:700}}>›</div>
-              </button>
-            ))}
-          </>}
         </>}
         {workday&&!isAD&&(
           <div style={{textAlign:"center",padding:"60px 0"}}>
