@@ -294,6 +294,15 @@
 const { useState, useEffect } = React;
 const OG = "#2C8CD1";
 const TODAY = new Date().toISOString().split("T")[0];
+// Zákazníci podle statusu (shoda přes název z GESPERRT.xls / EKG.xls)
+const GESPERRT_IDS = new Set([1338,1141,1139,1005,1008,1007,1001,1347,1138]);
+const EKG_IDS = new Set([189]);
+const custBadge=id=>{
+  const n=Number(id);
+  if(GESPERRT_IDS.has(n)) return <span style={{background:"#ef4444",color:"#fff",fontSize:9,fontWeight:800,padding:"1px 6px",borderRadius:20,marginLeft:5,letterSpacing:1,verticalAlign:"middle",flexShrink:0}}>GESPERRT</span>;
+  if(EKG_IDS.has(n)) return <span style={{background:"#7c3aed",color:"#fff",fontSize:9,fontWeight:800,padding:"1px 6px",borderRadius:20,marginLeft:5,letterSpacing:1,verticalAlign:"middle",flexShrink:0}}>EKG</span>;
+  return null;
+};
 
 const DAY_STATUS_GROUPS = [
   { group: "Was machst du heute?", items: [
@@ -1326,7 +1335,7 @@ function LoginScreen({onLogin}){
 }
 
 /* ── HOME ── */
-function HomeScreen({user,visits,workday,newCusts,onNewVisit,onSetOvernight,onDeleteVisit,onEditVisit,onEditNewCust,onDeleteVisitAudit,onEditVisitAudit,onCustDetail}){
+function HomeScreen({user,visits,workday,workdays,newCusts,onNewVisit,onSetOvernight,onDeleteVisit,onEditVisit,onEditNewCust,onDeleteVisitAudit,onEditVisitAudit,onCustDetail}){
   const mine=visits.filter(v=>v.rep_id===user.id&&v.confirmed_at.startsWith(TODAY));
   const allCusts=React.useMemo(()=>[...CUSTOMERS,...(newCusts||[])],[newCusts]);
   const lookupCust=id=>allCusts.find(c=>String(c.id)===String(id));
@@ -1352,20 +1361,27 @@ function HomeScreen({user,visits,workday,newCusts,onNewVisit,onSetOvernight,onDe
   if(showHistory){
     const [hy,hm]=historyMonth.split("-").map(Number);
     const daysInMonth=new Date(hy,hm,0).getDate();
-    const firstDow=new Date(hy,hm-1,1).getDay();
+    const firstDow=(new Date(hy,hm-1,1).getDay()+6)%7;
     const adjHM=n=>{const d=new Date(hy,hm-1+n,1);setHistoryMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);setSelectedHistoryDay(null);};
     const hML=()=>new Date(hy,hm-1,1).toLocaleDateString("de-DE",{month:"long",year:"numeric"});
     const hColor=cnt=>cnt===0?"#f3f4f6":cnt<=2?"#fed7aa":"#e87722";
-    const DOW7H=["So","Mo","Di","Mi","Do","Fr","Sa"];
+    const DOW7H=["Mo","Di","Mi","Do","Fr","Sa","So"];
     const cells=[];
     for(let i=0;i<firstDow;i++) cells.push(null);
     for(let d=1;d<=daysInMonth;d++){
       const dateStr=`${hy}-${String(hm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
       const dv=visits.filter(v=>v.rep_id===user.id&&v.confirmed_at.startsWith(dateStr));
-      cells.push({d,dateStr,dv});
+      const wd=(workdays||[]).find(w=>w.user_id===user.id&&w.date===dateStr);
+      const ds=wd?dsInfo(wd.day_status):null;
+      const dow=new Date(hy,hm-1,d).getDay();
+      const isWorkday=dow>=1&&dow<=5;
+      const missing=isWorkday&&dateStr<TODAY&&!ds&&dv.length===0;
+      cells.push({d,dateStr,dv,wd,ds,missing});
     }
     const weeks=[];for(let i=0;i<cells.length;i+=7)weeks.push(cells.slice(i,i+7));
     const selDV=selectedHistoryDay?[...visits.filter(v=>v.rep_id===user.id&&v.confirmed_at.startsWith(selectedHistoryDay))].sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at)):[];
+    const selWd=selectedHistoryDay?(workdays||[]).find(w=>w.user_id===user.id&&w.date===selectedHistoryDay):null;
+    const selDS=selWd?dsInfo(selWd.day_status):null;
     return(
       <div className="main-panel">
         <div className="panel-header">
@@ -1395,8 +1411,9 @@ function HomeScreen({user,visits,workday,newCusts,onNewVisit,onSetOvernight,onDe
                       const isSel=selectedHistoryDay===cell.dateStr;
                       const isT=cell.dateStr===TODAY;
                       return(
-                        <div key={cell.dateStr} onClick={()=>setSelectedHistoryDay(isSel?null:cell.dateStr)}
-                          style={{aspectRatio:"1",background:isSel?"#2C8CD1":hColor(cnt),borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",border:isT?"2px solid #2C8CD1":"2px solid transparent",transition:"all .1s"}}>
+                        <div key={cell.dateStr} onClick={()=>setSelectedHistoryDay(isSel?null:cell.dateStr)} title={cell.ds?.label||(cell.missing?"Nic vyplněno":"")}
+                          style={{position:"relative",aspectRatio:"1",background:isSel?"#2C8CD1":hColor(cnt),borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",border:isT?"2px solid #2C8CD1":cell.missing?"2px solid #ef4444":"2px solid transparent",transition:"all .1s"}}>
+                          {cell.ds&&<div style={{position:"absolute",top:2,right:3,fontSize:9,lineHeight:1}}>{cell.ds.icon}</div>}
                           <div style={{fontSize:11,fontWeight:700,color:isSel?"white":cnt>0?"#7c2d00":"#6b7280"}}>{cell.d}</div>
                           {cnt>0&&<div style={{fontSize:10,fontWeight:900,color:isSel?"white":"#c2410c"}}>{cnt}</div>}
                         </div>
@@ -1414,6 +1431,9 @@ function HomeScreen({user,visits,workday,newCusts,onNewVisit,onSetOvernight,onDe
             {selectedHistoryDay&&(
               <div>
                 <div className="section-label">{new Date(selectedHistoryDay+"T12:00:00").toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</div>
+                {selDS&&<div style={{fontSize:13,fontWeight:600,color:"#6b7280",display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
+                  <span>{selDS.icon}</span><span>{selDS.label}{selWd.day_status==="messe"&&selWd.event_name?" · "+selWd.event_name:""}</span>
+                </div>}
                 {selDV.length===0?(
                   <div style={{textAlign:"center",padding:"24px",color:"#9ca3af",fontSize:15}}>Keine Besuche</div>
                 ):(
@@ -1501,7 +1521,7 @@ function HomeScreen({user,visits,workday,newCusts,onNewVisit,onSetOvernight,onDe
                   <div key={v.id} className="card" style={{display:"flex",alignItems:"center",gap:12}}>
                     <div style={{fontSize:22,width:30,textAlign:"center",flexShrink:0}}>{ri(v.result)}</div>
                     <div style={{flex:1,minWidth:0}}>
-                      <button onClick={()=>onCustDetail&&onCustDetail(c)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"#111827",textDecoration:"underline",textDecorationColor:"#e5e7eb",maxWidth:"100%",display:"block",textAlign:"left"}}>{c?.name||v.customer_id}</button>
+                      <div style={{display:"flex",alignItems:"center",gap:4}}><button onClick={()=>onCustDetail&&onCustDetail(c)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"#111827",textDecoration:"underline",textDecorationColor:"#e5e7eb",textAlign:"left"}}>{c?.name||v.customer_id}</button>{c&&custBadge(c.id)}</div>
                       <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}{v.note?` · ${v.note}`:""}</div>
                     </div>
                     <Badge status={v.status}/>
@@ -1829,7 +1849,7 @@ function CustomerSearchScreen({user,visits,onBack,onSelect,onNewCustomer,onDetai
         <button className="cust-row" style={{flex:1}} onClick={()=>onSelect(c)}>
           <div style={{width:46,height:46,borderRadius:"50%",background:"#EFF6FC",color:OG,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:16,flexShrink:0}}>{c.name.charAt(0)}</div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
+            <div style={{fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"flex",alignItems:"center"}}>{c.name}{custBadge(c.id)}</div>
             <div style={{fontSize:14,color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.postal} {c.city} · {c.street}</div>
           </div>
           <div style={{flexShrink:0,textAlign:"right"}}>
@@ -1976,7 +1996,7 @@ function RepMap({visits,custs}){
     if(!divRef.current||typeof L==='undefined') return;
     if(!mapRef.current){
       mapRef.current=L.map(divRef.current).setView([51.0,10.5],5);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(mapRef.current);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19}).addTo(mapRef.current);
     }
     markersRef.current.forEach(m=>m.remove());
     markersRef.current=[];
@@ -2001,8 +2021,8 @@ function RepMap({visits,custs}){
   return(
     <div style={{marginTop:12}}>
       <div style={{fontSize:12,color:"#9ca3af",marginBottom:6,display:"flex",gap:16,alignItems:"center"}}>
-        <span><span style={{display:"inline-block",width:10,height:10,borderRadius:"50%",background:"#16a34a",marginRight:4}}/>OK</span>
-        <span><span style={{display:"inline-block",width:10,height:10,borderRadius:"50%",background:"#dc2626",marginRight:4}}/>Abgelehnt</span>
+        <span><span style={{display:"inline-block",width:10,height:10,borderRadius:"50%",background:"#16a34a",marginRight:4}}/>GPS - OK</span>
+        <span><span style={{display:"inline-block",width:10,height:10,borderRadius:"50%",background:"#dc2626",marginRight:4}}/>GPS - NICHT OK</span>
         <span style={{marginLeft:"auto"}}>{withGps} / {visits.length} mit GPS</span>
       </div>
       <div ref={divRef} style={{height:400,borderRadius:12,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}/>
@@ -2019,9 +2039,9 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
   const [mapRepFilter,setMapRepFilter]=useState(null);
   const [repMonth,setRepMonth]=useState(TODAY.slice(0,7));
   const [hoveredDay,setHoveredDay]=useState(null);
-  const [chartView,setChartView]=useState("bar");
+  const [chartView,setChartView]=useState("calendar");
   const [selectedManagerDay,setSelectedManagerDay]=useState(null);
-  const [chartRepId,setChartRepId]=useState(null);
+  const [chartRepId,setChartRepId]=useState(()=>USERS.find(u=>u.role==="rep")?.id||null);
   const reps=USERS.filter(u=>u.role==="rep");
   const tod=visits.filter(v=>v.confirmed_at.startsWith(TODAY));
   const DOW=["So","Mo","Di","Mi","Do","Fr","Sa"];
@@ -2029,7 +2049,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
   const monthLabel=()=>{const [y,m]=repMonth.split("-").map(Number);return new Date(y,m-1,1).toLocaleDateString("de-DE",{month:"long",year:"numeric"});};
   const getMonthDays=()=>{const [y,m]=repMonth.split("-").map(Number);const dim=new Date(y,m,0).getDate();return Array.from({length:dim},(_,i)=>{const d=i+1;const dateStr=`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;const wds=workdays.filter(w=>w.date===dateStr);const dayVisits=visits.filter(v=>v.confirmed_at.startsWith(dateStr));return {dateStr,d,dow:new Date(y,m-1,d).getDay(),wds,dayVisits};});};
   // Helper: get last N days as date strings
-  const getLast7Days=()=>{return Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const ds=d.toISOString().slice(0,10);const dow=d.getDay();const isToday=ds===TODAY;return{dateStr:ds,d:d.getDate(),dow,isToday,dayVisits:visits.filter(v=>v.confirmed_at.startsWith(ds))};});};
+  const getLast7Days=()=>{const now=new Date();const nowDow=now.getDay();const mondayDiff=now.getDate()-nowDow+(nowDow===0?-6:1);const monday=new Date(now);monday.setDate(mondayDiff);return Array.from({length:7},(_,i)=>{const d=new Date(monday);d.setDate(monday.getDate()+i);const ds=d.toISOString().slice(0,10);const dow=d.getDay();const isToday=ds===TODAY;return{dateStr:ds,d:d.getDate(),dow,isToday,dayVisits:visits.filter(v=>v.confirmed_at.startsWith(ds))};});};
   const fmtConv=(v,o)=>v===0?"—":`${Math.round(o/v*100)}%`;
 
   // Unified nav buttons — always shown in every panel-header
@@ -2038,8 +2058,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
     <div style={{display:"flex",flexWrap:"wrap",gap:5,justifyContent:"flex-end",alignSelf:"flex-start"}}>
       <button className="panel-nav-btn" data-active={view==="today"&&!showMap&&!selRep} style={btnSt(view==="today"&&!showMap&&!selRep)} onClick={()=>{setSelRep(null);setView("today");setShowMap(false);}}>📍 Heute</button>
       <button className="panel-nav-btn" data-active={view==="today"&&showMap&&!selRep} style={btnSt(view==="today"&&showMap&&!selRep)} onClick={()=>{if(view==="today"&&!selRep){setShowMap(m=>!m);}else{setSelRep(null);setView("today");setShowMap(true);}}}>🗺 Karte</button>
-      <button className="panel-nav-btn" data-active={view==="week"&&!selRep} style={btnSt(view==="week"&&!selRep)} onClick={()=>{setSelRep(null);setView("week");setShowMap(false);}}>📅 7 Tage</button>
-      <button className="panel-nav-btn" data-active={view==="compare"&&!selRep} style={btnSt(view==="compare"&&!selRep)} onClick={()=>{setSelRep(null);setView("compare");setShowMap(false);}}>📊 Vergleich</button>
+      <button className="panel-nav-btn" data-active={view==="week"&&!selRep} style={btnSt(view==="week"&&!selRep)} onClick={()=>{setSelRep(null);setView("week");setShowMap(false);}}>📅 Woche</button>
       <button className="panel-nav-btn" data-active={view==="month"&&!selRep} style={btnSt(view==="month"&&!selRep)} onClick={()=>{setSelRep(null);setView("month");setShowMap(false);}}>📋 Monat</button>
     </div>
   );
@@ -2179,7 +2198,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
       <div className="main-panel">
         <div className="panel-header" style={{flexWrap:"wrap",gap:6}}>
           <div style={{flex:1}}>
-            <div className="panel-header-title">Letzte 7 Tage</div>
+            <div className="panel-header-title">Diese Woche</div>
             <div className="panel-header-sub">Teamübersicht</div>
           </div>
           {navBtns}
@@ -2286,176 +2305,25 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
             {/* ── Rep filter ── */}
             <div style={{display:"flex",gap:6,marginTop:16,flexWrap:"wrap",alignItems:"center"}}>
               <span style={{fontSize:11,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",marginRight:2}}>Vertreter:</span>
-              {[null,...reps].map(r=>{
-                const active=chartRepId===(r?r.id:null);
+              {reps.map(r=>{
+                const active=chartRepId===r.id;
                 return(
-                  <button key={r?r.id:"all"} onClick={()=>{setChartRepId(r?r.id:null);setHoveredDay(null);setSelectedManagerDay(null);}}
+                  <button key={r.id} onClick={()=>{setChartRepId(r.id);setHoveredDay(null);setSelectedManagerDay(null);}}
                     style={{display:"flex",alignItems:"center",gap:5,padding:"4px 12px",borderRadius:20,border:"1.5px solid "+(active?"#e87722":"#e5e7eb"),background:active?"#fff7ed":"white",fontWeight:700,fontSize:12,cursor:"pointer",color:active?"#e87722":"#6b7280",fontFamily:"inherit",transition:"all .15s"}}>
-                    {r&&<span style={{width:16,height:16,borderRadius:"50%",background:"#e87722",color:"white",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900,flexShrink:0}}>{r.initials}</span>}
-                    {r?r.name.split(" ")[0]:"Alle"}
+                    <span style={{width:16,height:16,borderRadius:"50%",background:"#e87722",color:"white",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900,flexShrink:0}}>{r.initials}</span>
+                    {r.name.split(" ")[0]}
                   </button>
                 );
               })}
             </div>
             {/* ── Chart view toggle ── */}
             <div style={{display:"flex",gap:8,marginTop:10}}>
-              {["bar","heatmap","calendar","map"].map(cv=>(
+              {["calendar"].map(cv=>(
                 <button key={cv} onClick={()=>{setChartView(cv);setHoveredDay(null);setSelectedManagerDay(null);}} style={{padding:"5px 16px",borderRadius:8,border:"1.5px solid "+(chartView===cv?"#e87722":"#e5e7eb"),background:chartView===cv?"#fff7ed":"white",fontWeight:700,fontSize:12,cursor:"pointer",color:chartView===cv?"#e87722":"#6b7280",fontFamily:"inherit",transition:"all .15s"}}>
-                  {cv==="bar"?"Balken":cv==="heatmap"?"Heatmap":cv==="calendar"?"Kalender":"🗺 Karte"}
+                  {"Kalender"}
                 </button>
               ))}
             </div>
-            {/* ── CHART 1: Tagesübersicht (bar chart + tooltip) + Line chart ── */}
-            {chartView==="bar"&&(()=>{
-              const maxV=Math.max(1,...chartMdays.map(d=>d.dayVisits.length));
-              const n=chartMdays.length;
-              const W=640,H=160,pL=36,pR=8,pT=8,pB=24;
-              const pw=W-pL-pR,ph=H-pT-pB;
-              const slotW=pw/n;
-              const bw=Math.max(3,Math.min(9,slotW*0.38));
-              const lineH=90,linePT=10,linePB=20,linePH=lineH-linePT-linePB;
-              const linePoints=chartMdays.map((day,i)=>{
-                const v=day.dayVisits.length;
-                if(v===0) return null;
-                const o=day.dayVisits.filter(x=>x.result==="order").length;
-                const rate=Math.round(o/v*100);
-                return {x:pL+i*slotW+slotW/2,y:linePT+linePH-(linePH*rate/100),rate,dateStr:day.dateStr,d:day.d};
-              }).filter(Boolean);
-              return (
-                <div>
-                  {hoveredDay&&(
-                    <div style={{position:"fixed",left:hoveredDay.cx,top:hoveredDay.cy-10,transform:"translate(-50%,-100%)",background:"white",border:"1.5px solid #e87722",borderRadius:8,padding:"8px 12px",fontSize:12,fontWeight:600,zIndex:1000,pointerEvents:"none",boxShadow:"0 4px 12px rgba(0,0,0,.15)",whiteSpace:"nowrap"}}>
-                      <div style={{color:"#374151",marginBottom:3}}>{hoveredDay.dateStr}</div>
-                      <div style={{display:"flex",gap:10}}>
-                        <span style={{color:"#e87722"}}>● {hoveredDay.v} Besuche</span>
-                        <span style={{color:"#16a34a"}}>● {hoveredDay.o} Best.</span>
-                      </div>
-                    </div>
-                  )}
-                  <div className="chart-scroll" style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:12}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                      <div style={{fontSize:13,fontWeight:700,color:"#374151"}}>Tagesübersicht</div>
-                      <div style={{display:"flex",gap:14}}>
-                        <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,background:"#e87722",borderRadius:2}}/><span style={{fontSize:11,color:"#6b7280"}}>Besuche</span></div>
-                        <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,background:"#16a34a",borderRadius:2}}/><span style={{fontSize:11,color:"#6b7280"}}>Bestellungen</span></div>
-                      </div>
-                    </div>
-                    <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",display:"block"}}>
-                      {[0,0.25,0.5,0.75,1].map(f=>{
-                        const y=pT+ph-ph*f;
-                        return (
-                          <g key={f}>
-                            <line x1={pL} y1={y} x2={W-pR} y2={y} stroke="#f3f4f6" strokeWidth="1"/>
-                            {f>0&&<text x={pL-4} y={y+4} textAnchor="end" fontSize="9" fill="#9ca3af">{Math.round(maxV*f)}</text>}
-                          </g>
-                        );
-                      })}
-                      {chartMdays.map((day,i)=>{
-                        const v=day.dayVisits.length;
-                        const o=day.dayVisits.filter(x=>x.result==="order").length;
-                        const cx=pL+i*slotW+slotW/2;
-                        const vh=v>0?Math.max(2,ph*v/maxV):0;
-                        const oh=o>0?Math.max(2,ph*o/maxV):0;
-                        const isWE=day.dow===0||day.dow===6;
-                        const showLbl=i===0||(i+1)%5===0||i===n-1;
-                        return (
-                          <g key={day.dateStr} onMouseEnter={e=>setHoveredDay({dateStr:day.dateStr,v,o,cx:e.clientX,cy:e.clientY})} onMouseLeave={()=>setHoveredDay(null)} style={{cursor:"pointer"}}>
-                            {isWE&&<rect x={pL+i*slotW} y={pT} width={slotW} height={ph} fill="#f9fafb"/>}
-                            <rect x={pL+i*slotW} y={pT} width={slotW} height={ph+pB} fill="transparent"/>
-                            <rect x={cx-bw-1} y={pT+ph-vh} width={bw} height={vh} fill="#e87722" rx="2"/>
-                            <rect x={cx+1} y={pT+ph-oh} width={bw} height={oh} fill="#16a34a" rx="2"/>
-                            {showLbl&&<text x={cx} y={H-6} textAnchor="middle" fontSize="9" fill="#9ca3af">{day.d}</text>}
-                          </g>
-                        );
-                      })}
-                      <line x1={pL} y1={pT+ph} x2={W-pR} y2={pT+ph} stroke="#e5e7eb" strokeWidth="1"/>
-                    </svg>
-                  </div>
-                  {/* ── Line chart: Konversionsrate ── */}
-                  <div className="chart-scroll" style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:10}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                      <div style={{fontSize:13,fontWeight:700,color:"#374151"}}>Konversionsrate</div>
-                      <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,background:"#6366f1",borderRadius:99}}/><span style={{fontSize:11,color:"#6b7280"}}>Rate (%)</span></div>
-                    </div>
-                    <svg viewBox={`0 0 ${W} ${lineH}`} style={{width:"100%",height:"auto",display:"block"}}>
-                      {[0,25,50,75,100].map(pct=>{
-                        const y=linePT+linePH-(linePH*pct/100);
-                        return (
-                          <g key={pct}>
-                            <line x1={pL} y1={y} x2={W-pR} y2={y} stroke="#f3f4f6" strokeWidth="1"/>
-                            <text x={pL-4} y={y+4} textAnchor="end" fontSize="9" fill="#9ca3af">{pct}%</text>
-                          </g>
-                        );
-                      })}
-                      {linePoints.length>1&&<polyline points={linePoints.map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke="#6366f1" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>}
-                      {linePoints.map(p=>(
-                        <circle key={p.dateStr} cx={p.x} cy={p.y} r="3" fill="#6366f1" stroke="white" strokeWidth="1.5"/>
-                      ))}
-                      <line x1={pL} y1={linePT+linePH} x2={W-pR} y2={linePT+linePH} stroke="#e5e7eb" strokeWidth="1"/>
-                    </svg>
-                  </div>
-                </div>
-              );
-            })()}
-            {/* ── HEATMAP ── */}
-            {chartView==="heatmap"&&(()=>{
-              const [hy,hm]=repMonth.split("-").map(Number);
-              const daysInMonth=new Date(hy,hm,0).getDate();
-              const firstDow=(new Date(hy,hm-1,1).getDay()+6)%7;
-              const wdLabels=["Po","Út","St","Čt","Pá","So","Ne"];
-              const heatColor=cnt=>cnt===0?"#f3f4f6":cnt<=2?"#fed7aa":cnt<=5?"#fb923c":"#e87722";
-              const cells=[];
-              for(let i=0;i<firstDow;i++) cells.push(null);
-              for(let d=1;d<=daysInMonth;d++){
-                const dateStr=`${hy}-${String(hm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-                const cnt=chartVis.filter(v=>v.confirmed_at.startsWith(dateStr)).length;
-                const ord=chartVis.filter(v=>v.confirmed_at.startsWith(dateStr)&&v.result==="order").length;
-                cells.push({d,dateStr,cnt,ord});
-              }
-              const weeks=[];
-              for(let i=0;i<cells.length;i+=7) weeks.push(cells.slice(i,i+7));
-              return (
-                <div>
-                  {hoveredDay&&(
-                    <div style={{position:"fixed",left:hoveredDay.cx,top:hoveredDay.cy-10,transform:"translate(-50%,-100%)",background:"white",border:"1.5px solid #e87722",borderRadius:8,padding:"8px 12px",fontSize:12,fontWeight:600,zIndex:1000,pointerEvents:"none",boxShadow:"0 4px 12px rgba(0,0,0,.15)",whiteSpace:"nowrap"}}>
-                      <div style={{color:"#374151",marginBottom:3}}>{hoveredDay.dateStr}</div>
-                      <div style={{display:"flex",gap:10}}>
-                        <span style={{color:"#e87722"}}>● {hoveredDay.v} Besuche</span>
-                        <span style={{color:"#16a34a"}}>● {hoveredDay.o} Best.</span>
-                      </div>
-                    </div>
-                  )}
-                  <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:12}}>
-                    <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:12}}>Heatmap — {monthLabel()}</div>
-                    <div className="heatmap-scroll"><div className="heatmap-hd" style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:6}}>
-                      {wdLabels.map(d=><div key={d} style={{fontSize:11,fontWeight:700,color:"#9ca3af",textAlign:"center"}}>{d}</div>)}
-                    </div>
-                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                      {weeks.map((week,wi)=>(
-                        <div key={wi} className="heatmap-week" style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
-                          {Array.from({length:7},(_,ci)=>{
-                            const cell=week[ci];
-                            if(!cell) return <div key={ci}/>;
-                            return (
-                              <div key={cell.dateStr}
-                                style={{aspectRatio:"1",background:heatColor(cell.cnt),borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:cell.cnt>2?"#7c2d00":"#6b7280",cursor:"default"}}
-                                onMouseEnter={e=>setHoveredDay({dateStr:cell.dateStr,v:cell.cnt,o:cell.ord,cx:e.clientX,cy:e.clientY})}
-                                onMouseLeave={()=>setHoveredDay(null)}
-                              >{cell.d}</div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{display:"flex",gap:8,marginTop:12,alignItems:"center"}}>
-                      <span style={{fontSize:11,color:"#9ca3af"}}>Weniger</span>
-                      {["#f3f4f6","#fed7aa","#fb923c","#e87722"].map((c,i)=><div key={i} style={{width:14,height:14,background:c,borderRadius:3}}/>)}
-                      <span style={{fontSize:11,color:"#9ca3af"}}>Mehr</span>
-                    </div></div>
-                  </div>
-                </div>
-              );
-            })()}
             {/* ── MANAGER CALENDAR ── */}
             {chartView==="calendar"&&(()=>{
               const [hy,hm]=repMonth.split("-").map(Number);
@@ -2465,13 +2333,25 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
               const hColorMgr=cnt=>cnt===0?"#f3f4f6":cnt<=2?"#fed7aa":cnt<=5?"#fb923c":"#e87722";
               const cellsMgr=[];
               for(let i=0;i<firstDow;i++) cellsMgr.push(null);
+              const repMissing=(repId,dateStr)=>{
+                const wd=workdays.find(w=>w.user_id===repId&&w.date===dateStr);
+                if(wd&&dsInfo(wd.day_status)) return false;
+                return !visits.some(v=>v.rep_id===repId&&v.confirmed_at.startsWith(dateStr));
+              };
               for(let d=1;d<=daysInMonth;d++){
                 const dateStr=`${hy}-${String(hm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
                 const dv=chartVis.filter(v=>v.confirmed_at.startsWith(dateStr));
-                cellsMgr.push({d,dateStr,dv});
+                const dow=new Date(hy,hm-1,d).getDay();
+                const isWorkday=dow>=1&&dow<=5;
+                const missing=isWorkday&&dateStr<TODAY&&(chartRepId?repMissing(chartRepId,dateStr):reps.some(r=>repMissing(r.id,dateStr)));
+                const wdMgr=chartRepId?workdays.find(w=>w.user_id===chartRepId&&w.date===dateStr):null;
+                const ds=wdMgr?dsInfo(wdMgr.day_status):null;
+                cellsMgr.push({d,dateStr,dv,missing,wdMgr,ds});
               }
               const weeksMgr=[];for(let i=0;i<cellsMgr.length;i+=7)weeksMgr.push(cellsMgr.slice(i,i+7));
               const selDVMgr=selectedManagerDay?[...chartVis.filter(v=>v.confirmed_at.startsWith(selectedManagerDay))].sort((a,b)=>a.confirmed_at.localeCompare(b.confirmed_at)):[];
+              const selWdMgr=selectedManagerDay&&chartRepId?workdays.find(w=>w.user_id===chartRepId&&w.date===selectedManagerDay):null;
+              const selDSMgr=selWdMgr?dsInfo(selWdMgr.day_status):null;
               return(
                 <div>
                   <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:12}}>
@@ -2489,8 +2369,9 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
                             const isSel=selectedManagerDay===cell.dateStr;
                             const isT=cell.dateStr===TODAY;
                             return(
-                              <div key={cell.dateStr} onClick={()=>setSelectedManagerDay(isSel?null:cell.dateStr)}
-                                style={{aspectRatio:"1",background:isSel?"#2C8CD1":hColorMgr(cnt),borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",border:isT?"2px solid #2C8CD1":"2px solid transparent",transition:"all .1s"}}>
+                              <div key={cell.dateStr} onClick={()=>setSelectedManagerDay(isSel?null:cell.dateStr)} title={cell.ds?.label||(cell.missing?"Nic vyplněno":"")}
+                                style={{position:"relative",aspectRatio:"1",background:isSel?"#2C8CD1":hColorMgr(cnt),borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",border:isT?"2px solid #2C8CD1":cell.missing?"2px solid #ef4444":"2px solid transparent",transition:"all .1s"}}>
+                                {cell.ds&&<div style={{position:"absolute",top:2,right:3,fontSize:9,lineHeight:1}}>{cell.ds.icon}</div>}
                                 <div style={{fontSize:11,fontWeight:700,color:isSel?"white":cnt>0?"#7c2d00":"#6b7280"}}>{cell.d}</div>
                                 {cnt>0&&<div style={{fontSize:10,fontWeight:900,color:isSel?"white":"#c2410c"}}>{cnt}</div>}
                               </div>
@@ -2507,9 +2388,15 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
                   </div>
                   {selectedManagerDay&&(
                     <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:10}}>
-                      <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:12}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:selDSMgr?4:12}}>
                         {new Date(selectedManagerDay+"T12:00:00").toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
                       </div>
+                      {selDSMgr&&(
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12,fontSize:13,color:"#6b7280"}}>
+                          <span>{selDSMgr.icon}</span>
+                          <span>{selDSMgr.label}{selWdMgr.day_status==="messe"&&selWdMgr.event_name?" · "+selWdMgr.event_name:""}</span>
+                        </div>
+                      )}
                       {selDVMgr.length===0?(
                         <div style={{textAlign:"center",padding:"16px",color:"#9ca3af",fontSize:15}}>Keine Besuche</div>
                       ):(
@@ -2592,7 +2479,6 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
                 </div>
               );
             })()}
-            {chartView==="map"&&<RepMap visits={chartRepId?visits.filter(v=>v.rep_id===chartRepId):visits} custs={allCusts}/>}
           </div>
         </div>
       </div>
@@ -2627,92 +2513,6 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
     URL.revokeObjectURL(url);
   };
 
-  // Comparison view
-  if(view==="compare"){
-    const now2=new Date();
-    const wsDate=new Date(now2);
-    const dow2=wsDate.getDay();
-    wsDate.setDate(wsDate.getDate()-(dow2===0?6:dow2-1));
-    const weekStartStr=wsDate.toISOString().slice(0,10);
-    const lwsDate=new Date(wsDate);lwsDate.setDate(lwsDate.getDate()-7);
-    const lWeekStartStr=lwsDate.toISOString().slice(0,10);
-    const lWeekEndStr=new Date(wsDate.getTime()-86400000).toISOString().slice(0,10);
-    const repStats2=reps.map(r=>{
-      const wV=visits.filter(v=>v.rep_id===r.id&&v.confirmed_at.slice(0,10)>=weekStartStr);
-      const mV=visits.filter(v=>v.rep_id===r.id&&v.confirmed_at.slice(0,7)===repMonth);
-      const mO=mV.filter(v=>v.result==="order");
-      const lwV=visits.filter(v=>v.rep_id===r.id&&v.confirmed_at.slice(0,10)>=lWeekStartStr&&v.confirmed_at.slice(0,10)<=lWeekEndStr);
-      const conv=mV.length>0?Math.round(mO.length/mV.length*100):0;
-      const trend=lwV.length===0?(wV.length>0?100:0):Math.round((wV.length-lwV.length)/lwV.length*100);
-      return{...r,wV:wV.length,wO:wV.filter(v=>v.result==="order").length,mV:mV.length,mO:mO.length,conv,trend};
-    });
-    const maxMV2=Math.max(1,...repStats2.map(r=>r.mV));
-    const ranked=[...repStats2].sort((a,b)=>b.mV-a.mV);
-    return(
-      <div className="main-panel">
-        <div className="panel-header" style={{flexWrap:"wrap",gap:6}}>
-          <div style={{flex:1}}>
-            <div className="panel-header-title">Vertretervergleich</div>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
-              <button onClick={()=>adjMonth(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:"2px 6px",color:"#9ca3af"}}>‹</button>
-              <span className="panel-header-sub">{monthLabel()}</span>
-              <button onClick={()=>adjMonth(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:"2px 6px",color:"#9ca3af"}}>›</button>
-            </div>
-          </div>
-          {navBtns}
-        </div>
-        <div className="panel-body">
-          <div style={{maxWidth:680,width:"100%"}}>
-            <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>Diese Woche (ab {weekStartStr})</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:24}}>
-              {repStats2.map(r=>(
-                <div key={r.id} className="stat-box" style={{textAlign:"center"}}>
-                  <div style={{width:36,height:36,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,margin:"0 auto 8px"}}>{r.initials}</div>
-                  <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",marginBottom:4}}>{r.name.split(" ")[0]}</div>
-                  <div style={{fontSize:22,fontWeight:900,color:OG,lineHeight:1}}>{r.wV}</div>
-                  <div style={{fontSize:11,color:"#9ca3af",marginBottom:4}}>Besuche</div>
-                  <div style={{fontSize:15,fontWeight:700,color:"#16a34a"}}>{r.wO} Best.</div>
-                  <div style={{fontSize:11,fontWeight:700,marginTop:4,color:r.trend>5?"#16a34a":r.trend<-5?"#dc2626":"#9ca3af"}}>{r.trend>0?"+":""}{r.trend}% vs VW</div>
-                </div>
-              ))}
-            </div>
-            <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>Monatsvergleich — {monthLabel()}</div>
-            <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginBottom:20}}>
-              {repStats2.map((r,i)=>(
-                <div key={r.id} style={{marginBottom:i<repStats2.length-1?18:0}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-                    <div style={{width:28,height:28,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,flexShrink:0}}>{r.initials}</div>
-                    <div style={{flex:1,fontWeight:700,fontSize:14,color:"#111827"}}>{r.name}</div>
-                    <div style={{fontSize:12,color:"#6b7280"}}><span style={{fontWeight:700,color:OG}}>{r.mV}</span> Bes. · <span style={{fontWeight:700,color:"#16a34a"}}>{r.mO}</span> Best.</div>
-                    <div style={{fontSize:12,fontWeight:700,color:r.conv>0?"#6366f1":"#9ca3af",minWidth:55,textAlign:"right"}}>{r.conv>0?r.conv+"%":"—"} Konv.</div>
-                  </div>
-                  <div style={{height:9,background:"#f3f4f6",borderRadius:5,overflow:"hidden",marginBottom:3}}>
-                    <div style={{height:"100%",width:(r.mV/maxMV2*100)+"%",background:OG,borderRadius:5}}/>
-                  </div>
-                  <div style={{height:6,background:"#f3f4f6",borderRadius:3,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:r.conv+"%",background:"#16a34a",borderRadius:3}}/>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>Rangliste — {monthLabel()}</div>
-            <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",overflow:"hidden"}}>
-              {ranked.map((r,i)=>(
-                <div key={r.id} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 16px",borderBottom:i<ranked.length-1?"1px solid #f9fafb":"none"}}>
-                  <div style={{width:24,height:24,borderRadius:"50%",background:i===0?"#fbbf24":i===1?"#94a3b8":i===2?"#b45309":"#f1f5f9",color:i<3?"white":"#9ca3af",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,flexShrink:0}}>{i+1}</div>
-                  <div style={{width:28,height:28,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,flexShrink:0}}>{r.initials}</div>
-                  <div style={{flex:1,fontWeight:700,fontSize:14,color:"#111827"}}>{r.name}</div>
-                  <div style={{fontSize:13,color:"#6b7280"}}>{r.mV} Bes.</div>
-                  <div style={{fontSize:13,fontWeight:700,color:"#16a34a"}}>{r.mO} Best.</div>
-                  <div style={{fontSize:13,fontWeight:700,color:"#6366f1",minWidth:50,textAlign:"right"}}>{r.conv>0?r.conv+"%":"—"}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Default: today
   return (
@@ -3049,7 +2849,7 @@ function App(){
   return (
     <div className="app-root">
       <Sidebar user={user} workday={myWorkday} visits={visits} onLogout={logout} onSetDay={()=>setScreen("dayset")}/>
-      {screen==="home"       && <HomeScreen user={user} visits={visits} workday={myWorkday} newCusts={newCusts} onNewVisit={()=>setScreen("search")} onSetOvernight={()=>setScreen("overnight")} onDeleteVisit={deleteVisit} onEditVisit={editVisit} onEditNewCust={editNewCustomer} onDeleteVisitAudit={deleteVisitAudit} onEditVisitAudit={editVisitAudit} onCustDetail={goDetail}/>}
+      {screen==="home"       && <HomeScreen user={user} visits={visits} workday={myWorkday} workdays={workdays} newCusts={newCusts} onNewVisit={()=>setScreen("search")} onSetOvernight={()=>setScreen("overnight")} onDeleteVisit={deleteVisit} onEditVisit={editVisit} onEditNewCust={editNewCustomer} onDeleteVisitAudit={deleteVisitAudit} onEditVisitAudit={editVisitAudit} onCustDetail={goDetail}/>}
       {screen==="dayset"     && <DaySetupScreen user={user} existing={myWorkday} onBack={()=>setScreen("home")} onSave={saveWorkday}/>}
       {screen==="overnight"  && <OvernightScreen workday={myWorkday} onBack={()=>setScreen("home")} onSave={saveOvernight}/>}
       {screen==="search"     && <CustomerSearchScreen user={user} visits={visits} newCusts={newCusts} onBack={()=>setScreen("home")} onSelect={c=>{setCust(c);setScreen("confirm");}} onNewCustomer={()=>setScreen("neukunde")} onDetail={goDetail}/>}
