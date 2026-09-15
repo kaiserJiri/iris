@@ -344,6 +344,20 @@ const USERS = [
   { id:5, name:"Manager view",      email:"demo",                           role:"manager", territory:"ALL",            initials:"MB" },
 ];
 
+/* ── Auth ── */
+const AUTH_SALT = 'miopt_2026_xK9';
+const USER_HASHES = {
+  'heeren@prague-eyewear.de':      '5b89a378983e151e07d4e8b4405b7ede857e7a16eb092097c2b6a4450dd0ded2', // Rw4jK9
+  'otten@prague-eyewear.de':       '16911c79dc7ca3e1a84552649cab0fcd680a85ce998850ad832a11639d82a711', // mT7xQ2
+  'hirt@prague-eyewear.de':        'e34affe28e9b1ff29f3d1fa6ccfae4507d4a1e59df0ecbf073f996fcc8656b94', // Bn3hL6
+  'temeschinko@prague-eyewear.de': '923d6e682b5deb57d51fd50dd550d440f8ce28e5f9ccc677added1f02ad87fc6', // Gk8yF1
+  'demo':                          'a2f7f9d0670c68374fe0a0ce1cc2bcf995317c7854e85f506ee8c80e7b7c4652', // Zp5wD3
+};
+async function sha256hex(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
 const CUSTOMERS = [
   {id:10,name:"Optik Harter",street:"Hauptstraße 33",city:"Achern",postal:"77855",lat:48.628935,lng:8.071216,rep_id:1},
   {id:11,name:"OPTIK WEISS Matthias Weiss",street:"Waldenbucher Str.",city:"Aichtal-Aich",postal:"72631",lat:48.620656,lng:9.230704,rep_id:1},
@@ -1295,9 +1309,11 @@ function Sidebar({user,workday,visits,onLogout,onSetDay}){
 /* ── LOGIN ── */
 function LoginScreen({onLogin}){
   const [email,setEmail]=useState(""); const [pass,setPass]=useState(""); const [err,setErr]=useState("");
-  const go=()=>{
+  const go=async()=>{
     const u=USERS.find(u=>u.email.toLowerCase()===email.toLowerCase());
-    if(!u||pass!=="demo"){setErr("Nesprávný e-mail nebo heslo.");return;}
+    if(!u){setErr("Nesprávný e-mail nebo heslo.");return;}
+    const hash=await sha256hex(pass+AUTH_SALT);
+    if(hash!==USER_HASHES[u.email.toLowerCase()]){setErr("Nesprávný e-mail nebo heslo.");return;}
     onLogin(u);
   };
   return (
