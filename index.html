@@ -90,6 +90,10 @@
     .badge-err  { background: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
     .cust-row { width: 100%; display: flex; align-items: center; gap: 14px; padding: 15px 16px; border-radius: 14px; background: white; border: 1.5px solid #f0f0f0; box-shadow: 0 1px 3px rgba(0,0,0,.05); cursor: pointer; text-align: left; transition: border-color .15s; font-family: inherit; }
     .cust-row:hover { border-color: #BFDFEF; }
+    .cust-row.st-grp  { border: 2.5px solid #dc2626 !important; }
+    .cust-row.st-gesp { border: 2.5px solid #000 !important; }
+    body.dark .cust-row.st-grp  { border-color: #dc2626 !important; }
+    body.dark .cust-row.st-gesp { border-color: #000 !important; box-shadow: 0 0 0 1px #64748b !important; }
     input, textarea { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 11px; padding: 14px 18px; font-size: 16px; outline: none; font-family: inherit; background: white; }
     input:focus, textarea:focus { border-color: #2C8CD1; }
     ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
@@ -295,14 +299,32 @@ const { useState, useEffect } = React;
 const OG = "#2C8CD1";
 const TODAY = new Date().toISOString().split("T")[0];
 // Zákazníci podle statusu (shoda přes název z GESPERRT.xls / EKG.xls)
-const GESPERRT_IDS = new Set([1338,1141,1139,1005,1008,1007,1001,1347,1138]);
-const EKG_IDS = new Set([189]);
-const custBadge=id=>{
+// GESPERRT = nejezdit (černý rámeček). Nákupní skupina = vyšší slevy (červený rámeček).
+// GESPERRT.xls (Martin, 25.08.2026): 22 optiků, z toho 11 v Kundenliste.xlsx -> všech 11 v aplikaci (+1135 = duplicitní Meutzner Ahlbeck u jiného zástupce)
+const GESPERRT_IDS = new Set([1338,1141,1139,1005,1008,1007,1001,1135,1347,1138,1487,1488]);
+// Nákupní skupiny: id zákazníka -> název skupiny. Doplňovat sem (EKG, Optic Partner, …)
+// EKG.xls (Martin, 25.08.2026): 22 optiků, z Kundenliste.xlsx je zákazníkem jen 1 (Das Optikhaus Kelheim, Knd-Nr. 8956).
+// (id 189 BlickFang Mengen byl omyl — v EKG je Blickfang Hamburg, jiná firma)
+const BUYING_GROUPS = { 1489:"EKG" };
+const custStatus=id=>{
   const n=Number(id);
-  if(GESPERRT_IDS.has(n)) return <span style={{background:"#ef4444",color:"#fff",fontSize:9,fontWeight:800,padding:"1px 6px",borderRadius:20,marginLeft:5,letterSpacing:1,verticalAlign:"middle",flexShrink:0}}>GESPERRT</span>;
-  if(EKG_IDS.has(n)) return <span style={{background:"#7c3aed",color:"#fff",fontSize:9,fontWeight:800,padding:"1px 6px",borderRadius:20,marginLeft:5,letterSpacing:1,verticalAlign:"middle",flexShrink:0}}>EKG</span>;
+  if(GESPERRT_IDS.has(n)) return {type:"gesperrt",label:"GESPERRT"};
+  if(BUYING_GROUPS[n]) return {type:"group",label:BUYING_GROUPS[n]};
   return null;
 };
+const custRowClass=id=>{const st=custStatus(id);return st?(st.type==="gesperrt"?" st-gesp":" st-grp"):"";};
+const custBadge=id=>{
+  const st=custStatus(id); if(!st) return null;
+  const bg=st.type==="gesperrt"?"#111":"#dc2626";
+  return <span style={{background:bg,color:"#fff",fontSize:9,fontWeight:800,padding:"1px 6px",borderRadius:20,marginLeft:5,letterSpacing:1,verticalAlign:"middle",flexShrink:0}}>{st.label}</span>;
+};
+const custAddr=c=>[c.street,c.postal,c.city].filter(Boolean).join(", ");
+const appleMapsUrl=c=>(c.lat!=null&&c.lng!=null&&!c.approx)
+  ?`https://maps.apple.com/?daddr=${c.lat},${c.lng}&dirflg=d`
+  :`https://maps.apple.com/?daddr=${encodeURIComponent(custAddr(c))}&dirflg=d`;
+const mapsUrl=c=>(c.lat!=null&&c.lng!=null&&!c.approx)
+  ?`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`
+  :`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent([c.name,c.street,c.postal,c.city].filter(Boolean).join(", "))}`;
 
 const DAY_STATUS_GROUPS = [
   { group: "Was machst du heute?", items: [
@@ -1180,7 +1202,11 @@ const CUSTOMERS = [
   {id:1483,name:"markant-optik meusers e.K. Inhaber:Christian Meusers",street:"Sandradstr.20",city:"Mönchengladbach",postal:"41061",lat:51.196822,lng:6.430766,rep_id:4},
   {id:1484,name:"Optik Tiller Inh.Britta Tiller",street:"Kirchweg 74 A",city:"Köln",postal:"50858",lat:50.934864,lng:6.861804,rep_id:4},
   {id:1485,name:"TOA GmbH  Inhaber :Alexander Tetzner",street:"Berliner Strasse 148",city:"Wuppertal",postal:"42277",lat:51.274892,lng:7.219404,rep_id:4},
-  {id:1486,name:"KRANZ OPTIK Katja Kranz-Noll",street:"Bismarckstraße 28",city:"Bad Marienberg",postal:"56470",lat:50.648535,lng:7.948513,rep_id:4}
+  {id:1486,name:"KRANZ OPTIK Katja Kranz-Noll",street:"Bismarckstraße 28",city:"Bad Marienberg",postal:"56470",lat:50.648535,lng:7.948513,rep_id:4},
+  // Doplněno z Kundenliste.xlsx (chyběli v aplikaci), souřadnice z Nominatim
+  {id:1487,name:"Optik Aktiv Brillen im Trend",street:"Kronenstraße 1A",city:"Ansbach",postal:"91522",lat:49.302040,lng:10.574134,rep_id:1},
+  {id:1488,name:"Optik Friedrich GmbH & Co.KG",street:"Gesandtenstraße 10",city:"Regensburg",postal:"93047",lat:49.018600,lng:12.092385,rep_id:1},
+  {id:1489,name:"Das Optikhaus Inh. Martin Hlawa",street:"Ludwigsplatz",city:"Kelheim",postal:"93309",lat:48.918232,lng:11.873151,rep_id:1}
 ];
 
 const INIT_VISITS = [];
@@ -1847,10 +1873,10 @@ function CustomerSearchScreen({user,visits,onBack,onSelect,onNewCustomer,onDetai
     const tod=last?.confirmed_at?.startsWith(TODAY);
     return (
       <div style={{display:"flex",gap:6,alignItems:"center"}}>
-        <button className="cust-row" style={{flex:1}} onClick={()=>onSelect(c)}>
+        <button className={"cust-row"+custRowClass(c.id)} style={{flex:1,minWidth:0}} onClick={()=>onSelect(c)}>
           <div style={{width:46,height:46,borderRadius:"50%",background:"#EFF6FC",color:OG,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:16,flexShrink:0}}>{c.name.charAt(0)}</div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"flex",alignItems:"center"}}>{c.name}{custBadge(c.id)}</div>
+            <div style={{fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"flex",alignItems:"center"}}><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>{c.name}</span>{custBadge(c.id)}</div>
             <div style={{fontSize:14,color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.postal} {c.city} · {c.street}</div>
           </div>
           <div style={{flexShrink:0,textAlign:"right"}}>
@@ -1858,7 +1884,7 @@ function CustomerSearchScreen({user,visits,onBack,onSelect,onNewCustomer,onDetai
             {tod&&<div style={{fontSize:13,color:"#16a34a",fontWeight:700}}>✓ dnes</div>}
           </div>
         </button>
-        {onDetail&&<button onClick={()=>onDetail(c)} style={{background:"#EFF6FC",border:"none",borderRadius:10,padding:"10px 12px",cursor:"pointer",fontSize:16,color:OG,fontWeight:700,flexShrink:0,fontFamily:"inherit"}} title="Details">ℹ</button>}
+        {onDetail&&<button onClick={()=>onDetail(c)} style={{background:"#EFF6FC",border:"none",borderRadius:10,padding:"10px 12px",cursor:"pointer",fontSize:13,color:OG,fontWeight:800,flexShrink:0,fontFamily:"inherit",alignSelf:"stretch"}} title="Info">Info</button>}
       </div>
     );
   };
@@ -2618,10 +2644,24 @@ function ls(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):de
 
 /* ── CUSTOMER DETAIL ── */
 function CustomerDetailScreen({user,customer,visits,onBack}){
-  const allV=[...visits].filter(v=>v.customer_id===customer.id).sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at));
+  // Plná historie: App drží jen posledních 90 dní, proto se z Firestore dotáhne vše pro tohoto zákazníka
+  const [fullV,setFullV]=useState(null);
+  useEffect(()=>{
+    const DB=window.db;
+    if(!window.USE_FIREBASE||!DB) return;
+    let alive=true;
+    DB.collection('visits').where('customer_id','==',customer.id).get()
+      .then(snap=>{if(alive)setFullV(snap.docs.map(d=>({...d.data(),id:d.id})));})
+      .catch(e=>console.error("[Iris] customer history:",e));
+    return ()=>{alive=false;};
+  },[customer.id]);
+  const src=fullV||visits;
+  const allV=[...src].filter(v=>String(v.customer_id)===String(customer.id)).sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at));
   const myV=allV.filter(v=>v.rep_id===user.id);
-  const orders=myV.filter(v=>v.result==="order").length;
-  const daysSince=myV[0]?Math.floor((Date.now()-new Date(myV[0].confirmed_at))/86400000):null;
+  const orders=allV.filter(v=>v.result==="order").length;
+  const daysSince=allV[0]?Math.floor((Date.now()-new Date(allV[0].confirmed_at))/86400000):null;
+  const st=custStatus(customer.id);
+  const repName=id=>USERS.find(u=>u.id===id)?.name||"—";
   return (
     <div className="main-panel">
       <div className="panel-header">
@@ -2633,24 +2673,31 @@ function CustomerDetailScreen({user,customer,visits,onBack}){
       </div>
       <div className="panel-body">
         <div style={{maxWidth:600,width:"100%"}}>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+          {st&&<div style={{marginBottom:16,padding:"12px 16px",borderRadius:12,border:"2.5px solid "+(st.type==="gesperrt"?"#000":"#dc2626"),background:st.type==="gesperrt"?"#111":"#fef2f2",color:st.type==="gesperrt"?"#fff":"#991b1b",fontWeight:700,fontSize:15}}>
+            {st.type==="gesperrt"
+              ?<>⛔ GESPERRT — bitte nicht besuchen</>
+              :<>🏷 Einkaufsgemeinschaft: {st.label} <span style={{fontWeight:500,fontSize:13}}>· höhere Rabatte</span></>}
+          </div>}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16}}>
             {[
-              {l:"Meine Besuche",v:myV.length,c:OG},
+              {l:"Besuche gesamt",v:allV.length,c:OG},
               {l:"Bestellungen",v:orders,c:"#16a34a"},
               {l:"Tage seit letztem",v:daysSince!==null?daysSince:"—",c:"#374151"},
             ].map(s=><div key={s.l} className="stat-box"><div className="stat-num" style={{color:s.c}}>{s.v}</div><div className="stat-lbl">{s.l}</div></div>)}
           </div>
-          {customer.street&&<div className="card" style={{marginBottom:16,fontSize:14,color:"#374151"}}>📍 {customer.street}, {customer.postal} {customer.city}</div>}
-          <div className="section-label">Besuchsverlauf</div>
-          {myV.length===0
+          {customer.street&&<div className="card" style={{marginBottom:12,fontSize:14,color:"#374151"}}>📍 {customer.street}, {customer.postal} {customer.city}</div>}
+          <a href={appleMapsUrl(customer)} target="_blank" rel="noopener" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,width:"100%",boxSizing:"border-box",padding:"15px 18px",borderRadius:13,background:OG,color:"#fff",fontWeight:800,fontSize:16,textDecoration:"none",marginBottom:8}}>🧭 Route in Apple Karten</a>
+          <a href={mapsUrl(customer)} target="_blank" rel="noopener" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,width:"100%",boxSizing:"border-box",padding:"11px 18px",borderRadius:13,background:"transparent",color:OG,border:"1.5px solid "+OG,fontWeight:700,fontSize:14,textDecoration:"none",marginBottom:20}}>Route in Google Maps</a>
+          <div className="section-label">Besuchsverlauf{fullV===null&&window.USE_FIREBASE?" (letzte 90 Tage, lädt…)":""}</div>
+          {allV.length===0
             ?<div style={{textAlign:"center",padding:"40px 0",color:"#d1d5db"}}><div style={{fontSize:40,marginBottom:12}}>📭</div>Noch keine Besuche</div>
             :<div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
-              {myV.map((v,i)=>(
-                <div key={v.id} className="det-row" style={{borderBottom:i<myV.length-1?"1px solid #f9fafb":"none"}}>
+              {allV.map((v,i)=>(
+                <div key={v.id} className="det-row" style={{borderBottom:i<allV.length-1?"1px solid #f9fafb":"none"}}>
                   <span style={{fontSize:16,flexShrink:0}}>{ri(v.result)}</span>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:700,fontSize:14,color:"#111827"}}>{rl(v.result)}</div>
-                    <div style={{fontSize:13,color:"#9ca3af"}}>{new Date(v.confirmed_at).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"})} · {fmtT(v.confirmed_at)}</div>
+                    <div style={{fontWeight:700,fontSize:14,color:"#111827"}}>{rl(v.result)}{v.result==="order"&&v.units?` · ${v.units} Stk.`:""}</div>
+                    <div style={{fontSize:13,color:"#9ca3af"}}>{new Date(v.confirmed_at).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"})} · {fmtT(v.confirmed_at)}{v.rep_id!==user.id?` · ${repName(v.rep_id)}`:""}</div>
                     {v.note&&<div style={{fontSize:13,color:"#6b7280",fontStyle:"italic",marginTop:2}}>„{v.note}"</div>}
                   </div>
                   <span className={"badge "+(v.status==="confirmed"?"badge-ok":v.status==="warning"?"badge-warn":"badge-err")}>{v.distance<9999?v.distance+"m":"GPS?"}</span>
