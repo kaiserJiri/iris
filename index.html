@@ -324,6 +324,8 @@ const custAddr=c=>[c.street,c.postal,c.city].filter(Boolean).join(", ");
 const appleMapsUrl=c=>(c.lat!=null&&c.lng!=null&&!c.approx)
   ?`https://maps.apple.com/?daddr=${c.lat},${c.lng}&dirflg=d`
   :`https://maps.apple.com/?daddr=${encodeURIComponent(custAddr(c))}&dirflg=d`;
+const escHtml=t=>String(t).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const NoteLine=({note,size=13})=>note?<div className="visit-note" style={{fontSize:size,color:"#6b7280",fontStyle:"italic",marginTop:3,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>📝 „{note}"</div>:null;
 const mapsUrl=c=>(c.lat!=null&&c.lng!=null&&!c.approx)
   ?`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`
   :`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent([c.name,c.street,c.postal,c.city].filter(Boolean).join(", "))}`;
@@ -1475,7 +1477,7 @@ function HomeScreen({user,visits,workday,workdays,newCusts,onNewVisit,onSetOvern
                           <div style={{fontSize:22,width:30,textAlign:"center",flexShrink:0}}>{ri(v.result)}</div>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c?.name||v.customer_id}</div>
-                            <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}{v.note?` · ${v.note}`:""}</div>
+                            <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}</div><NoteLine note={v.note} size={14}/>
                           </div>
                           <button onClick={()=>{setHistEditResult(v.result);setHistEditNote(v.note||"");setHistDialog({type:"edit",visit:v});}} style={{...iab,background:"#EFF6FC"}}>✏️</button>
                           <button onClick={()=>setHistDialog({type:"delete",visit:v})} style={{...iab,background:"#FEF2F2"}}>🗑️</button>
@@ -1551,7 +1553,7 @@ function HomeScreen({user,visits,workday,workdays,newCusts,onNewVisit,onSetOvern
                     <div style={{fontSize:22,width:30,textAlign:"center",flexShrink:0}}>{ri(v.result)}</div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:"flex",alignItems:"center",gap:4}}><button onClick={()=>onCustDetail&&onCustDetail(c)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"inherit",textDecoration:"none",textAlign:"left"}}>{c?.name||v.customer_id}</button>{c&&custBadge(c.id)}</div>
-                      <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}{v.note?` · ${v.note}`:""}</div>
+                      <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}</div><NoteLine note={v.note} size={14}/>
                     </div>
                     <Badge status={v.status}/>
                     <button onClick={()=>{setEditResult(v.result);setEditNote(v.note||"");setEditCustName("");setEditCustCity("");setDialog({type:"edit",visit:v});}} style={{...iab,background:"#EFF6FC"}}>✏️</button>
@@ -2036,7 +2038,7 @@ function RepMap({visits,custs}){
       const ok=v.status!=='rejected';
       const color=ok?'#16a34a':'#dc2626';
       const rep=USERS.find(u=>u.id===v.rep_id);
-      const popup=`<b>${c.name}</b><br><span style="color:#6b7280">${rep?.name||''}</span><br>${new Date(v.confirmed_at).toLocaleDateString('de-DE')} ${fmtT(v.confirmed_at)}<br>${rl(v.result)}${v.distance!=null&&v.distance>=0&&v.distance!==9999?'<br>📍 '+v.distance+' m':''}`;
+      const popup=`<b>${c.name}</b><br><span style="color:#6b7280">${rep?.name||''}</span><br>${new Date(v.confirmed_at).toLocaleDateString('de-DE')} ${fmtT(v.confirmed_at)}<br>${rl(v.result)}${v.distance!=null&&v.distance>=0&&v.distance!==9999?'<br>📍 '+v.distance+' m':''}${v.note?'<br><i style="color:#374151">📝 „'+escHtml(v.note)+'"</i>':''}`;
       const m=L.circleMarker([c.lat,c.lng],{radius:8,color,fillColor:color,fillOpacity:0.85,weight:2}).bindPopup(popup);
       m.addTo(mapRef.current);
       markersRef.current.push(m);
@@ -2070,6 +2072,8 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
   const [hoveredDay,setHoveredDay]=useState(null);
   const [chartView,setChartView]=useState("calendar");
   const [selectedManagerDay,setSelectedManagerDay]=useState(null);
+  const [openRepDay,setOpenRepDay]=useState(null);
+  const [showMonthMap,setShowMonthMap]=useState(false);
   const [chartRepId,setChartRepId]=useState(()=>USERS.find(u=>u.role==="rep")?.id||null);
   const reps=USERS.filter(u=>u.role==="rep");
   const tod=visits.filter(v=>v.confirmed_at.startsWith(TODAY));
@@ -2131,12 +2135,25 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
                 const orders=rv.filter(v=>v.result==="order").length;
                 const isWE=day.dow===0||day.dow===6;
                 return (
-                  <div key={day.dateStr} style={{display:"grid",gridTemplateColumns:"72px 24px 1fr 36px 56px",alignItems:"center",padding:"11px 16px",borderBottom:i<activeDays.length-1?"1px solid #f9fafb":"none",background:isWE?"#fafafa":"white",gap:8}}>
+                  <div key={day.dateStr} style={{borderBottom:i<activeDays.length-1?"1px solid #f9fafb":"none"}}>
+                  <div onClick={()=>setOpenRepDay(openRepDay===day.dateStr?null:day.dateStr)} style={{cursor:rv.length>0?"pointer":"default",display:"grid",gridTemplateColumns:"72px 24px 1fr 36px 56px",alignItems:"center",padding:"11px 16px",background:isWE?"#fafafa":"white",gap:8}}>
                     <div style={{fontSize:13,fontWeight:600,color:"#374151"}}>{String(day.d).padStart(2,"0")}.{repMonth.slice(5)} <span style={{color:"#9ca3af",fontWeight:400}}>{DOW[day.dow]}</span></div>
                     <div style={{fontSize:17,textAlign:"center"}}>{ds?.icon||"—"}</div>
                     <div style={{fontSize:13,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ds?.label||"—"}{wd?.day_status==="messe"&&wd.event_name?` · ${wd.event_name}`:""}</div>
                     <div style={{fontSize:14,fontWeight:900,color:rv.length>0?OG:"#d1d5db",textAlign:"center"}}>{rv.length>0?rv.length:"—"}</div>
                     <div style={{fontSize:13,fontWeight:700,color:orders>0?"#16a34a":"#d1d5db",textAlign:"right"}}>{orders>0?`${orders} Best.`:"—"}</div>
+                  </div>
+                  {openRepDay===day.dateStr&&rv.length>0&&<div style={{padding:"4px 16px 12px 104px",display:"flex",flexDirection:"column",gap:8}}>
+                    {[...rv].sort((a,b)=>a.confirmed_at.localeCompare(b.confirmed_at)).map(v=>{const c=lookupCust(v.customer_id);return(
+                      <div key={v.id} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                        <span style={{fontSize:16}}>{ri(v.result)}</span>
+                        <div style={{minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:700,color:"#374151"}}>{c?.name||v.customer_id}</div>
+                          <div style={{fontSize:12,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {c?.city||""} · {rl(v.result)}</div>
+                          <NoteLine note={v.note}/>
+                        </div>
+                      </div>);})}
+                  </div>}
                   </div>
                 );
               })}
@@ -2192,7 +2209,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
                   </div>
                   <div style={{fontWeight:700,fontSize:14,color:"#111827"}}>{c?.name}</div>
                   <div style={{fontSize:14,color:"#6b7280"}}>{c?.postal} {c?.city} · {rl(v.result)}</div>
-                  {v.note&&<div style={{fontSize:14,color:"#9ca3af",marginTop:4,fontStyle:"italic"}}>„{v.note}"</div>}
+                  <NoteLine note={v.note} size={14}/>
                 </div>
               );
             })}
@@ -2306,6 +2323,18 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
         </div>
         <div className="panel-body">
           <div style={{maxWidth:680,width:"100%"}}>
+            {(()=>{const mv=visits.filter(v=>v.confirmed_at.startsWith(repMonth));const mvf=mapRepFilter?mv.filter(v=>v.rep_id===mapRepFilter):mv;return(<div style={{marginBottom:16}}>
+              <button onClick={()=>setShowMonthMap(m=>!m)} style={{width:"100%",padding:"11px 16px",borderRadius:12,border:"1.5px solid "+OG,background:showMonthMap?OG:"transparent",color:showMonthMap?"white":OG,fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>🗺 {showMonthMap?"Karte ausblenden":"Karte für "+monthLabel()+" anzeigen"} ({mv.length} Besuche)</button>
+              {showMonthMap&&<div style={{marginTop:10}}>
+                <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+                  {[{id:null,label:"Alle"},...reps.filter(r=>mv.some(v=>v.rep_id===r.id)).map(r=>({id:r.id,label:r.name.split(" ").map(n=>n[0]).join("")+" "+r.name.split(" ")[0]}))].map(({id,label})=>{
+                    const active=mapRepFilter===id;
+                    return <button key={String(id)} onClick={()=>setMapRepFilter(id)} style={{background:active?OG:"#f3f4f6",color:active?"white":"#374151",border:"none",borderRadius:20,padding:"5px 13px",cursor:"pointer",fontWeight:700,fontSize:12,fontFamily:"inherit"}}>{label}</button>;
+                  })}
+                </div>
+                <RepMap visits={mvf} custs={allCusts}/>
+              </div>}
+            </div>);})()}
             <div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
               <div className="team-month-hd" style={{display:"grid",gridTemplateColumns:"1.5fr 70px 80px 90px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
                 {["Vertreter","AD-Tage","Besuche","Bestellungen"].map(h=>(
@@ -2442,7 +2471,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
                                     <div style={{fontWeight:700,fontSize:13,color:"#374151"}}>{r?.name||"?"}</div>
                                   </div>
                                   <div style={{fontWeight:700,fontSize:15,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c?.name||v.customer_id}</div>
-                                  <div style={{fontSize:13,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}{v.note?` · ${v.note}`:""}</div>
+                                  <div style={{fontSize:13,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}</div><NoteLine note={v.note}/>
                                 </div>
                               </div>
                             );
@@ -2603,6 +2632,7 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
                 <div key={v.id} style={{background:"#fef2f2",border:"1.5px solid #fca5a5",borderRadius:12,padding:12}}>
                   <div style={{fontSize:16,fontWeight:700,color:"#b91c1c"}}>{r?.name} · {c?.name}</div>
                   <div style={{fontSize:14,color:"#ef4444"}}>{fmtT(v.confirmed_at)} · {v.gps_err===1?"🚫 GPS gesperrt":"✗ GPS"} · {(v.distance!=null&&v.distance>=0&&v.distance!==9999)?v.distance+' m':'n/a'} · {rl(v.result)}</div>
+                  <NoteLine note={v.note} size={14}/>
                 </div>
               );
             })}
@@ -2700,7 +2730,7 @@ function CustomerDetailScreen({user,customer,visits,onBack}){
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:700,fontSize:14,color:"#111827"}}>{rl(v.result)}{v.result==="order"&&v.units?` · ${v.units} Stk.`:""}</div>
                     <div style={{fontSize:13,color:"#9ca3af"}}>{new Date(v.confirmed_at).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"})} · {fmtT(v.confirmed_at)}{v.rep_id!==user.id?` · ${repName(v.rep_id)}`:""}</div>
-                    {v.note&&<div style={{fontSize:13,color:"#6b7280",fontStyle:"italic",marginTop:2}}>„{v.note}"</div>}
+                    <NoteLine note={v.note}/>
                   </div>
                   <span className={"badge "+(v.status==="confirmed"?"badge-ok":v.status==="warning"?"badge-warn":"badge-err")}>{v.distance<9999?v.distance+"m":"GPS?"}</span>
                 </div>
