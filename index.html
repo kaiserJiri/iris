@@ -1,0 +1,2076 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Iris" />
+  <meta name="theme-color" content="#232323" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23232323'/><text x='16' y='23' font-family='Montserrat,Arial,sans-serif' font-size='18' font-weight='900' fill='white' text-anchor='middle'>I</text></svg>" />
+  <link rel="apple-touch-icon" id="pwa-icon" />
+  <link rel="manifest" id="pwa-manifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <title>Iris · Prague Eyewear</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Firebase compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script>
+  /* ── FIREBASE CONFIG — vyplňte vlastními hodnotami z Firebase konzole ── */
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCR8PexpFykowW-4GLuDkU8oQa1MtUiwLQ",
+    authDomain: "axis-iris.firebaseapp.com",
+    projectId: "axis-iris",
+    storageBucket: "axis-iris.firebasestorage.app",
+    messagingSenderId: "716511265622",
+    appId: "1:716511265622:web:9359abcfae4e51a3418cf7",
+    measurementId: "G-TWF29ZCND0"
+  };
+  var USE_FIREBASE = FIREBASE_CONFIG.apiKey !== "FIREBASE_API_KEY";
+  var db = null;
+  if (USE_FIREBASE) {
+    try {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+      window.irisAuth = firebase.auth();
+      console.log("[Iris] Firebase: připojeno k Firestore");
+    } catch(e) {
+      console.error("[Iris] Firebase init chyba:", e);
+    }
+  } else {
+    console.log("[Iris] Firebase: config není nastaven — používám localStorage");
+  }
+  window.USE_FIREBASE = USE_FIREBASE;
+  window.db = db;
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; font-family: Montserrat, system-ui, sans-serif; background: #232323; font-size: 16px; }
+    #root { width: 100%; min-height: 100vh; }
+
+    /* Shared */
+    .btn-primary { background: #2C8CD1; color: white; border: none; cursor: pointer; border-radius: 14px; font-weight: 900; font-size: 18px; padding: 20px 0; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; transition: opacity .15s, transform .1s; font-family: inherit; }
+    .btn-primary:hover { opacity: .92; }
+    .btn-primary:active { transform: scale(.98); }
+    .btn-primary:disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; transform: none; }
+    .card { background: white; border-radius: 14px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 1px solid #f0f0f0; }
+    .result-btn { width: 100%; display: flex; align-items: center; gap: 12px; padding: 15px 16px; border-radius: 13px; border: 2px solid #e5e7eb; background: white; cursor: pointer; text-align: left; transition: border-color .15s, background .15s; font-family: inherit; }
+    .result-btn:hover { border-color: #BFDFEF; }
+    .result-btn.active { border-color: #2C8CD1; background: #EFF6FC; }
+    .result-lbl { font-size: 16px; font-weight: 600; color: #374151; }
+    .result-sub { font-size: 13px; color: #9ca3af; margin-top: 2px; }
+    .result-btn.active .result-lbl { color: #1A5F8A; }
+    .result-check { margin-left: auto; color: #2C8CD1; font-size: 22px; font-weight: 900; flex-shrink: 0; }
+    .stat-box { background: white; border-radius: 14px; padding: 20px 14px; box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 1px solid #f0f0f0; text-align: center; }
+    .stat-num { font-size: 34px; font-weight: 900; }
+    .stat-lbl { font-size: 14px; color: #9ca3af; margin-top: 4px; line-height: 1.3; }
+    .section-label { font-size: 12px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+    .group-label { font-size: 13px; font-weight: 800; color: #374151; letter-spacing: .02em; padding: 7px 12px; background: #e8e7e6; border-radius: 8px; margin-bottom: 10px; margin-top: 8px; display: block; }
+    .gps-box { border-radius: 12px; padding: 14px; border: 2px solid; }
+    .gps-box.ok   { background: #f0fdf4; border-color: #4ade80; }
+    .gps-box.warn { background: #fefce8; border-color: #facc15; }
+    .gps-box.err  { background: #fef2f2; border-color: #f87171; }
+    .gps-box.load { background: #f9fafb; border-color: #e5e7eb; }
+    .gps-text { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .gps-box.ok   .gps-text { color: #15803d; }
+    .gps-box.warn .gps-text { color: #a16207; }
+    .gps-box.err  .gps-text { color: #b91c1c; }
+    .gps-box.load .gps-text { color: #6b7280; }
+    .badge { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; border: 1px solid; display: inline-block; }
+    .badge-ok   { background: #f0fdf4; color: #15803d; border-color: #86efac; }
+    .badge-warn { background: #fefce8; color: #a16207; border-color: #fde047; }
+    .badge-err  { background: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
+    .cust-row { width: 100%; display: flex; align-items: center; gap: 14px; padding: 15px 16px; border-radius: 14px; background: white; border: 1.5px solid #f0f0f0; box-shadow: 0 1px 3px rgba(0,0,0,.05); cursor: pointer; text-align: left; transition: border-color .15s; font-family: inherit; }
+    .cust-row:hover { border-color: #BFDFEF; }
+    .cust-row.st-grp  { border: 2.5px solid #dc2626 !important; }
+    .cust-row.st-gesp { border: 2.5px solid #000 !important; }
+    body.dark .cust-row.st-grp  { border-color: #dc2626 !important; }
+    body.dark .cust-row.st-gesp { border-color: #f1f5f9 !important; box-shadow: none !important; }
+    body.dark .gesp-badge { background: #f1f5f9 !important; color: #111 !important; }
+    body.dark .gesp-banner { border-color: #f1f5f9 !important; }
+    input, textarea { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 11px; padding: 14px 18px; font-size: 16px; outline: none; font-family: inherit; background: white; }
+    input:focus, textarea:focus { border-color: #2C8CD1; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+
+    /* LOGIN */
+    .login-root { min-height: 100vh; display: flex; background: white; }
+    .login-left { width: 420px; flex-shrink: 0; background: #232323; display: flex; flex-direction: column; padding: 48px 44px; position: relative; overflow: hidden; }
+    .login-left::before { content: ""; position: absolute; top: -120px; right: -120px; width: 400px; height: 400px; border-radius: 50%; background: rgba(255,255,255,.07); }
+    .login-left::after  { content: ""; position: absolute; bottom: -80px; left: -80px; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,.05); }
+    .login-right { flex: 1; display: flex; align-items: center; justify-content: center; padding: 48px 40px; background: #fafafa; }
+    .login-form-box { width: 100%; max-width: 380px; }
+
+    /* APP LAYOUT — same structure as login */
+    .app-root { display: flex; min-height: 100vh; }
+    .sidebar { width: 420px; flex-shrink: 0; background: #232323; display: flex; flex-direction: column; padding: 48px 44px; position: relative; overflow: hidden; }
+    .sidebar::before { content: ""; position: absolute; top: -120px; right: -120px; width: 400px; height: 400px; border-radius: 50%; background: rgba(255,255,255,.07); }
+    .sidebar::after  { content: ""; position: absolute; bottom: -80px; left: -80px; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,.05); }
+    .sidebar-content { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; }
+    .main-panel { flex: 1; background: #fafafa; display: flex; flex-direction: column; overflow: auto; }
+    .panel-header { background: white; border-bottom: 1px solid #e5e7eb; padding: 22px 32px; display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+    .panel-header-title { font-size: 22px; font-weight: 900; color: #111827; }
+    .panel-header-sub { font-size: 14px; color: #9ca3af; margin-top: 3px; }
+    .panel-body { flex: 1; padding: 40px 40px; overflow: auto; display: flex; flex-direction: column; align-items: center; }
+    .panel-body > * { width: 100%; }
+    .back-btn { font-size: 32px; font-weight: 700; color: #374151; background: none; border: none; cursor: pointer; padding: 0; line-height: 1; }
+    .panel-nav-btn { transition: filter .12s, transform .1s; }
+    .panel-nav-btn:hover { filter: brightness(0.88); }
+    .panel-nav-btn:active { filter: brightness(0.75); transform: scale(0.95); }
+    /* ── Animations ── */
+    @keyframes iris-fade { from{opacity:0} to{opacity:1} }
+    @keyframes iris-up { from{opacity:0;transform:translateY(9px)} to{opacity:1;transform:translateY(0)} }
+    .main-panel { animation: iris-fade .2s ease; }
+    .panel-header { animation: iris-up .18s ease both; }
+    .card { animation: iris-up .2s ease both; }
+    .stat-box { animation: iris-up .2s ease both; }
+    .stat-box:nth-child(2){animation-delay:.05s} .stat-box:nth-child(3){animation-delay:.1s} .stat-box:nth-child(4){animation-delay:.15s}
+    .team-today-row,.team-month-row { animation: iris-up .18s ease both; }
+    .team-today-row:nth-child(2),.team-month-row:nth-child(2){animation-delay:.04s}
+    .team-today-row:nth-child(3),.team-month-row:nth-child(3){animation-delay:.08s}
+    .team-today-row:nth-child(4),.team-month-row:nth-child(4){animation-delay:.12s}
+    .team-today-row:nth-child(5),.team-month-row:nth-child(5){animation-delay:.16s}
+    .team-today-row:nth-child(6),.team-month-row:nth-child(6){animation-delay:.2s}
+    .panel-nav-btn[data-active="true"] { background: #e87722 !important; color: white !important; }
+    body.dark .panel-nav-btn[data-active="true"] { background: #e87722 !important; color: white !important; }
+
+    @media (max-width: 900px) {
+      .login-root { flex-direction: column; }
+      .login-left { width: 100%; padding: 36px 24px 32px; }
+      .login-right { padding: 32px 24px; background: white; }
+      .app-root { flex-direction: column; }
+      .sidebar { width: 100%; padding: 24px 24px 20px; }
+      .sidebar-content { flex-direction: row; align-items: center; gap: 20px; width: 100%; flex-wrap: wrap; }
+      .panel-body { padding: 20px; }
+    }
+    @media (max-width: 768px) {
+      .mobile-logo { width: 130px !important; }
+      .mobile-iris { font-size: 10px !important; margin-bottom: 10px !important; }
+      .app-sidebar-logo { display: none !important; }
+      .app-sidebar-iris { display: none !important; }
+    }
+
+    /* ── MOBILNÍ RESPONZIVITA (max 600px) ── */
+    @media (max-width: 600px) {
+      /* Menší padding na panelu */
+      .panel-body { padding: 12px !important; }
+
+      /* Inputs — iOS nezoomuje pod 16px, min tap target 44px */
+      input, textarea { min-height: 44px !important; font-size: 16px !important; }
+      .btn-primary { min-height: 44px !important; }
+
+      /* Dashboard: 4 stat boxy → 2×2 mřížka */
+      .stats-grid-4 { grid-template-columns: repeat(2,1fr) !important; }
+
+      /* 7 Tage — scroll wrapper + menší boxy */
+      .seven-day-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .seven-day-grid   { grid-template-columns: repeat(7, 44px) !important; gap: 3px !important; min-width: 320px; }
+
+      /* Heatmap — scroll wrapper */
+      .heatmap-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .heatmap-hd, .heatmap-week { grid-template-columns: repeat(7, 38px) !important; gap: 3px !important; min-width: 286px; }
+
+      /* SVG grafy — scroll wrapper */
+      .chart-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .chart-scroll svg { min-width: 400px; display: block; }
+
+      /* Rankliste a team-today grid na mobilu */
+      .team-ranklist-card .team-today-hd  { grid-template-columns: 1fr 52px 52px 62px !important; }
+      .team-ranklist-card .team-today-row { grid-template-columns: 1fr 52px 52px 62px !important; }
+      /* Starý team-today (dnes view) — skrýt Übernachtung */
+      .team-today-hd  { grid-template-columns: 1.5fr 1.5fr 70px !important; }
+      .team-today-row { grid-template-columns: 1.5fr 1.5fr 70px !important; }
+      .team-col-overnight { display: none !important; }
+      .team-today-hd > div:last-child { display: none !important; }
+
+      /* Monatsreport tabulka — užší fixní sloupce */
+      .team-month-hd  { grid-template-columns: 1fr 46px 54px 66px !important; }
+      .team-month-row { grid-template-columns: 1fr 46px 54px 66px !important; }
+
+      /* Panel-header navigační tlačítka — menší na mobilu */
+      .panel-header { flex-wrap: wrap; padding: 10px 12px !important; }
+      .panel-header > div:first-child { flex: 1 1 100%; margin-bottom: 4px; }
+      .panel-header > div:last-child { display: flex; flex-wrap: wrap; gap: 5px; flex: 1 1 100%; }
+
+      /* Word-break pro dlouhá firemní jména */
+      .cust-name { word-break: break-word !important; white-space: normal !important;
+                   overflow: visible !important; text-overflow: unset !important; }
+    }
+    /* ── PROGRESS BARS ── */
+    .prog-section { margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.08); }
+    .prog-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .prog-lbl { font-size: 11px; color: rgba(255,255,255,.45); width: 84px; flex-shrink: 0; font-weight: 600; }
+    .prog-track { flex: 1; height: 5px; background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden; }
+    .prog-fill { height: 100%; border-radius: 3px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+    .prog-val { font-size: 14px; font-weight: 900; color: white; width: 22px; text-align: right; flex-shrink: 0; }
+    .prog-head { font-size: 10px; color: rgba(255,255,255,.4); font-weight: 700; text-transform: uppercase; letter-spacing: .15em; margin-bottom: 8px; }
+    /* ── OVERDUE ── */
+    .overdue-btn { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 10px; margin-bottom: 7px; cursor: pointer; text-align: left; width: 100%; font-family: inherit; transition: border-color .15s; }
+    .overdue-btn:hover { border-color: #f97316; }
+    .overdue-days { font-size: 11px; font-weight: 900; color: #c2410c; background: #fed7aa; padding: 3px 6px; border-radius: 5px; flex-shrink: 0; min-width: 32px; text-align: center; }
+    /* ── CUSTOMER DETAIL ── */
+    .det-row { padding: 12px 16px; display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid #f9fafb; }
+    .det-row:last-child { border-bottom: none; }
+    /* ── PRINT ── */
+    @media print {
+      .sidebar { display: none !important; }
+      .panel-header button { display: none !important; }
+      .main-panel { overflow: visible !important; }
+      .panel-body { overflow: visible !important; padding: 10px 20px !important; }
+      body { background: white !important; }
+      .stat-box { box-shadow: none !important; }
+    }
+    /* ── DARK MODE ── */
+    body.dark .main-panel { background: #0f172a !important; color: #e2e8f0 !important; }
+    body.dark .panel-header { background: #1e293b !important; border-color: #334155 !important; }
+    body.dark .panel-header-title { color: #e2e8f0 !important; }
+    body.dark .panel-header-sub { color: #94a3b8 !important; }
+    body.dark .panel-body { color: #e2e8f0; }
+    body.dark .card { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+    body.dark .stat-box { background: #1e293b !important; border-color: #334155 !important; }
+    body.dark .stat-lbl { color: #94a3b8 !important; }
+    body.dark .section-label { color: #64748b !important; }
+    body.dark .group-label { background: #1e293b !important; color: #94a3b8 !important; }
+    body.dark .cust-row { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+    body.dark input, body.dark textarea { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+    body.dark .result-btn { background: #1e293b !important; border-color: #334155 !important; }
+    body.dark .result-lbl { color: #e2e8f0 !important; }
+    body.dark .result-btn.active { background: #172554 !important; border-color: #2C8CD1 !important; }
+    body.dark .login-right { background: #0f172a !important; }
+    body.dark .overdue-btn { background: #1a0a00 !important; border-color: #7c2d12 !important; }
+    body.dark .det-row { border-color: #334155 !important; }
+    /* ── Team table rows (named classes) ── */
+    body.dark .team-today-hd,body.dark .team-month-hd { background: #0f172a !important; border-color: #334155 !important; }
+    body.dark .team-today-row,body.dark .team-month-row { background: #1e293b !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+    body.dark .team-today-row *,body.dark .team-month-row * { color: inherit; }
+    body.dark .team-today-row:hover,body.dark .team-month-row:hover { background: #253354 !important; }
+    /* ── Chart containers ── */
+    body.dark .chart-scroll { background: #1e293b !important; border-color: #334155 !important; }
+    body.dark .seven-day-grid > div { background: #1e293b !important; border-color: #334155 !important; }
+    /* ── Panel-header buttons ── */
+    body.dark .panel-header button { background: #334155 !important; color: #e2e8f0 !important; border-color: #475569 !important; }
+    /* Restore orange for active Monatsreport button */
+    body.dark .panel-header button[style*="rgb(232, 119, 34)"],
+    body.dark .panel-header button[style*="e87722"] { background: #e87722 !important; color: white !important; border-color: #e87722 !important; }
+    /* Month nav ‹ › arrows — keep transparent */
+    body.dark .panel-header button[style*="border: none"][style*="background: none"] { background: transparent !important; border: none !important; color: #94a3b8 !important; }
+    body.dark .panel-header .back-btn { background: transparent !important; border: none !important; color: #94a3b8 !important; }
+    /* ── Rankliste outer card ── */
+    body.dark .team-ranklist-card { background: #1e293b !important; border-color: #334155 !important; }
+    /* ── CSV / action buttons inside panel-body section labels ── */
+    body.dark .panel-body button[style*="f3f4f6"] { background: #334155 !important; color: #e2e8f0 !important; }
+    /* ── Month label spans in panel-header ── */
+    body.dark .panel-header span { color: #94a3b8 !important; }
+    /* ── White card fallback (Chrome normalizes 'white' → rgb(255,255,255)) ── */
+    body.dark .main-panel div[style*="background: rgb(255, 255, 255)"] { background: #1e293b !important; }
+    body.dark .main-panel div[style*="background: white"] { background: #1e293b !important; }
+    /* ── Progress bar track backgrounds in compare view ── */
+    body.dark .main-panel div[style*="background: rgb(243, 244, 246)"] { background: #334155 !important; }
+    /* ── Inline dark text colors throughout main panel ── */
+    body.dark .main-panel div[style*="color: rgb(17, 24, 39)"],
+    body.dark .main-panel span[style*="color: rgb(17, 24, 39)"],
+    body.dark .main-panel div[style*="color: rgb(31, 41, 55)"],
+    body.dark .main-panel div[style*="color: rgb(55, 65, 81)"],
+    body.dark .main-panel span[style*="color: rgb(55, 65, 81)"],
+    body.dark .main-panel div[style*="color: rgb(75, 85, 99)"],
+    body.dark .main-panel span[style*="color: rgb(75, 85, 99)"] { color: #cbd5e1 !important; }
+    /* calendar grid light rows */
+    body.dark .main-panel div[style*="background: rgb(250, 250, 250)"],
+    body.dark .main-panel div[style*="background: rgb(249, 250, 251)"] { background: #0f172a !important; }
+    /* ── Stats grid row ── */
+    body.dark .stats-grid-4 .stat-box { background: #1e293b !important; }
+    /* ── Fix all inline-styled white/light containers in main panel ── */
+    body.dark .main-panel { --force-white: #1e293b; }
+    /* Section headings with hardcoded dark color */
+    body.dark .panel-header-title { color: #f1f5f9 !important; }
+    body.dark .panel-header-sub { color: #94a3b8 !important; }
+    body.dark .section-label { color: #64748b !important; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const OG = "#2C8CD1";
+const TODAY = new Date().toISOString().split("T")[0];
+// Status zákazníka podle sloupce „Skupina“ v DE_Kunden.xlsx (pole grp v CUSTOMERS)
+// GESPERRT = nejezdit (černý rámeček). EKG / EVA = nákupní skupina, vyšší slevy (červený rámeček).
+const custById=id=>{if(!custById.m)custById.m=new Map([...HISTORY_CUSTOMERS,...CUSTOMERS].map(c=>[String(c.id),c]));return custById.m.get(String(id));};
+const custStatus=id=>{
+  const c=custById(id); if(!c||!c.grp) return null;
+  if(c.grp==="GESPERRT") return {type:"gesperrt",label:"GESPERRT"};
+  return {type:"group",label:c.grp};
+};
+const custRowClass=id=>{const st=custStatus(id);return st?(st.type==="gesperrt"?" st-gesp":" st-grp"):"";};
+const custBadge=id=>{
+  const st=custStatus(id); if(!st) return null;
+  const bg=st.type==="gesperrt"?"#111":"#dc2626";
+  return <span className={st.type==="gesperrt"?"gesp-badge":""} style={{background:bg,color:"#fff",fontSize:9,fontWeight:800,padding:"1px 6px",borderRadius:20,marginLeft:5,letterSpacing:1,verticalAlign:"middle",flexShrink:0}}>{st.label}</span>;
+};
+const custAddr=c=>[c.street,c.postal,c.city].filter(Boolean).join(", ");
+const appleMapsUrl=c=>(c.lat!=null&&c.lng!=null&&!c.approx)
+  ?`https://maps.apple.com/?daddr=${c.lat},${c.lng}&dirflg=d`
+  :`https://maps.apple.com/?daddr=${encodeURIComponent(custAddr(c))}&dirflg=d`;
+const escHtml=t=>String(t).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const NoteLine=({note,size=13})=>note?<div className="visit-note" style={{fontSize:size,color:"#6b7280",fontStyle:"italic",marginTop:3,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>📝 „{note}"</div>:null;
+const mapsUrl=c=>(c.lat!=null&&c.lng!=null&&!c.approx)
+  ?`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`
+  :`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent([c.name,c.street,c.postal,c.city].filter(Boolean).join(", "))}`;
+
+const DAY_STATUS_GROUPS = [
+  { group: "Was machst du heute?", items: [
+    { value:"aussendienst", label:"Kundentour",          icon:"🚗", note:null },
+    { value:"homeoffice",   label:"Homeoffice",          icon:"🏠", note:null },
+    { value:"messe",        label:"Messe / Ausstellung", icon:"🎪", note:null },
+    { value:"sonstige",     label:"Sonstige Arbeit",     icon:"💼", note:null },
+  ]},
+  { group: "Abwesenheit", items: [
+    { value:"urlaub",       label:"Urlaub",              icon:"🏖", note:null },
+    { value:"krankheit",    label:"Krankheit",           icon:"🤒", note:null },
+    { value:"sonstiges_abw",label:"Sonstiges",           icon:"📌", note:null },
+  ]},
+];
+
+const LOCATION_TYPES = [
+  { value:"domov", label:"Von zu Hause", icon:"🏠" },
+  { value:"hotel", label:"Hotel",        icon:"🏨" },
+  { value:"jine",  label:"Sonstiges",    icon:"📍" },
+];
+const OVERNIGHT_TYPES = [
+  { value:"domov", label:"Zu Hause", icon:"🏠" },
+  { value:"hotel", label:"Hotel",    icon:"🏨" },
+  { value:"jine",  label:"Sonstiges",icon:"📍" },
+];
+
+function dsInfo(val) {
+  for (const g of DAY_STATUS_GROUPS) { const f=g.items.find(i=>i.value===val); if(f) return f; }
+  return null;
+}
+function locInfo(val) { return LOCATION_TYPES.find(l=>l.value===val); }
+function overnightLocInfo(val) { return OVERNIGHT_TYPES.find(l=>l.value===val); }
+
+const USERS = [
+  { id:1, name:"Jens Heeren",       email:"heeren@prague-eyewear.de",       role:"rep",     territory:"PLZ 7, 8, 9 (Süden)", initials:"JH" },
+  { id:2, name:"Jan Otten",         email:"otten@prague-eyewear.de",        role:"rep",     territory:"PLZ 1-5 (Nord)", initials:"JO" },
+  { id:3, name:"Yvette Hirt",       email:"hirt@prague-eyewear.de",         role:"rep",     territory:"PLZ 0-1 (Ost)", initials:"YH" },
+  { id:4, name:"Horst Temeschinko", email:"temeschinko@prague-eyewear.de",  role:"rep",     territory:"PLZ 3-6 (West)", initials:"HT" },
+  { id:5, name:"Manager view",      email:"kaiser@mi-optics.cz",                           role:"manager", territory:"ALL",            initials:"MB" },
+];
+const IRIS_UIDS = {"h31bHyyWxiNapapLqZ9hH0eSAXw1": 1, "pGGm9bDsSxTWcIa6DHGqzpCQKNj2": 2, "OgvcubmDefea095B1oOMaxbEaeN2": 3, "Ets7HrL8y0f6VdpEWGxYvWcU0Rl2": 4, "6Op2TeKsy5MDZNUYKt2lhHiGDxy2": 5};
+
+
+
+let CUSTOMERS = [];
+let HISTORY_CUSTOMERS = [];
+
+
+const INIT_VISITS = [];
+
+const INIT_WORKDAYS = [];
+
+const RESULTS = [
+  { value:"order",        label:"Bestellung",              icon:"🛒" },
+  { value:"absent",       label:"Kunde nicht anwesend",   icon:"🚪" },
+  { value:"follow_up",    label:"Folgetermin vereinbart",  icon:"📅" },
+  { value:"no_interest",  label:"Kein Interesse",          icon:"❌" },
+  { value:"sonstige",     label:"Sonstige",                icon:"📝" },
+];
+
+const rl=v=>RESULTS.find(r=>r.value===v)?.label||v;
+const ri=v=>RESULTS.find(r=>r.value===v)?.icon||"•";
+
+function haversine(la1,lo1,la2,lo2){
+  const R=6371000,dLa=(la2-la1)*Math.PI/180,dLo=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)**2;
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+function gpsInfo(d){
+  if(d===null) return{cls:"load",icon:"⏳",text:"GPS wird geladen...",ok:false};
+  if(d<=25000) return{cls:"ok",  icon:"✓", text:(d<1000?d+" m":(d/1000).toFixed(1)+" km")+" — Bestätigt",ok:true};
+  return            {cls:"err", icon:"✗", text:(d/1000).toFixed(1)+" km — Außerhalb (Limit 25 km)",ok:false};
+}
+function fmtT(iso){try{return new Date(iso).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});}catch{return "";}}
+
+function Badge({status}){
+  const m=status==="confirmed"?"badge-ok":status==="warning"?"badge-warn":"badge-err";
+  const t=status==="confirmed"?"✓ GPS":status==="warning"?"⚠ GPS":"✗ GPS";
+  return <span className={"badge "+m}>{t}</span>;
+}
+
+/* ── SIDEBAR — stejná struktura jako login-left ── */
+function Sidebar({user,workday,visits,onLogout,onSetDay}){
+  const ds=workday?dsInfo(workday.day_status):null;
+  const av={width:54,height:54,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,flexShrink:0};
+  const weekStart=(()=>{const d=new Date();const day=d.getDay();const diff=d.getDate()-day+(day===0?-6:1);const nd=new Date(d);nd.setDate(diff);return nd.toISOString().split("T")[0];})();
+  const [dark,setDark]=useState(()=>localStorage.getItem("iris_dark")==="1");
+  useEffect(()=>{document.body.classList.toggle("dark",dark);localStorage.setItem("iris_dark",dark?"1":"0");},[dark]);
+  const wv=(visits||[]).filter(v=>v.rep_id===user.id&&v.confirmed_at.split("T")[0]>=weekStart);
+  const wo=wv.filter(v=>v.result==="order");
+  const visitPct=Math.min(100,wv.length/14*100);
+  const orderPct=Math.min(100,wo.length/7*100);
+  return (
+    <div className="sidebar">
+      <div className="sidebar-content">
+        <div style={{flex:1}}/>
+        <div style={{position:"relative",zIndex:1}}>
+          {/* Logo */}
+          <img src="logoinline.png" className="mobile-logo app-sidebar-logo" style={{width:200,height:"auto",display:"block",marginBottom:10,filter:"brightness(0) invert(1)"}} alt="Prague Eyewear"/>
+          <div className="mobile-iris app-sidebar-iris" style={{fontSize:12,fontWeight:600,color:"rgba(255,255,255,.55)",letterSpacing:".3em",textTransform:"uppercase",marginBottom:22}}>Iris</div>
+          {/* User info */}
+          <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24}}>
+            <div style={av}>{user.initials}</div>
+            <div>
+              <div style={{fontSize:18,fontWeight:900,color:"white",lineHeight:1.2}}>{user.name}</div>
+            </div>
+          </div>
+          {/* Tagesstatus — nur für Vertreter */}
+          {user.role!=="manager"&&<>
+          <div style={{fontSize:12,color:"rgba(255,255,255,.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:".15em",marginBottom:10}}>Tagesstatus</div>
+          {workday&&ds ? (
+            <button onClick={onSetDay} style={{width:"100%",background:"linear-gradient(135deg,#1a4b8c,#2C8CD1)",borderRadius:16,padding:"16px 18px",border:"none",cursor:"pointer",fontFamily:"inherit",marginBottom:14,display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
+              <div style={{width:50,height:50,borderRadius:"50%",background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{ds.icon}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:20,fontWeight:900,color:"white",textTransform:"uppercase",letterSpacing:".03em",lineHeight:1.1,marginBottom:6}}>{ds.label}</div>
+                {workday.day_status==="aussendienst"&&workday.start_location&&<div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.9)",display:"flex",alignItems:"center",gap:6}}>🏠 Start: {locInfo(workday.start_location)?.label}</div>}
+                {workday.day_status==="messe"&&workday.event_name&&<div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.9)"}}>{workday.event_name}</div>}
+                {workday.overnight&&<div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.9)",display:"flex",alignItems:"center",gap:6,marginTop:2}}>🛏 Übernachtung: {overnightLocInfo(workday.overnight)?.label}</div>}
+              </div>
+              <div style={{fontSize:22,color:"rgba(255,255,255,.7)",flexShrink:0}}>›</div>
+            </button>
+          ) : (
+            <button onClick={onSetDay} style={{width:"100%",background:"linear-gradient(135deg,#1a4b8c,#2C8CD1)",borderRadius:16,padding:"18px",border:"none",cursor:"pointer",fontFamily:"inherit",marginBottom:14,display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+              <div style={{width:46,height:46,borderRadius:"50%",background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📋</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:17,fontWeight:900,color:"white",textTransform:"uppercase",letterSpacing:".03em"}}>Tag einrichten</div>
+                <div style={{fontSize:13,color:"rgba(255,255,255,.7)",marginTop:3}}>Tippen um zu starten</div>
+              </div>
+              <div style={{fontSize:22,color:"rgba(255,255,255,.7)"}}>›</div>
+            </button>
+          )}
+          </>}
+          {/* Wochenprogress — nur für Vertreter */}
+          {user.role!=="manager"&&<div className="prog-section">
+            <div className="prog-head">Diese Woche</div>
+            {[{l:"Besuche",v:wv.length,pct:visitPct,c:OG},{l:"Bestellungen",v:wo.length,pct:orderPct,c:"#16a34a"}].map(p=>(
+              <div key={p.l} className="prog-row">
+                <div className="prog-lbl">{p.l}</div>
+                <div className="prog-track"><div className="prog-fill" style={{width:p.pct+"%",background:p.c}}/></div>
+                <div className="prog-val">{p.v}</div>
+              </div>
+            ))}
+          </div>}
+          {/* Dark mode toggle */}
+          <button onClick={()=>setDark(d=>!d)} style={{background:"rgba(255,255,255,.1)",border:"none",cursor:"pointer",fontFamily:"inherit",padding:"8px 14px",fontSize:12,fontWeight:600,color:"rgba(255,255,255,.6)",borderRadius:10,marginTop:12,width:"100%",textAlign:"left"}}>
+            {dark?"☀ Heller Modus":"🌙 Dunkler Modus"}
+          </button>
+          {/* Abmelden */}
+          <button onClick={onLogout} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:"8px 0",fontSize:13,fontWeight:600,color:"rgba(255,255,255,.4)",letterSpacing:".04em",marginTop:8}}>
+            Abmelden →
+          </button>
+        </div>
+        <div style={{flex:2}}/>
+      </div>
+    </div>
+  );
+}
+
+/* ── LOGIN ── */
+function LoginScreen({onLogin}){
+  const [email,setEmail]=useState(""); const [pass,setPass]=useState(""); const [err,setErr]=useState("");
+  const [busy,setBusy]=useState(false);
+  const go=async()=>{
+    if(busy)return;
+    setBusy(true);setErr("");
+    try{
+      if(!window.irisAuth)throw new Error("auth-unavailable");
+      await window.irisAuth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+      const cred=await window.irisAuth.signInWithEmailAndPassword(email.trim(),pass);
+      if(!IRIS_UIDS[cred.user.uid]){await window.irisAuth.signOut();throw new Error("not-authorized");}
+    }catch(e){setErr("Anmeldung nicht möglich. Bitte Zugangsdaten und Verbindung prüfen.");}
+    finally{setBusy(false);}
+  };
+  return (
+    <div className="login-root">
+      <div className="login-left">
+        <div style={{flex:1}}/>
+        <div style={{position:"relative",zIndex:1}}>
+          <img src="logoinline.png" className="mobile-logo" style={{width:200,height:"auto",marginBottom:10,display:"block",filter:"brightness(0) invert(1)"}} alt="Prague Eyewear"/>
+          <div className="mobile-iris" style={{fontSize:12,fontWeight:600,color:"rgba(255,255,255,.55)",letterSpacing:".3em",textTransform:"uppercase",marginBottom:0}}>Iris</div>
+        </div>
+        <div style={{flex:2}}/>
+      </div>
+      <div className="login-right">
+        <div className="login-form-box">
+          <div style={{marginBottom:32}}>
+            <div style={{fontSize:28,fontWeight:900,color:"#111827",marginBottom:4}}>Anmelden</div>
+            <div style={{fontSize:15,color:"#9ca3af"}}>Geben Sie Ihre Anmeldedaten ein</div>
+          </div>
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>E-mail</div>
+            <input placeholder="vas@mi-optics.de" value={email} onChange={e=>{setEmail(e.target.value);setErr("");}}/>
+          </div>
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Passwort</div>
+            <input type="password" placeholder="••••••" value={pass} onChange={e=>{setPass(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&go()}/>
+          </div>
+          {err&&<div style={{color:"#ef4444",fontSize:12,fontWeight:600,marginBottom:14,padding:"10px 14px",background:"#fef2f2",borderRadius:10}}>{err}</div>}
+          <button disabled={busy} onClick={go} style={{width:"100%",padding:"14px 0",background:OG,color:"white",border:"none",borderRadius:12,fontSize:17,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            Anmelden →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── HOME ── */
+function HomeScreen({user,visits,workday,workdays,newCusts,onNewVisit,onSetOvernight,onDeleteVisit,onEditVisit,onEditNewCust,onDeleteVisitAudit,onEditVisitAudit,onCustDetail}){
+  const mine=visits.filter(v=>v.rep_id===user.id&&v.confirmed_at.startsWith(TODAY));
+  const allCusts=React.useMemo(()=>[...HISTORY_CUSTOMERS,...CUSTOMERS,...(newCusts||[])],[newCusts,CUSTOMERS,HISTORY_CUSTOMERS]);
+  const lookupCust=id=>allCusts.find(c=>String(c.id)===String(id));
+  const [dialog,setDialog]=useState(null); // {type:'delete'|'edit', visit}
+  const [editResult,setEditResult]=useState(""); const [editNote,setEditNote]=useState("");
+  const [editCustName,setEditCustName]=useState(""); const [editCustCity,setEditCustCity]=useState("");
+  const [showHistory,setShowHistory]=useState(false);
+  const [historyMonth,setHistoryMonth]=useState(TODAY.slice(0,7));
+  const [selectedHistoryDay,setSelectedHistoryDay]=useState(null);
+  const [histDialog,setHistDialog]=useState(null);
+  const [histEditResult,setHistEditResult]=useState("");
+  const [histEditNote,setHistEditNote]=useState("");
+  const orders=mine.filter(v=>v.result==="order");
+  const ds=workday?dsInfo(workday.day_status):null;
+  const isAD=workday?.day_status==="aussendienst";
+  const needOvernight=isAD&&!workday.overnight;
+  const lastVisitMap={};
+  visits.filter(v=>v.rep_id===user.id).forEach(v=>{const d=v.confirmed_at.split("T")[0];if(!lastVisitMap[v.customer_id]||d>lastVisitMap[v.customer_id])lastVisitMap[v.customer_id]=d;});
+  const cut60=new Date();cut60.setDate(cut60.getDate()-60);const cut60str=cut60.toISOString().split("T")[0];
+  const overdueList=isAD?CUSTOMERS.filter(c=>c.rep_id===user.id).map(c=>({...c,lastDate:lastVisitMap[c.id]||null,days:lastVisitMap[c.id]?Math.floor((Date.now()-new Date(lastVisitMap[c.id]))/86400000):999})).filter(c=>!lastVisitMap[c.id]||lastVisitMap[c.id]<cut60str).sort((a,b)=>b.days-a.days).slice(0,5):[];
+
+  // ── VERLAUF (History Calendar) ──
+  if(showHistory){
+    const [hy,hm]=historyMonth.split("-").map(Number);
+    const daysInMonth=new Date(hy,hm,0).getDate();
+    const firstDow=(new Date(hy,hm-1,1).getDay()+6)%7;
+    const adjHM=n=>{const d=new Date(hy,hm-1+n,1);setHistoryMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);setSelectedHistoryDay(null);};
+    const hML=()=>new Date(hy,hm-1,1).toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+    const hColor=cnt=>cnt===0?"#f3f4f6":cnt<=2?"#fed7aa":"#e87722";
+    const DOW7H=["Mo","Di","Mi","Do","Fr","Sa","So"];
+    const cells=[];
+    for(let i=0;i<firstDow;i++) cells.push(null);
+    for(let d=1;d<=daysInMonth;d++){
+      const dateStr=`${hy}-${String(hm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+      const dv=visits.filter(v=>v.rep_id===user.id&&v.confirmed_at.startsWith(dateStr));
+      const wd=(workdays||[]).find(w=>w.user_id===user.id&&w.date===dateStr);
+      const ds=wd?dsInfo(wd.day_status):null;
+      const dow=new Date(hy,hm-1,d).getDay();
+      const isWorkday=dow>=1&&dow<=5;
+      const missing=isWorkday&&dateStr<TODAY&&!ds&&dv.length===0;
+      cells.push({d,dateStr,dv,wd,ds,missing});
+    }
+    const weeks=[];for(let i=0;i<cells.length;i+=7)weeks.push(cells.slice(i,i+7));
+    const selDV=selectedHistoryDay?[...visits.filter(v=>v.rep_id===user.id&&v.confirmed_at.startsWith(selectedHistoryDay))].sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at)):[];
+    const selWd=selectedHistoryDay?(workdays||[]).find(w=>w.user_id===user.id&&w.date===selectedHistoryDay):null;
+    const selDS=selWd?dsInfo(selWd.day_status):null;
+    return(
+      <div className="main-panel">
+        <div className="panel-header">
+          <button className="back-btn" onClick={()=>setShowHistory(false)}>‹</button>
+          <div style={{flex:1}}>
+            <div className="panel-header-title">Verlauf</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:2}}>
+              <button onClick={()=>adjHM(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 4px",color:"#9ca3af"}}>‹</button>
+              <span style={{fontSize:13,fontWeight:600,color:"#6b7280"}}>{hML()}</span>
+              <button onClick={()=>adjHM(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 4px",color:"#9ca3af"}}>›</button>
+            </div>
+          </div>
+        </div>
+        <div className="panel-body">
+          <div style={{maxWidth:580,width:"100%"}}>
+            <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px",marginBottom:16}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:6}}>
+                {DOW7H.map(d=><div key={d} style={{fontSize:11,fontWeight:700,color:"#9ca3af",textAlign:"center"}}>{d}</div>)}
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                {weeks.map((week,wi)=>(
+                  <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+                    {Array.from({length:7},(_,ci)=>{
+                      const cell=week[ci];
+                      if(!cell) return <div key={ci}/>;
+                      const cnt=cell.dv.length;
+                      const isSel=selectedHistoryDay===cell.dateStr;
+                      const isT=cell.dateStr===TODAY;
+                      return(
+                        <div key={cell.dateStr} onClick={()=>setSelectedHistoryDay(isSel?null:cell.dateStr)} title={cell.ds?.label||(cell.missing?"Nic vyplněno":"")}
+                          style={{position:"relative",aspectRatio:"1",background:isSel?"#2C8CD1":hColor(cnt),borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",border:isT?"2px solid #2C8CD1":cell.missing?"2px solid #ef4444":"2px solid transparent",transition:"all .1s"}}>
+                          {cell.ds&&<div style={{position:"absolute",top:2,right:3,fontSize:9,lineHeight:1}}>{cell.ds.icon}</div>}
+                          <div style={{fontSize:11,fontWeight:700,color:isSel?"white":cnt>0?"#7c2d00":"#6b7280"}}>{cell.d}</div>
+                          {cnt>0&&<div style={{fontSize:10,fontWeight:900,color:isSel?"white":"#c2410c"}}>{cnt}</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"flex",gap:8,marginTop:12,alignItems:"center"}}>
+                <span style={{fontSize:11,color:"#9ca3af"}}>0</span>
+                {["#f3f4f6","#fed7aa","#e87722"].map((c,i)=><div key={i} style={{width:14,height:14,background:c,borderRadius:3}}/>)}
+                <span style={{fontSize:11,color:"#9ca3af"}}>3+</span>
+              </div>
+            </div>
+            {selectedHistoryDay&&(
+              <div>
+                <div className="section-label">{new Date(selectedHistoryDay+"T12:00:00").toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</div>
+                {selDS&&<div style={{fontSize:13,fontWeight:600,color:"#6b7280",display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
+                  <span>{selDS.icon}</span><span>{selDS.label}{selWd.day_status==="messe"&&selWd.event_name?" · "+selWd.event_name:""}</span>
+                </div>}
+                {selDV.length===0?(
+                  <div style={{textAlign:"center",padding:"24px",color:"#9ca3af",fontSize:15}}>Keine Besuche</div>
+                ):(
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {selDV.map(v=>{
+                      const c=lookupCust(v.customer_id);
+                      const iab={background:"none",border:"none",cursor:"pointer",fontSize:17,padding:"6px 8px",borderRadius:8,lineHeight:1};
+                      return(
+                        <div key={v.id} className="card" style={{display:"flex",alignItems:"center",gap:12}}>
+                          <div style={{fontSize:22,width:30,textAlign:"center",flexShrink:0}}>{ri(v.result)}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c?.name||v.customer_id}</div>
+                            <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}</div><NoteLine note={v.note} size={14}/>
+                          </div>
+                          <button onClick={()=>{setHistEditResult(v.result);setHistEditNote(v.note||"");setHistDialog({type:"edit",visit:v});}} style={{...iab,background:"#EFF6FC"}}>✏️</button>
+                          <button onClick={()=>setHistDialog({type:"delete",visit:v})} style={{...iab,background:"#FEF2F2"}}>🗑️</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            {histDialog&&(
+              <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setHistDialog(null)}>
+                <div style={{background:"white",borderRadius:20,padding:24,maxWidth:380,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}} onClick={e=>e.stopPropagation()}>
+                  {histDialog.type==="delete"?<>
+                    <div style={{textAlign:"center",fontSize:36,marginBottom:12}}>🗑️</div>
+                    <div style={{fontWeight:900,fontSize:18,textAlign:"center",marginBottom:6}}>Besuch löschen?</div>
+                    <div style={{fontSize:15,color:"#6b7280",textAlign:"center",marginBottom:24}}>{lookupCust(histDialog.visit.customer_id)?.name||histDialog.visit.customer_id} · {rl(histDialog.visit.result)}</div>
+                    <div style={{display:"flex",gap:10}}>
+                      <button onClick={()=>setHistDialog(null)} style={{flex:1,padding:"12px",borderRadius:10,background:"#f3f4f6",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Abbrechen</button>
+                      <button onClick={()=>{onDeleteVisitAudit(histDialog.visit.id,histDialog.visit);setHistDialog(null);}} style={{flex:1,padding:"12px",borderRadius:10,background:"#dc2626",color:"white",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Löschen</button>
+                    </div>
+                  </>:<>
+                    <div style={{fontWeight:900,fontSize:18,marginBottom:16}}>Besuch bearbeiten</div>
+                    <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:10}}>Ergebnis</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:16}}>
+                      {RESULTS.map(r=>(
+                        <button key={r.value} onClick={()=>setHistEditResult(r.value)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,border:`2px solid ${histEditResult===r.value?OG:"#e5e7eb"}`,background:histEditResult===r.value?"#EFF6FC":"white",cursor:"pointer",fontFamily:"inherit",fontWeight:histEditResult===r.value?700:500,textAlign:"left"}}>
+                          <span style={{fontSize:18,width:24,textAlign:"center"}}>{r.icon}</span>
+                          <span style={{fontSize:15}}>{r.label}</span>
+                          {histEditResult===r.value&&<span style={{marginLeft:"auto",color:OG}}>✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:8}}>Notiz</div>
+                    <textarea rows={2} value={histEditNote} onChange={e=>setHistEditNote(e.target.value)} placeholder="Kurze Notiz…" style={{resize:"none",marginBottom:16}}/>
+                    <div style={{display:"flex",gap:10}}>
+                      <button onClick={()=>setHistDialog(null)} style={{flex:1,padding:"12px",borderRadius:10,background:"#f3f4f6",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Abbrechen</button>
+                      <button onClick={()=>{onEditVisitAudit(histDialog.visit.id,{result:histEditResult,note:histEditNote},histDialog.visit);setHistDialog(null);}} style={{flex:1,padding:"12px",borderRadius:10,background:OG,color:"white",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Speichern</button>
+                    </div>
+                  </>}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <div style={{flex:1}}>
+          <div className="panel-header-title">Hallo, {user.name.split(" ")[0]}</div>
+          <div className="panel-header-sub">{new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+        </div>
+        <button onClick={()=>{setShowHistory(true);setSelectedHistoryDay(null);}} style={{background:"#f3f4f6",border:"none",borderRadius:8,padding:"7px 13px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#374151",fontFamily:"inherit"}}>📅 Verlauf</button>
+      </div>
+      <div className="panel-body">
+        <div style={{maxWidth:580,width:"100%"}}>
+        {isAD&&<>
+          <button className="btn-primary" onClick={onNewVisit} style={{fontSize:17,padding:"18px 0",marginBottom:14}}>
+            <span style={{fontSize:22}}>📍</span><span>KUNDENBESUCH BESTÄTIGEN</span>
+          </button>
+          {mine.length>0&&<>
+            <div className="section-label" style={{marginTop:8}}>Kundenbesuche heute</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[...mine].sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at)).map(v=>{
+                const c=lookupCust(v.customer_id);
+                const iab={background:"none",border:"none",cursor:"pointer",fontSize:17,padding:"6px 8px",borderRadius:8,lineHeight:1};
+                return (
+                  <div key={v.id} className="card" style={{display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{fontSize:22,width:30,textAlign:"center",flexShrink:0}}>{ri(v.result)}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:4}}><button onClick={()=>onCustDetail&&onCustDetail(c)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"inherit",textDecoration:"none",textAlign:"left"}}>{c?.name||v.customer_id}</button>{c&&custBadge(c.id)}</div>
+                      <div style={{fontSize:14,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}</div><NoteLine note={v.note} size={14}/>
+                    </div>
+                    <Badge status={v.status}/>
+                    <button onClick={()=>{setEditResult(v.result);setEditNote(v.note||"");setEditCustName("");setEditCustCity("");setDialog({type:"edit",visit:v});}} style={{...iab,background:"#EFF6FC"}}>✏️</button>
+                    <button onClick={()=>setDialog({type:"delete",visit:v})} style={{...iab,background:"#FEF2F2"}}>🗑️</button>
+                  </div>
+                );
+              })}
+            </div>
+          </>}
+          {dialog&&(
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setDialog(null)}>
+              <div style={{background:"white",borderRadius:20,padding:24,maxWidth:380,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}} onClick={e=>e.stopPropagation()}>
+                {dialog.type==="delete"?<>
+                  <div style={{textAlign:"center",fontSize:36,marginBottom:12}}>🗑️</div>
+                  <div style={{fontWeight:900,fontSize:18,textAlign:"center",marginBottom:6}}>Besuch löschen?</div>
+                  <div style={{fontSize:15,color:"#6b7280",textAlign:"center",marginBottom:24}}>{lookupCust(dialog.visit.customer_id)?.name||dialog.visit.customer_id} · {rl(dialog.visit.result)}</div>
+                  <div style={{display:"flex",gap:10}}>
+                    <button onClick={()=>setDialog(null)} style={{flex:1,padding:"12px",borderRadius:10,background:"#f3f4f6",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Abbrechen</button>
+                    <button onClick={()=>{onDeleteVisitAudit(dialog.visit.id,dialog.visit);setDialog(null);}} style={{flex:1,padding:"12px",borderRadius:10,background:"#dc2626",color:"white",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Löschen</button>
+                  </div>
+                </>:<>
+                  <div style={{fontWeight:900,fontSize:18,marginBottom:16}}>Besuch bearbeiten</div>
+                  {String(dialog.visit.customer_id).startsWith('new_')&&(()=>{
+                    const nc=lookupCust(dialog.visit.customer_id);
+                    return(<div style={{marginBottom:16}}>
+                      <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:8}}>Kundenname</div>
+                      <input value={editCustName} onChange={e=>setEditCustName(e.target.value)} placeholder={nc?.name||"Firmenname"} style={{marginBottom:8}}/>
+                      <input value={editCustCity} onChange={e=>setEditCustCity(e.target.value)} placeholder={nc?.city||"Stadt"} style={{marginBottom:0}}/>
+                    </div>);
+                  })()}
+                  <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:10}}>Ergebnis</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:16}}>
+                    {RESULTS.map(r=>(
+                      <button key={r.value} onClick={()=>setEditResult(r.value)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,border:`2px solid ${editResult===r.value?OG:"#e5e7eb"}`,background:editResult===r.value?"#EFF6FC":"white",cursor:"pointer",fontFamily:"inherit",fontWeight:editResult===r.value?700:500,textAlign:"left"}}>
+                        <span style={{fontSize:18,width:24,textAlign:"center"}}>{r.icon}</span>
+                        <span style={{fontSize:15}}>{r.label}</span>
+                        {editResult===r.value&&<span style={{marginLeft:"auto",color:OG}}>✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:8}}>Notiz</div>
+                  <textarea rows={2} value={editNote} onChange={e=>setEditNote(e.target.value)} placeholder="Kurze Notiz…" style={{resize:"none",marginBottom:16}}/>
+                  <div style={{display:"flex",gap:10}}>
+                    <button onClick={()=>setDialog(null)} style={{flex:1,padding:"12px",borderRadius:10,background:"#f3f4f6",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Abbrechen</button>
+                    <button onClick={()=>{
+                      onEditVisit(dialog.visit.id,{result:editResult,note:editNote});
+                      if(String(dialog.visit.customer_id).startsWith('new_')){
+                        const changes={};
+                        if(editCustName.trim())changes.name=editCustName.trim();
+                        if(editCustCity.trim())changes.city=editCustCity.trim();
+                        if(Object.keys(changes).length)onEditNewCust(dialog.visit.customer_id,changes);
+                      }
+                      setDialog(null);
+                    }} style={{flex:1,padding:"12px",borderRadius:10,background:OG,color:"white",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Speichern</button>
+                  </div>
+                </>}
+              </div>
+            </div>
+          )}
+          {mine.length===0&&<div style={{textAlign:"center",padding:"48px 0",color:"#d1d5db"}}><div style={{fontSize:48,marginBottom:12}}>🗺</div><div style={{fontSize:16}}>Keine Besuche heute</div></div>}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:14,marginTop:24}}>
+            {[{l:"Besuche heute",v:mine.length,c:OG},{l:"Bestellungen",v:orders.length,c:"#16a34a"}].map(s=>(
+              <div key={s.l} className="stat-box">
+                <div className="stat-num" style={{color:s.c}}>{s.v}</div>
+                <div className="stat-lbl">{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </>}
+        {workday&&!isAD&&(
+          <div style={{textAlign:"center",padding:"60px 0"}}>
+            <div style={{fontSize:64,marginBottom:16}}>{ds?.icon}</div>
+            <div style={{fontSize:24,fontWeight:900,color:"#111827"}}>{ds?.label}</div>
+            {ds?.note&&<div style={{fontSize:14,color:"#9ca3af",marginTop:4}}>{ds.note}</div>}
+            {workday.day_status==="messe"&&workday.event_name&&<div style={{fontSize:18,fontWeight:700,color:"#374151",marginTop:12}}>{workday.event_name}{workday.event_city?" · "+workday.event_city:""}</div>}
+            {workday.note&&<div style={{fontSize:16,color:"#9ca3af",marginTop:8,fontStyle:"italic"}}>{workday.note}</div>}
+          </div>
+        )}
+        {!workday&&<div style={{textAlign:"center",padding:"60px 0",color:"#d1d5db"}}><div style={{fontSize:48,marginBottom:12}}>📋</div><div style={{fontSize:16}}>Tippe oben auf TAG EINRICHTEN um zu starten</div></div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── DAY SETUP ── */
+function DaySetupScreen({user,existing,onBack,onSave}){
+  const [step,setStep]=useState("type");
+  const [dayStatus,setDayStatus]=useState(existing?.day_status||"");
+  const [startLoc,setStartLoc]=useState(existing?.start_location||"");
+  const [overnight,setOvernight]=useState(existing?.overnight||"");
+  const [eventName,setEventName]=useState(existing?.event_name||"");
+  const [eventCity,setEventCity]=useState(existing?.event_city||"");
+  const [note,setNote]=useState(existing?.note||"");
+
+  const commit=(status,sl,on,en,ec,nt)=>onSave({user_id:user.id,date:TODAY,day_status:status,start_location:sl,overnight:on,event_name:en,event_city:ec,note:nt});
+  const pickType=val=>{
+    setDayStatus(val);
+    const noExtra=["homeoffice","buro","schulung","inventur","sonstige"];
+    const abs=["urlaub","krankheit","feiertag","fza","sonderurlaub","unbezahlt"];
+    if(val==="aussendienst") setStep("start");
+    else if(val==="messe")   setStep("messe");
+    else if(noExtra.includes(val)) setStep("note");
+    else if(abs.includes(val))     setStep("abs_confirm");
+  };
+
+  const content=()=>{
+    if(step==="type") return (
+      <div style={{maxWidth:520,width:"100%"}}>
+        {DAY_STATUS_GROUPS.map(g=>(
+          <div key={g.group} style={{marginBottom:12}}>
+            <div className="group-label">{g.group}</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {g.items.map(item=>(
+                <button key={item.value} className={"result-btn"+(dayStatus===item.value?" active":"")} onClick={()=>pickType(item.value)}>
+                  <span style={{fontSize:20,width:28,textAlign:"center",flexShrink:0}}>{item.icon}</span>
+                  <div style={{flex:1}}>
+                    <div className="result-lbl">{item.label}</div>
+                    {item.note&&<div className="result-sub">{item.note}</div>}
+                  </div>
+                  {dayStatus===item.value&&<span className="result-check">✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+    if(step==="start") return (
+      <div style={{maxWidth:480,width:"100%"}}>
+        <div className="card" style={{background:"#EFF6FC",border:"1px solid #BFDFEF",marginBottom:16}}>
+          <div style={{fontSize:15,color:"#1A5F8A",fontWeight:700}}>🚗 Kundentour — wo startest du heute?</div>
+        </div>
+        <div className="section-label">Startort *</div>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+          {LOCATION_TYPES.map(loc=>(
+            <button key={loc.value} className={"result-btn"+(startLoc===loc.value?" active":"")} onClick={()=>setStartLoc(loc.value)}>
+              <span style={{fontSize:22,width:28,textAlign:"center"}}>{loc.icon}</span>
+              <span className="result-lbl">{loc.label}</span>
+              {startLoc===loc.value&&<span className="result-check">✓</span>}
+            </button>
+          ))}
+        </div>
+        <button className="btn-primary" disabled={!startLoc} onClick={()=>commit("aussendienst",startLoc,"","","","")} style={{marginBottom:10}}>✓ BESTÄTIGEN</button>
+        <button onClick={()=>setStep("type")} style={{width:"100%",background:"none",border:"1.5px solid #e5e7eb",borderRadius:13,padding:"13px 0",fontWeight:700,fontSize:16,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>← Zurück zur Auswahl</button>
+      </div>
+    );
+    if(step==="messe") return (
+      <div style={{maxWidth:480,width:"100%"}}>
+        <div className="card" style={{background:"#f5f0ff",border:"1px solid #c4b5fd",marginBottom:16}}>
+          <div style={{fontSize:15,color:"#7c3aed",fontWeight:700}}>🎪 Veletrh / výstava — zadejte údaje</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:16}}>
+          <div>
+            <div className="section-label">Veranstaltungsname *</div>
+            <input placeholder="z. B. OPTI München" value={eventName} onChange={e=>setEventName(e.target.value)}/>
+          </div>
+          <div>
+            <div className="section-label">Stadt</div>
+            <input placeholder="z. B. München" value={eventCity} onChange={e=>setEventCity(e.target.value)}/>
+          </div>
+          <div>
+            <div className="section-label">Übernachtungsort</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {OVERNIGHT_TYPES.map(loc=>(
+                <button key={loc.value} className={"result-btn"+(overnight===loc.value?" active":"")} onClick={()=>setOvernight(loc.value)}>
+                  <span style={{fontSize:20,width:28,textAlign:"center"}}>{loc.icon}</span>
+                  <span className="result-lbl">{loc.label}</span>
+                  {overnight===loc.value&&<span className="result-check">✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <button className="btn-primary" disabled={!eventName} onClick={()=>commit("messe","",overnight,eventName,eventCity,"")} style={{marginBottom:10}}>✓ BESTÄTIGEN</button>
+        <button onClick={()=>setStep("type")} style={{width:"100%",background:"none",border:"1.5px solid #e5e7eb",borderRadius:13,padding:"13px 0",fontWeight:700,fontSize:16,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>← Zurück zur Auswahl</button>
+      </div>
+    );
+    if(step==="note"){
+      const ds=dsInfo(dayStatus);
+      return (
+        <div style={{maxWidth:480,width:"100%"}}>
+          <div className="card" style={{background:"#f0fdf4",border:"1px solid #86efac",marginBottom:16}}>
+            <div style={{fontSize:15,color:"#15803d",fontWeight:700}}>{ds?.icon} {ds?.label}{ds?.note?" — "+ds.note:""}</div>
+          </div>
+          <div style={{marginBottom:16}}>
+            <div className="section-label">Notiz (optional)</div>
+            <textarea rows={3} placeholder="Weitere Informationen…" value={note} onChange={e=>setNote(e.target.value)} style={{resize:"none"}}/>
+          </div>
+          <button className="btn-primary" onClick={()=>commit(dayStatus,"","","","",note)} style={{marginBottom:10}}>✓ BESTÄTIGEN</button>
+          <button onClick={()=>setStep("type")} style={{width:"100%",background:"none",border:"1.5px solid #e5e7eb",borderRadius:13,padding:"13px 0",fontWeight:700,fontSize:16,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>← Zurück zur Auswahl</button>
+        </div>
+      );
+    }
+    if(step==="abs_confirm"){
+      const ds=dsInfo(dayStatus);
+      return (
+        <div style={{maxWidth:480,width:"100%"}}>
+          <div className="card" style={{textAlign:"center",padding:40,marginBottom:16}}>
+            <div style={{fontSize:56,marginBottom:12}}>{ds?.icon}</div>
+            <div style={{fontSize:24,fontWeight:900,color:"#111827"}}>{ds?.label}</div>
+            {ds?.note&&<div style={{fontSize:14,color:"#9ca3af",marginTop:4}}>{ds.note}</div>}
+          </div>
+          <button className="btn-primary" onClick={()=>commit(dayStatus,"","","","","")} style={{marginBottom:10}}>✓ BESTÄTIGEN</button>
+          <button onClick={()=>setStep("type")} style={{width:"100%",background:"none",border:"1.5px solid #e5e7eb",borderRadius:13,padding:"13px 0",fontWeight:700,fontSize:16,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>← Zurück zur Auswahl</button>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <button className="back-btn" onClick={step==="type"?onBack:()=>setStep("type")}>‹</button>
+        <div>
+          <div className="panel-header-title">Tagesplanung</div>
+          <div className="panel-header-sub">{new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</div>
+        </div>
+      </div>
+      <div className="panel-body">{content()}</div>
+    </div>
+  );
+}
+
+/* ── OVERNIGHT ── */
+function OvernightScreen({workday,onBack,onSave}){
+  const [overnight,setOvernight]=useState(workday?.overnight||"");
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <button className="back-btn" onClick={onBack}>‹</button>
+        <div className="panel-header-title">Wo übernachtest du?</div>
+      </div>
+      <div className="panel-body">
+        <div style={{maxWidth:480,width:"100%"}}>
+          <div className="card" style={{background:"#fff7ed",border:"1px solid #fed7aa",marginBottom:16}}>
+            <div style={{fontSize:15,color:"#c2410c",fontWeight:700}}>🏨 Wo übernachtest du heute Nacht?</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            {OVERNIGHT_TYPES.map(loc=>(
+              <button key={loc.value} className={"result-btn"+(overnight===loc.value?" active":"")} onClick={()=>setOvernight(loc.value)}>
+                <span style={{fontSize:22,width:28,textAlign:"center"}}>{loc.icon}</span>
+                <span className="result-lbl">{loc.label}</span>
+                {overnight===loc.value&&<span className="result-check">✓</span>}
+              </button>
+            ))}
+          </div>
+          <button className="btn-primary" disabled={!overnight} onClick={()=>{if(overnight)onSave(overnight);}}>✓ BESTÄTIGEN</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── NEUKUNDE ── */
+function NewCustomerScreen({user,onBack,onSave}){
+  const NK_KEY="iris_new_cust_"+user.uid;
+  const [newCusts,setNewCusts]=useState(()=>ls(NK_KEY,ls("actio_new_cust_"+user.id,[])));
+  const [nkName,setNkName]=useState(""); const [nkCity,setNkCity]=useState("");
+  const [editNkId,setEditNkId]=useState(null);
+  useEffect(()=>{localStorage.setItem(NK_KEY,JSON.stringify(newCusts));},[newCusts,CUSTOMERS,HISTORY_CUSTOMERS]);
+  const saveNk=()=>{
+    if(!nkName.trim())return;
+    if(editNkId){setNewCusts(p=>p.map(c=>c.id===editNkId?{...c,name:nkName.trim(),city:nkCity.trim()}:c));setEditNkId(null);}
+    else{const nc={id:"new_"+Date.now(),name:nkName.trim(),city:nkCity.trim(),postal:"",street:"",rep_id:user.id,lat:null,lng:null,isNew:true};setNewCusts(p=>[nc,...p]);onSave(nc);return;}
+    setNkName("");setNkCity("");
+  };
+  const editNk=c=>{setEditNkId(c.id);setNkName(c.name);setNkCity(c.city);};
+  const cancelEdit=()=>{setEditNkId(null);setNkName("");setNkCity("");};
+  const deleteNk=id=>{setNewCusts(p=>p.filter(c=>c.id!==id));if(editNkId===id)cancelEdit();};
+  const nkBtnStyle={background:"none",border:"none",borderRadius:8,padding:"7px 10px",cursor:"pointer",fontSize:17,lineHeight:1};
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <button className="back-btn" onClick={onBack}>‹</button>
+        <div className="panel-header-title">Neukunde hinzufügen</div>
+      </div>
+      <div className="panel-body">
+        <div style={{maxWidth:580,width:"100%"}}>
+          <div style={{background:"#f9fafb",borderRadius:14,padding:"16px",marginBottom:16,border:"1.5px solid #e5e7eb"}}>
+            <input placeholder="Geschäftsname" value={nkName} onChange={e=>setNkName(e.target.value)} style={{marginBottom:10}} onKeyDown={e=>e.key==="Enter"&&saveNk()}/>
+            <input placeholder="Stadt" value={nkCity} onChange={e=>setNkCity(e.target.value)} style={{marginBottom:12}} onKeyDown={e=>e.key==="Enter"&&saveNk()}/>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={saveNk} disabled={!nkName.trim()||!nkCity.trim()} style={{flex:1,background:(nkName.trim()&&nkCity.trim())?OG:"#d1d5db",color:"white",border:"none",borderRadius:8,padding:"11px",fontWeight:700,cursor:(nkName.trim()&&nkCity.trim())?"pointer":"default",fontFamily:"inherit",fontSize:15,transition:"background .2s"}}>
+                {editNkId?"Speichern ✓":"Hinzufügen +"}
+              </button>
+              {editNkId&&<button onClick={cancelEdit} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"11px 16px",cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:14}}>Abbrechen</button>}
+            </div>
+          </div>
+          {newCusts.length>0&&<>
+            <div className="section-label" style={{marginTop:4}}>Neue Kunden ({newCusts.length})</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {newCusts.map(c=>(
+                <div key={c.id} style={{display:"flex",alignItems:"center",gap:6,background:"white",borderRadius:12,border:editNkId===c.id?"2px solid "+OG:"1.5px solid #e5e7eb",padding:"12px 14px",boxSizing:"border-box"}}>
+                  <button onClick={()=>onSave(c)} style={{flex:1,background:"none",border:"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",padding:0}}>
+                    <div style={{fontWeight:700,fontSize:15,color:"#111827"}}>{c.name}</div>
+                    {c.city&&<div style={{fontSize:13,color:"#9ca3af",marginTop:2}}>{c.city}</div>}
+                  </button>
+                  <button onClick={()=>editNk(c)} title="Bearbeiten" style={{...nkBtnStyle,background:"#EFF6FC"}}>✏️</button>
+                  <button onClick={()=>deleteNk(c.id)} title="Löschen" style={{...nkBtnStyle,background:"#FEF2F2"}}>🗑️</button>
+                </div>
+              ))}
+            </div>
+          </>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── SEARCH ── */
+function CustomerSearchScreen({user,visits,onBack,onSelect,onNewCustomer,onDetail}){
+  const [q,setQ]=useState(""); const [pos,setPos]=useState(null);
+  useEffect(()=>{if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(p=>setPos({lat:p.coords.latitude,lng:p.coords.longitude}),()=>{});},[]);
+  const mine=user.role==="manager"?CUSTOMERS:CUSTOMERS.filter(c=>c.rep_id===user.id);
+  const filtered=q.length>=1?mine.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())||c.city.toLowerCase().includes(q.toLowerCase())||c.postal.includes(q)):[];
+  const nearby=pos?[...mine].filter(c=>c.lat!=null&&c.lng!=null).map(c=>({...c,_d:haversine(pos.lat,pos.lng,c.lat,c.lng)})).sort((a,b)=>a._d-b._d).slice(0,8):[];
+  const Row=({c,dist})=>{
+    const last=[...visits].filter(v=>v.rep_id===user.id&&v.customer_id===c.id).sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at))[0];
+    const tod=last?.confirmed_at?.startsWith(TODAY);
+    return (
+      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        <button className={"cust-row"+custRowClass(c.id)} style={{flex:1,minWidth:0}} onClick={()=>onSelect(c)}>
+          <div style={{width:46,height:46,borderRadius:"50%",background:"#EFF6FC",color:OG,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:16,flexShrink:0}}>{c.name.charAt(0)}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontWeight:700,fontSize:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"flex",alignItems:"center"}}><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>{c.name}</span>{custBadge(c.id)}</div>
+            <div style={{fontSize:14,color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.postal} {c.city} · {c.street}</div>
+          </div>
+          <div style={{flexShrink:0,textAlign:"right"}}>
+            {dist!==undefined&&<div style={{fontSize:14,color:"#9ca3af"}}>{dist<1000?dist+" m":(dist/1000).toFixed(1)+" km"}</div>}
+            {tod&&<div style={{fontSize:13,color:"#16a34a",fontWeight:700}}>✓ dnes</div>}
+          </div>
+        </button>
+        {onDetail&&<button onClick={()=>onDetail(c)} style={{background:"#EFF6FC",border:"none",borderRadius:10,padding:"10px 12px",cursor:"pointer",fontSize:13,color:OG,fontWeight:800,flexShrink:0,fontFamily:"inherit",alignSelf:"stretch"}} title="Info">Info</button>}
+      </div>
+    );
+  };
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <button className="back-btn" onClick={onBack}>‹</button>
+        <div className="panel-header-title">Kunden auswählen</div>
+      </div>
+      <div className="panel-body">
+        <div style={{maxWidth:580,width:"100%"}}>
+          <input autoFocus placeholder="Optiker, Stadt, PLZ suchen..." value={q} onChange={e=>setQ(e.target.value)} style={{marginBottom:16}}/>
+          {q.length>=1?<>
+            <div className="section-label">Ergebnisse ({filtered.length})</div>
+            {filtered.length===0?<div style={{textAlign:"center",padding:"40px 0",color:"#d1d5db",fontSize:16}}>Kein Optiker gefunden</div>
+            :<div style={{display:"flex",flexDirection:"column",gap:8}}>{filtered.map(c=><Row key={c.id} c={c}/>)}</div>}
+          </>:<>
+            {nearby.length>0&&<>
+              <div className="section-label">Altkunde</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>{nearby.map(c=><Row key={c.id} c={c} dist={c._d}/>)}</div>
+            </>}
+            {nearby.length===0&&<div style={{textAlign:"center",padding:"32px 0 24px",color:"#d1d5db"}}><div style={{fontSize:36,marginBottom:10}}>🔍</div><div style={{fontSize:16}}>GPS lädt oder nicht verfügbar</div></div>}
+            <button onClick={onNewCustomer} style={{width:"100%",padding:"15px 18px",borderRadius:13,background:"#f0f9ff",color:"#1A5F8A",border:"2px solid #BFDFEF",cursor:"pointer",fontWeight:700,fontSize:15,display:"flex",alignItems:"center",gap:10,justifyContent:"center",fontFamily:"inherit",marginTop:8}}>
+              <span style={{fontSize:20}}>➕</span> NEUKUNDE / KUNDE NICHT IN AUSWAHL →
+            </button>
+          </>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── CONFIRM ── */
+function VisitConfirmScreen({user,customer,onBack,onConfirm}){
+  const [pos,setPos]=useState(null); const [gpsErr,setGpsErr]=useState(null); const [gpsErrCode,setGpsErrCode]=useState(null); const [loading,setLoading]=useState(true);
+  const [cityPos,setCityPos]=useState(null); const [cityLoading,setCityLoading]=useState(customer.isNew);
+  const [result,setResult]=useState(""); const [units,setUnits]=useState(""); const [note,setNote]=useState("");
+  const [saving,setSaving]=useState(false); const [done,setDone]=useState(false);
+  useEffect(()=>{
+    if(!navigator.geolocation){setGpsErr("GPS nicht verfügbar");setLoading(false);return;}
+    navigator.geolocation.getCurrentPosition(
+      p=>{setPos({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)});setLoading(false);},
+      e=>{setGpsErrCode(e?.code||0);setGpsErr("GPS nicht verfügbar");setLoading(false);},
+      {enableHighAccuracy:true,timeout:12000}
+    );
+  },[]);
+  useEffect(()=>{
+    if(!customer.isNew||!customer.city)return;
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(customer.city)}&format=json&limit=1&countrycodes=de,at,ch`)
+      .then(r=>r.json())
+      .then(d=>{if(d&&d[0])setCityPos({lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)});setCityLoading(false);})
+      .catch(()=>setCityLoading(false));
+  },[]);
+  const dist=customer.isNew
+    ?(pos&&cityPos?haversine(pos.lat,pos.lng,cityPos.lat,cityPos.lng):null)
+    :(pos&&customer.lat!=null&&customer.lng!=null?haversine(pos.lat,pos.lng,customer.lat,customer.lng):null);
+  const noGps=!customer.isNew&&customer.lat==null;
+  const gi=customer.isNew
+    ?(cityLoading
+      ?{cls:"load",icon:"⏳",text:"Stadtposition wird ermittelt…",ok:true}
+      :!cityPos
+        ?{cls:"load",icon:"📍",text:"Stadt nicht gefunden – Besuch wird erfasst",ok:true}
+        :dist===null
+          ?{cls:"load",icon:"📍",text:"GPS wird ermittelt…",ok:true}
+          :dist<=25000
+            ?{cls:"ok",icon:"✅",text:`Neukunde · ${dist<1000?dist+" m":(dist/1000).toFixed(1)+" km"} von ${customer.city}`,ok:true}
+            :{cls:"err",icon:"✗",text:`Zu weit: ${(dist/1000).toFixed(1)} km von ${customer.city} (Limit 25 km)`,ok:false})
+    :customer.lat==null
+      ?{cls:"load",icon:"📍",text:"Kundenstandort nicht hinterlegt – Besuch wird erfasst",ok:true}
+      :gpsInfo(loading?null:dist);
+  const vs=customer.isNew
+    ?(dist===null?"unknown":dist<=25000?"confirmed":"rejected")
+    :(noGps?(pos?"confirmed":"unknown"):dist===null?"unknown":dist<=25000?"confirmed":"rejected");
+  const go=()=>{
+    if(!result||saving)return; setSaving(true);
+    setTimeout(async()=>{try{const ok=await onConfirm({id:Date.now(),rep_id:user.id,customer_id:customer.id,confirmed_at:new Date().toISOString(),distance:dist,status:vs,result,units:result==="order"?(parseInt(units)||0):0,note,gps_err:gpsErrCode,_cityPos:customer.isNew?cityPos:null});if(ok!==false)setDone(true);}finally{setSaving(false);}},900);
+  };
+  if(done) return (
+    <div className="main-panel" style={{alignItems:"center",justifyContent:"center",textAlign:"center"}}>
+      <div style={{padding:40}}>
+        <div style={{fontSize:72,marginBottom:16}}>✅</div>
+        <div style={{fontSize:28,fontWeight:900,color:"#111827",marginBottom:4}}>Gespeichert!</div>
+        <div style={{fontSize:16,color:"#6b7280"}}>{customer.name}</div>
+        {dist!==null&&!customer.isNew&&<div style={{fontSize:14,color:"#9ca3af",marginTop:4}}>GPS-Entfernung: {dist} m</div>}
+      </div>
+    </div>
+  );
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <button className="back-btn" onClick={onBack}>‹</button>
+        <div>
+          <div className="panel-header-title">Besuch bestätigen</div>
+          <div className="panel-header-sub">{customer.name}{customer.city?` · ${customer.city}`:""}</div>
+        </div>
+      </div>
+      <div className="panel-body">
+        <div style={{maxWidth:520,width:"100%",display:"flex",flexDirection:"column",gap:14}}>
+          <div className={"gps-box "+gi.cls}>
+            <div className="gps-text"><span style={{fontSize:18}}>{gi.icon}</span><span>{(!noGps&&gpsErr)||gi.text}</span></div>
+            {pos&&<div style={{fontSize:14,color:"#6b7280",marginTop:4}}>GPS-Genauigkeit: ±{pos.acc} m</div>}
+            {!customer.isNew&&dist!==null&&dist>300&&<div style={{fontSize:14,color:"#b91c1c",marginTop:6,fontWeight:600}}>Sie sind zu weit entfernt. Der Besuch wird zur Überprüfung markiert.</div>}
+          </div>
+          <div>
+            <div className="section-label">Besuchsergebnis *</div>
+            <div style={{display:"flex",flexDirection:"column",gap:7}}>
+              {RESULTS.map(r=>(
+                <button key={r.value} className={"result-btn"+(result===r.value?" active":"")} onClick={()=>setResult(r.value)}>
+                  <span style={{fontSize:18,width:24,textAlign:"center"}}>{r.icon}</span>
+                  <span className="result-lbl">{r.label}</span>
+                  {result===r.value&&<span className="result-check">✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="section-label">Notiz (optional)</div>
+            <textarea rows={2} placeholder="Kurze Notiz…" value={note} onChange={e=>setNote(e.target.value)} style={{resize:"none"}}/>
+          </div>
+          <button className="btn-primary" onClick={go} disabled={!result||saving}
+            style={{background:(!result||saving)?"#e5e7eb":OG,color:(!result||saving)?"#9ca3af":"white",cursor:(!result||saving)?"not-allowed":"pointer"}}>
+            {saving?"⏳ Wird gespeichert…":"KUNDENBESUCH BESTÄTIGEN"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── DASHBOARD ── */
+function RepMap({visits,custs}){
+  const divRef=React.useRef(null);
+  const mapRef=React.useRef(null);
+  const markersRef=React.useRef([]);
+  React.useEffect(()=>{
+    if(!divRef.current||typeof L==='undefined') return;
+    if(!mapRef.current){
+      mapRef.current=L.map(divRef.current).setView([51.0,10.5],5);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19}).addTo(mapRef.current);
+    }
+    markersRef.current.forEach(m=>m.remove());
+    markersRef.current=[];
+    const bounds=[];
+    visits.forEach(v=>{
+      const c=custs.find(x=>String(x.id)===String(v.customer_id));
+      if(!c?.lat||!c?.lng) return;
+      const ok=v.status!=='rejected';
+      const color=ok?'#16a34a':'#dc2626';
+      const rep=USERS.find(u=>u.id===v.rep_id);
+      const popup=`<b>${escHtml(String(c.name||""))}</b><br><span style="color:#6b7280">${escHtml(String(rep?.name||''))}</span><br>${new Date(v.confirmed_at).toLocaleDateString('de-DE')} ${fmtT(v.confirmed_at)}<br>${escHtml(String(rl(v.result)||""))}${v.distance!=null&&v.distance>=0&&v.distance!==9999?'<br>📍 '+escHtml(String(v.distance))+' m':''}${v.note?'<br><i style="color:#374151">📝 „'+escHtml(v.note)+'"</i>':''}`;
+      const m=L.circleMarker([c.lat,c.lng],{radius:8,color,fillColor:color,fillOpacity:0.85,weight:2}).bindPopup(popup);
+      m.addTo(mapRef.current);
+      markersRef.current.push(m);
+      bounds.push([c.lat,c.lng]);
+    });
+    if(bounds.length>0) mapRef.current.fitBounds(bounds,{padding:[30,30]});
+    else mapRef.current.setView([51.0,10.5],5);
+  },[visits,custs]);
+  React.useEffect(()=>()=>{if(mapRef.current){mapRef.current.remove();mapRef.current=null;}},[]);
+  const withGps=visits.filter(v=>{const c=custs.find(x=>String(x.id)===String(v.customer_id));return c?.lat&&c?.lng;}).length;
+  return(
+    <div style={{marginTop:12}}>
+      <div style={{fontSize:12,color:"#9ca3af",marginBottom:6,display:"flex",gap:16,alignItems:"center"}}>
+        <span><span style={{display:"inline-block",width:10,height:10,borderRadius:"50%",background:"#16a34a",marginRight:4}}/>GPS - OK</span>
+        <span><span style={{display:"inline-block",width:10,height:10,borderRadius:"50%",background:"#dc2626",marginRight:4}}/>GPS - NICHT OK</span>
+        <span style={{marginLeft:"auto"}}>{withGps} / {visits.length} mit GPS</span>
+      </div>
+      <div ref={divRef} style={{height:400,borderRadius:12,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}/>
+    </div>
+  );
+}
+
+function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog}){
+  const allCusts=React.useMemo(()=>[...CUSTOMERS,...newCusts],[newCusts,CUSTOMERS,HISTORY_CUSTOMERS]);
+  const lookupCust=id=>allCusts.find(c=>String(c.id)===String(id));
+  const [selRep,setSelRep]=useState(null);
+  const [view,setView]=useState("today");
+  const [showMap,setShowMap]=useState(false);
+  const [mapRepFilter,setMapRepFilter]=useState(null);
+  const [repMonth,setRepMonth]=useState(TODAY.slice(0,7));
+  const [hoveredDay,setHoveredDay]=useState(null);
+  const [chartView,setChartView]=useState("calendar");
+  const [selectedManagerDay,setSelectedManagerDay]=useState(null);
+  const [openRepDay,setOpenRepDay]=useState(null);
+  const [showMonthMap,setShowMonthMap]=useState(false);
+  const [chartRepId,setChartRepId]=useState(()=>USERS.find(u=>u.role==="rep")?.id||null);
+  const reps=USERS.filter(u=>u.role==="rep");
+  const tod=visits.filter(v=>v.confirmed_at.startsWith(TODAY));
+  const DOW=["So","Mo","Di","Mi","Do","Fr","Sa"];
+  const adjMonth=n=>{const [y,m]=repMonth.split("-").map(Number);const d=new Date(y,m-1+n,1);setRepMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);};
+  const monthLabel=()=>{const [y,m]=repMonth.split("-").map(Number);return new Date(y,m-1,1).toLocaleDateString("de-DE",{month:"long",year:"numeric"});};
+  const getMonthDays=()=>{const [y,m]=repMonth.split("-").map(Number);const dim=new Date(y,m,0).getDate();return Array.from({length:dim},(_,i)=>{const d=i+1;const dateStr=`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;const wds=workdays.filter(w=>w.date===dateStr);const dayVisits=visits.filter(v=>v.confirmed_at.startsWith(dateStr));return {dateStr,d,dow:new Date(y,m-1,d).getDay(),wds,dayVisits};});};
+  // Helper: get last N days as date strings
+  const getLast7Days=()=>{const now=new Date();const nowDow=now.getDay();const mondayDiff=now.getDate()-nowDow+(nowDow===0?-6:1);const monday=new Date(now);monday.setDate(mondayDiff);return Array.from({length:7},(_,i)=>{const d=new Date(monday);d.setDate(monday.getDate()+i);const ds=d.toISOString().slice(0,10);const dow=d.getDay();const isToday=ds===TODAY;return{dateStr:ds,d:d.getDate(),dow,isToday,dayVisits:visits.filter(v=>v.confirmed_at.startsWith(ds))};});};
+  const fmtConv=(v,o)=>v===0?"—":`${Math.round(o/v*100)}%`;
+
+  // Unified nav buttons — always shown in every panel-header
+  const btnSt=(active)=>({background:active?OG:"#f3f4f6",border:"none",borderRadius:8,padding:"7px 10px",cursor:"pointer",fontWeight:700,fontSize:12,color:active?"white":"#374151",fontFamily:"inherit",flex:"1 1 calc(50% - 3px)",minWidth:0,textAlign:"center"});
+  const navBtns=(
+    <div style={{display:"flex",flexWrap:"wrap",gap:5,justifyContent:"flex-end",alignSelf:"flex-start"}}>
+      <button className="panel-nav-btn" data-active={view==="today"&&!showMap&&!selRep} style={btnSt(view==="today"&&!showMap&&!selRep)} onClick={()=>{setSelRep(null);setView("today");setShowMap(false);}}>📍 Heute</button>
+      <button className="panel-nav-btn" data-active={view==="today"&&showMap&&!selRep} style={btnSt(view==="today"&&showMap&&!selRep)} onClick={()=>{if(view==="today"&&!selRep){setShowMap(m=>!m);}else{setSelRep(null);setView("today");setShowMap(true);}}}>🗺 Karte</button>
+      <button className="panel-nav-btn" data-active={view==="week"&&!selRep} style={btnSt(view==="week"&&!selRep)} onClick={()=>{setSelRep(null);setView("week");setShowMap(false);}}>📅 Woche</button>
+      <button className="panel-nav-btn" data-active={view==="month"&&!selRep} style={btnSt(view==="month"&&!selRep)} onClick={()=>{setSelRep(null);setView("month");setShowMap(false);}}>📋 Monat</button>
+    </div>
+  );
+
+  // Monthly detail for one rep
+  if(selRep&&view==="month"){
+    const mdays=getMonthDays();
+    const activeDays=mdays.filter(day=>day.wds.find(w=>w.user_id===selRep.id)||day.dayVisits.filter(v=>v.rep_id===selRep.id).length>0);
+    const totalAD=mdays.filter(day=>day.wds.find(w=>w.user_id===selRep.id&&w.day_status==="aussendienst")).length;
+    const totalVisits=mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===selRep.id).length,0);
+    const totalOrders=mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===selRep.id&&v.result==="order").length,0);
+    return (
+      <div className="main-panel">
+        <div className="panel-header" style={{flexWrap:"wrap",gap:6}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+            <button className="back-btn" onClick={()=>setSelRep(null)}>‹</button>
+            <div>
+              <div className="panel-header-title">{selRep.name}</div>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>
+                <button onClick={()=>adjMonth(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 4px",color:"#9ca3af"}}>‹</button>
+                <span style={{fontSize:13,fontWeight:600,color:"#6b7280"}}>{monthLabel()}</span>
+                <button onClick={()=>adjMonth(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"0 4px",color:"#9ca3af"}}>›</button>
+              </div>
+            </div>
+          </div>
+          {navBtns}
+        </div>
+        <div className="panel-body">
+          <div style={{maxWidth:600,width:"100%"}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+              {[{l:"AD-Tage",v:totalAD,c:OG},{l:"Besuche",v:totalVisits,c:"#374151"},{l:"Bestellungen",v:totalOrders,c:"#16a34a"}].map(s=>(
+                <div key={s.l} className="stat-box"><div className="stat-num" style={{color:s.c}}>{s.v}</div><div className="stat-lbl">{s.l}</div></div>
+              ))}
+            </div>
+            {activeDays.length===0?<div style={{textAlign:"center",padding:"48px 0",color:"#d1d5db"}}><div style={{fontSize:40,marginBottom:12}}>📋</div>Keine Einträge</div>
+            :<div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+              {activeDays.map((day,i)=>{
+                const wd=day.wds.find(w=>w.user_id===selRep.id);
+                const ds=wd?dsInfo(wd.day_status):null;
+                const rv=day.dayVisits.filter(v=>v.rep_id===selRep.id);
+                const orders=rv.filter(v=>v.result==="order").length;
+                const isWE=day.dow===0||day.dow===6;
+                return (
+                  <div key={day.dateStr} style={{borderBottom:i<activeDays.length-1?"1px solid #f9fafb":"none"}}>
+                  <div onClick={()=>setOpenRepDay(openRepDay===day.dateStr?null:day.dateStr)} style={{cursor:rv.length>0?"pointer":"default",display:"grid",gridTemplateColumns:"72px 24px 1fr 36px 56px",alignItems:"center",padding:"11px 16px",background:isWE?"#fafafa":"white",gap:8}}>
+                    <div style={{fontSize:13,fontWeight:600,color:"#374151"}}>{String(day.d).padStart(2,"0")}.{repMonth.slice(5)} <span style={{color:"#9ca3af",fontWeight:400}}>{DOW[day.dow]}</span></div>
+                    <div style={{fontSize:17,textAlign:"center"}}>{ds?.icon||"—"}</div>
+                    <div style={{fontSize:13,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ds?.label||"—"}{wd?.day_status==="messe"&&wd.event_name?` · ${wd.event_name}`:""}</div>
+                    <div style={{fontSize:14,fontWeight:900,color:rv.length>0?OG:"#d1d5db",textAlign:"center"}}>{rv.length>0?rv.length:"—"}</div>
+                    <div style={{fontSize:13,fontWeight:700,color:orders>0?"#16a34a":"#d1d5db",textAlign:"right"}}>{orders>0?`${orders} Best.`:"—"}</div>
+                  </div>
+                  {openRepDay===day.dateStr&&rv.length>0&&<div style={{padding:"4px 16px 12px 104px",display:"flex",flexDirection:"column",gap:8}}>
+                    {[...rv].sort((a,b)=>a.confirmed_at.localeCompare(b.confirmed_at)).map(v=>{const c=lookupCust(v.customer_id);return(
+                      <div key={v.id} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                        <span style={{fontSize:16}}>{ri(v.result)}</span>
+                        <div style={{minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:700,color:"#374151"}}>{c?.name||v.customer_id}</div>
+                          <div style={{fontSize:12,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {c?.city||""} · {rl(v.result)}</div>
+                          <NoteLine note={v.note}/>
+                        </div>
+                      </div>);})}
+                  </div>}
+                  </div>
+                );
+              })}
+            </div>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Today's detail for one rep
+  if(selRep){
+    const rv=tod.filter(v=>v.rep_id===selRep.id).sort((a,b)=>a.confirmed_at.localeCompare(b.confirmed_at));
+    const wd=workdays.find(w=>w.user_id===selRep.id&&w.date===TODAY);
+    const ds=wd?dsInfo(wd.day_status):null;
+    return (
+      <div className="main-panel">
+        <div className="panel-header" style={{flexWrap:"wrap",gap:6}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+            <button className="back-btn" onClick={()=>setSelRep(null)}>‹</button>
+            <div>
+              <div className="panel-header-title">{selRep.name}</div>
+              <div className="panel-header-sub">{ds?ds.label:"—"}</div>
+            </div>
+          </div>
+          {navBtns}
+        </div>
+        <div className="panel-body">
+          <div style={{maxWidth:600,width:"100%"}}>
+          {wd&&<div className="card" style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+            <span style={{fontSize:24}}>{ds?.icon||"❓"}</span>
+            <div><div style={{fontWeight:700,fontSize:16}}>{ds?.label}</div>
+              {wd.day_status==="aussendienst"&&<div style={{fontSize:12,color:"#9ca3af"}}>Start: {locInfo(wd.start_location)?.label||"—"}{wd.overnight?` · Übernachtung: ${overnightLocInfo(wd.overnight)?.label}`:""}</div>}
+              {wd.day_status==="messe"&&<div style={{fontSize:14,color:"#9ca3af"}}>{wd.event_name}{wd.event_city?" · "+wd.event_city:""}</div>}
+            </div>
+          </div>}
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {rv.length===0&&<div style={{textAlign:"center",padding:"48px 0",color:"#d1d5db"}}><div style={{fontSize:40,marginBottom:12}}>📭</div>Keine Einträge heute</div>}
+            {rv.map(v=>{
+              const c=lookupCust(v.customer_id);
+              return (
+                <div key={v.id} className="card">
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                    <span style={{fontSize:15,fontWeight:900,color:"#4b5563"}}>{fmtT(v.confirmed_at)}</span>
+                    {(()=>{
+                      const hasGps=v.distance!=null&&v.distance>=0&&v.distance!==9999;
+                      if(!hasGps){const denied=v.gps_err===1;return <span className="badge" style={{background:denied?"#fef3c7":"#f3f4f6",color:denied?"#92400e":"#9ca3af",border:denied?"1px solid #fcd34d":"1px solid #e5e7eb"}}>{denied?"🚫 GPS gesperrt":"📍 GPS n/a"}</span>;}
+                      const cls=v.status==="confirmed"?"badge-ok":v.status==="warning"?"badge-warn":"badge-err";
+                      const icon=v.status==="confirmed"?"✓":v.status==="warning"?"⚠":"✗";
+                      return <span className={"badge "+cls}>{icon} GPS · {v.distance} m</span>;
+                    })()}
+                    <span style={{marginLeft:"auto",fontSize:16}}>{ri(v.result)}</span>
+                  </div>
+                  <div style={{fontWeight:700,fontSize:14,color:"#111827"}}>{c?.name}</div>
+                  <div style={{fontSize:14,color:"#6b7280"}}>{c?.postal} {c?.city} · {rl(v.result)}</div>
+                  <NoteLine note={v.note} size={14}/>
+                </div>
+              );
+            })}
+          </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const stats=reps.map(r=>{
+    const wd=workdays.find(w=>w.user_id===r.id&&w.date===TODAY);
+    const ds=wd?dsInfo(wd.day_status):null;
+    const repVisits=tod.filter(v=>v.rep_id===r.id);
+    const overnight=wd?.overnight?overnightLocInfo(wd.overnight)?.label:null;
+    const statusText=ds?(wd.day_status==="messe"&&wd.event_name?wd.event_name:ds.label):"—";
+    return {...r,wd,ds,repVisits,overnight,statusText};
+  });
+  const tot={v:tod.length,o:tod.filter(v=>v.result==="order").length,f:tod.filter(v=>v.status==="rejected").length,conv:fmtConv(tod.length,tod.filter(v=>v.result==="order").length)};
+  // Daily rankliste for dashboard
+  const rankList=reps.map(r=>{
+    const todV=tod.filter(v=>v.rep_id===r.id);
+    const todB=todV.filter(v=>v.result==="order");
+    return{...r,moVisits:todV.length,moOrders:todB.length,moConv:todV.length>0?Math.round(todB.length/todV.length*100):null};
+  }).sort((a,b)=>b.moVisits-a.moVisits||b.moOrders-a.moOrders);
+  const todayLabel=new Date().toLocaleDateString("de-DE",{day:"numeric",month:"long",year:"numeric"});
+
+  // 7-day overview
+  if(view==="week"){
+    const days=getLast7Days();
+    return (
+      <div className="main-panel">
+        <div className="panel-header" style={{flexWrap:"wrap",gap:6}}>
+          <div style={{flex:1}}>
+            <div className="panel-header-title">Diese Woche</div>
+            <div className="panel-header-sub">Teamübersicht</div>
+          </div>
+          {navBtns}
+        </div>
+        <div className="panel-body">
+          <div style={{maxWidth:680,width:"100%"}}>
+            {showMap&&(()=>{const cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);const sv=visits.filter(v=>v.confirmed_at>=cutoff.toISOString().slice(0,10));return(<>
+  <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+    {[{id:null,label:"Alle"},...reps.filter(r=>sv.some(v=>v.rep_id===r.id)).map(r=>({id:r.id,label:r.name.split(" ").map(n=>n[0]).join("")+" "+r.name.split(" ")[0]}))].map(({id,label})=>{
+      const active=mapRepFilter===id;
+      return <button key={String(id)} onClick={()=>setMapRepFilter(id)} style={{background:active?OG:"#f3f4f6",color:active?"white":"#374151",border:"none",borderRadius:20,padding:"5px 13px",cursor:"pointer",fontWeight:700,fontSize:12,fontFamily:"inherit"}}>{label}</button>;
+    })}
+  </div>
+  <RepMap visits={mapRepFilter?sv.filter(v=>v.rep_id===mapRepFilter):sv} custs={allCusts}/>
+</>);})()}
+            {/* Summary row */}
+            {reps.map(r=>{
+              const repTotal=days.reduce((s,d)=>s+d.dayVisits.filter(v=>v.rep_id===r.id).length,0);
+              const repOrders=days.reduce((s,d)=>s+d.dayVisits.filter(v=>v.rep_id===r.id&&v.result==="order").length,0);
+              return (
+                <div key={r.id} style={{marginBottom:24}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                    <div style={{width:32,height:32,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,flexShrink:0}}>{r.initials}</div>
+                    <div style={{fontWeight:700,fontSize:15,color:"#111827"}}>{r.name}</div>
+                    <div style={{marginLeft:"auto",display:"flex",gap:12}}>
+                      <span style={{fontSize:13,color:"#6b7280"}}>{repTotal} Bes.</span>
+                      <span style={{fontSize:13,fontWeight:700,color:repOrders>0?"#16a34a":"#9ca3af"}}>{repOrders} Best.</span>
+                      <span style={{fontSize:13,fontWeight:700,color:"#6366f1"}}>{fmtConv(repTotal,repOrders)}</span>
+                    </div>
+                  </div>
+                  <div className="seven-day-scroll"><div className="seven-day-grid" style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+                    {days.map(day=>{
+                      const dv=day.dayVisits.filter(v=>v.rep_id===r.id);
+                      const do_=dv.filter(v=>v.result==="order").length;
+                      const isWE=day.dow===0||day.dow===6;
+                      return (
+                        <div key={day.dateStr} style={{background:day.isToday?"#fff7ed":isWE?"#f9fafb":"white",border:day.isToday?"1.5px solid "+OG:"1px solid #f0f0f0",borderRadius:10,padding:"8px 4px",textAlign:"center",minHeight:70}}>
+                          <div style={{fontSize:10,fontWeight:700,color:day.isToday?OG:"#9ca3af",textTransform:"uppercase",marginBottom:4}}>{DOW[day.dow]}</div>
+                          <div style={{fontSize:11,color:"#9ca3af",marginBottom:6}}>{String(day.d).padStart(2,"0")}</div>
+                          {dv.length>0?(
+                            <>
+                              <div style={{fontSize:18,fontWeight:900,color:OG,lineHeight:1}}>{dv.length}</div>
+                              {do_>0&&<div style={{fontSize:11,fontWeight:700,color:"#16a34a",marginTop:2}}>{do_}✓</div>}
+                            </>
+                          ):<div style={{fontSize:16,color:"#e5e7eb",marginTop:4}}>—</div>}
+                        </div>
+                      );
+                    })}
+                  </div></div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Monthly overview
+  if(view==="month"){
+    const mdays=getMonthDays();
+    const chartVis=chartRepId?visits.filter(v=>v.rep_id===chartRepId):visits;
+    const chartMdays=mdays.map(d=>({...d,dayVisits:chartVis.filter(v=>v.confirmed_at.startsWith(d.dateStr))}));
+    return (
+      <div className="main-panel">
+        <div className="panel-header" style={{flexWrap:"wrap",gap:6}}>
+          <div style={{flex:1}}>
+            <div className="panel-header-title">Monatsreport</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
+              <button onClick={()=>adjMonth(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:"2px 6px",color:"#9ca3af"}}>‹</button>
+              <span className="panel-header-sub">{monthLabel()}</span>
+              <button onClick={()=>adjMonth(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:"2px 6px",color:"#9ca3af"}}>›</button>
+            </div>
+          </div>
+          {navBtns}
+        </div>
+        <div className="panel-body">
+          <div style={{maxWidth:680,width:"100%"}}>
+            {(()=>{const mv=visits.filter(v=>v.confirmed_at.startsWith(repMonth));const mvf=mapRepFilter?mv.filter(v=>v.rep_id===mapRepFilter):mv;return(<div style={{marginBottom:16}}>
+              <button onClick={()=>setShowMonthMap(m=>!m)} style={{width:"100%",padding:"11px 16px",borderRadius:12,border:"1.5px solid "+OG,background:showMonthMap?OG:"transparent",color:showMonthMap?"white":OG,fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>🗺 {showMonthMap?"Karte ausblenden":"Karte für "+monthLabel()+" anzeigen"} ({mv.length} Besuche)</button>
+              {showMonthMap&&<div style={{marginTop:10}}>
+                <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+                  {[{id:null,label:"Alle"},...reps.filter(r=>mv.some(v=>v.rep_id===r.id)).map(r=>({id:r.id,label:r.name.split(" ").map(n=>n[0]).join("")+" "+r.name.split(" ")[0]}))].map(({id,label})=>{
+                    const active=mapRepFilter===id;
+                    return <button key={String(id)} onClick={()=>setMapRepFilter(id)} style={{background:active?OG:"#f3f4f6",color:active?"white":"#374151",border:"none",borderRadius:20,padding:"5px 13px",cursor:"pointer",fontWeight:700,fontSize:12,fontFamily:"inherit"}}>{label}</button>;
+                  })}
+                </div>
+                <RepMap visits={mvf} custs={allCusts}/>
+              </div>}
+            </div>);})()}
+            <div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+              <div className="team-month-hd" style={{display:"grid",gridTemplateColumns:"1.5fr 70px 80px 90px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
+                {["Vertreter","AD-Tage","Besuche","Bestellungen"].map(h=>(
+                  <div key={h} style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em"}}>{h}</div>
+                ))}
+              </div>
+              {reps.map((r,i)=>{
+                const totalAD=mdays.filter(day=>day.wds.find(w=>w.user_id===r.id&&w.day_status==="aussendienst")).length;
+                const totalVisits=mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===r.id).length,0);
+                const totalOrders=mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===r.id&&v.result==="order").length,0);
+                return (
+                  <button key={r.id} onClick={()=>setSelRep(r)}
+                    className="team-month-row" style={{display:"grid",gridTemplateColumns:"1.5fr 70px 80px 90px",width:"100%",padding:"13px 16px",background:"white",border:"none",borderBottom:i<reps.length-1?"1px solid #f9fafb":"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",alignItems:"center"}}
+                    onMouseOver={e=>e.currentTarget.style.background="#f9fafb"} onMouseOut={e=>e.currentTarget.style.background="white"}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <div style={{width:32,height:32,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,flexShrink:0}}>{r.initials}</div>
+                      <div><div style={{fontSize:15,fontWeight:700,color:"#111827"}}>{r.name}</div></div>
+                    </div>
+                    <div style={{fontSize:17,fontWeight:900,color:totalAD>0?OG:"#d1d5db",textAlign:"center"}}>{totalAD||"—"}</div>
+                    <div style={{fontSize:17,fontWeight:900,color:totalVisits>0?"#374151":"#d1d5db",textAlign:"center"}}>{totalVisits||"—"}</div>
+                    <div style={{fontSize:17,fontWeight:900,color:totalOrders>0?"#16a34a":"#d1d5db",textAlign:"center"}}>{totalOrders||"—"}</div>
+                  </button>
+                );
+              })}
+            </div>
+            {/* ── Rep filter ── */}
+            <div style={{display:"flex",gap:6,marginTop:16,flexWrap:"wrap",alignItems:"center"}}>
+              <span style={{fontSize:11,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",marginRight:2}}>Vertreter:</span>
+              {reps.map(r=>{
+                const active=chartRepId===r.id;
+                return(
+                  <button key={r.id} onClick={()=>{setChartRepId(r.id);setHoveredDay(null);setSelectedManagerDay(null);}}
+                    style={{display:"flex",alignItems:"center",gap:5,padding:"4px 12px",borderRadius:20,border:"1.5px solid "+(active?"#e87722":"#e5e7eb"),background:active?"#fff7ed":"white",fontWeight:700,fontSize:12,cursor:"pointer",color:active?"#e87722":"#6b7280",fontFamily:"inherit",transition:"all .15s"}}>
+                    <span style={{width:16,height:16,borderRadius:"50%",background:"#e87722",color:"white",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900,flexShrink:0}}>{r.initials}</span>
+                    {r.name.split(" ")[0]}
+                  </button>
+                );
+              })}
+            </div>
+            {/* ── Chart view toggle ── */}
+            <div style={{display:"flex",gap:8,marginTop:10}}>
+              {["calendar"].map(cv=>(
+                <button key={cv} onClick={()=>{setChartView(cv);setHoveredDay(null);setSelectedManagerDay(null);}} style={{padding:"5px 16px",borderRadius:8,border:"1.5px solid "+(chartView===cv?"#e87722":"#e5e7eb"),background:chartView===cv?"#fff7ed":"white",fontWeight:700,fontSize:12,cursor:"pointer",color:chartView===cv?"#e87722":"#6b7280",fontFamily:"inherit",transition:"all .15s"}}>
+                  {"Kalender"}
+                </button>
+              ))}
+            </div>
+            {/* ── MANAGER CALENDAR ── */}
+            {chartView==="calendar"&&(()=>{
+              const [hy,hm]=repMonth.split("-").map(Number);
+              const daysInMonth=new Date(hy,hm,0).getDate();
+              const firstDow=(new Date(hy,hm-1,1).getDay()+6)%7;
+              const wdLabelsMgr=["Mo","Di","Mi","Do","Fr","Sa","So"];
+              const hColorMgr=cnt=>cnt===0?"#f3f4f6":cnt<=2?"#fed7aa":cnt<=5?"#fb923c":"#e87722";
+              const cellsMgr=[];
+              for(let i=0;i<firstDow;i++) cellsMgr.push(null);
+              const repMissing=(repId,dateStr)=>{
+                const wd=workdays.find(w=>w.user_id===repId&&w.date===dateStr);
+                if(wd&&dsInfo(wd.day_status)) return false;
+                return !visits.some(v=>v.rep_id===repId&&v.confirmed_at.startsWith(dateStr));
+              };
+              for(let d=1;d<=daysInMonth;d++){
+                const dateStr=`${hy}-${String(hm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                const dv=chartVis.filter(v=>v.confirmed_at.startsWith(dateStr));
+                const dow=new Date(hy,hm-1,d).getDay();
+                const isWorkday=dow>=1&&dow<=5;
+                const missing=isWorkday&&dateStr<TODAY&&(chartRepId?repMissing(chartRepId,dateStr):reps.some(r=>repMissing(r.id,dateStr)));
+                const wdMgr=chartRepId?workdays.find(w=>w.user_id===chartRepId&&w.date===dateStr):null;
+                const ds=wdMgr?dsInfo(wdMgr.day_status):null;
+                cellsMgr.push({d,dateStr,dv,missing,wdMgr,ds});
+              }
+              const weeksMgr=[];for(let i=0;i<cellsMgr.length;i+=7)weeksMgr.push(cellsMgr.slice(i,i+7));
+              const selDVMgr=selectedManagerDay?[...chartVis.filter(v=>v.confirmed_at.startsWith(selectedManagerDay))].sort((a,b)=>a.confirmed_at.localeCompare(b.confirmed_at)):[];
+              const selWdMgr=selectedManagerDay&&chartRepId?workdays.find(w=>w.user_id===chartRepId&&w.date===selectedManagerDay):null;
+              const selDSMgr=selWdMgr?dsInfo(selWdMgr.day_status):null;
+              return(
+                <div>
+                  <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:12}}>
+                    <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:12}}>Kalender — {monthLabel()}</div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:6}}>
+                      {wdLabelsMgr.map(d=><div key={d} style={{fontSize:11,fontWeight:700,color:"#9ca3af",textAlign:"center"}}>{d}</div>)}
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      {weeksMgr.map((week,wi)=>(
+                        <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+                          {Array.from({length:7},(_,ci)=>{
+                            const cell=week[ci];
+                            if(!cell) return <div key={ci}/>;
+                            const cnt=cell.dv.length;
+                            const isSel=selectedManagerDay===cell.dateStr;
+                            const isT=cell.dateStr===TODAY;
+                            return(
+                              <div key={cell.dateStr} onClick={()=>setSelectedManagerDay(isSel?null:cell.dateStr)} title={cell.ds?.label||(cell.missing?"Nic vyplněno":"")}
+                                style={{position:"relative",aspectRatio:"1",background:isSel?"#2C8CD1":hColorMgr(cnt),borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",border:isT?"2px solid #2C8CD1":cell.missing?"2px solid #ef4444":"2px solid transparent",transition:"all .1s"}}>
+                                {cell.ds&&<div style={{position:"absolute",top:2,right:3,fontSize:9,lineHeight:1}}>{cell.ds.icon}</div>}
+                                <div style={{fontSize:11,fontWeight:700,color:isSel?"white":cnt>0?"#7c2d00":"#6b7280"}}>{cell.d}</div>
+                                {cnt>0&&<div style={{fontSize:10,fontWeight:900,color:isSel?"white":"#c2410c"}}>{cnt}</div>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{display:"flex",gap:8,marginTop:12,alignItems:"center"}}>
+                      <span style={{fontSize:11,color:"#9ca3af"}}>Weniger</span>
+                      {["#f3f4f6","#fed7aa","#fb923c","#e87722"].map((c,i)=><div key={i} style={{width:14,height:14,background:c,borderRadius:3}}/>)}
+                      <span style={{fontSize:11,color:"#9ca3af"}}>Mehr</span>
+                    </div>
+                  </div>
+                  {selectedManagerDay&&(
+                    <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:10}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:selDSMgr?4:12}}>
+                        {new Date(selectedManagerDay+"T12:00:00").toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
+                      </div>
+                      {selDSMgr&&(
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12,fontSize:13,color:"#6b7280"}}>
+                          <span>{selDSMgr.icon}</span>
+                          <span>{selDSMgr.label}{selWdMgr.day_status==="messe"&&selWdMgr.event_name?" · "+selWdMgr.event_name:""}</span>
+                        </div>
+                      )}
+                      {selDVMgr.length===0?(
+                        <div style={{textAlign:"center",padding:"16px",color:"#9ca3af",fontSize:15}}>Keine Besuche</div>
+                      ):(
+                        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                          {selDVMgr.map(v=>{
+                            const c=lookupCust(v.customer_id);
+                            const r=USERS.find(u=>u.id===v.rep_id);
+                            return(
+                              <div key={v.id} className="card" style={{display:"flex",alignItems:"center",gap:12}}>
+                                <div style={{fontSize:22,width:30,textAlign:"center",flexShrink:0}}>{ri(v.result)}</div>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                                    <div style={{width:22,height:22,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:900,flexShrink:0}}>{r?.initials||"?"}</div>
+                                    <div style={{fontWeight:700,fontSize:13,color:"#374151"}}>{r?.name||"?"}</div>
+                                  </div>
+                                  <div style={{fontWeight:700,fontSize:15,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c?.name||v.customer_id}</div>
+                                  <div style={{fontSize:13,color:"#9ca3af"}}>{fmtT(v.confirmed_at)} · {rl(v.result)}</div><NoteLine note={v.note}/>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            {/* ── CHART 2: Vertreter im Überblick (progress bars + trends) ── */}
+            {chartView!=="calendar"&&(()=>{
+              const now=new Date();
+              const dow=now.getDay();
+              const daysFromMon=dow===0?6:dow-1;
+              const daysCount=daysFromMon+1;
+              const weekVisits=(repId,offsetWeeks)=>{
+                let total=0;
+                const base=new Date(now);
+                base.setDate(now.getDate()-daysFromMon-offsetWeeks*7);
+                for(let i=0;i<daysCount;i++){
+                  const d=new Date(base);d.setDate(base.getDate()+i);
+                  total+=visits.filter(v=>v.rep_id===repId&&v.confirmed_at.startsWith(d.toISOString().slice(0,10))).length;
+                }
+                return total;
+              };
+              const repStats=reps.map(r=>({
+                ...r,
+                totalV:mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===r.id).length,0),
+                totalO:mdays.reduce((s,day)=>s+day.dayVisits.filter(v=>v.rep_id===r.id&&v.result==="order").length,0),
+                thisW:weekVisits(r.id,0),
+                lastW:weekVisits(r.id,1),
+              }));
+              const maxV=Math.max(1,...repStats.map(r=>r.totalV));
+              return (
+                <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",padding:"16px 20px",marginTop:12,marginBottom:4}}>
+                  <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:14}}>Vertreter im Überblick</div>
+                  {repStats.map((r,ri)=>{
+                    const conv=r.totalV>0?Math.round(r.totalO/r.totalV*100):0;
+                    const vPct=Math.round(r.totalV/maxV*100);
+                    const diff=r.lastW===0?(r.thisW>0?100:0):Math.round((r.thisW-r.lastW)/r.lastW*100);
+                    const tDir=diff>5?"up":diff<-5?"down":"flat";
+                    return (
+                      <div key={r.id} style={{marginBottom:ri<repStats.length-1?16:0}}>
+                        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:7}}>
+                          <div style={{width:28,height:28,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,flexShrink:0}}>{r.initials}</div>
+                          <div style={{flex:1,fontWeight:700,fontSize:14,color:"#111827"}}>{r.name}<span style={{fontSize:12,fontWeight:700,marginLeft:8,color:tDir==="up"?"#16a34a":tDir==="down"?"#dc2626":"#9ca3af"}}>{tDir==="up"?"↑":tDir==="down"?"↓":"→"} {diff>0?"+":""}{diff}%</span></div>
+                          <div style={{fontSize:12,color:"#6b7280"}}><span style={{fontWeight:700,color:"#e87722"}}>{r.totalV}</span> Besuche</div>
+                          <div style={{fontSize:12,fontWeight:700,color:"#16a34a",minWidth:60,textAlign:"right"}}>{conv>0?conv+"% Konv.":"—"}</div>
+                        </div>
+                        <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                          <div style={{height:9,background:"#f3f4f6",borderRadius:5,overflow:"hidden"}}>
+                            <div style={{height:"100%",width:vPct+"%",background:"#e87722",borderRadius:5}}/>
+                          </div>
+                          <div style={{height:6,background:"#f3f4f6",borderRadius:3,overflow:"hidden"}}>
+                            <div style={{height:"100%",width:conv+"%",background:"#16a34a",borderRadius:3}}/>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Helper: export all visits to CSV
+  const exportVisitsCSV=()=>{
+    const hdr=["Datum","Uhrzeit","Vertreter","Kunde","PLZ","Ort","Ergebnis","GPS-Status","Distanz (m)","Notiz"];
+    const rows=[...visits].sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at)).map(v=>{
+      const rep=USERS.find(u=>u.id===v.rep_id);
+      const c=allCusts.find(cu=>String(cu.id)===String(v.customer_id));
+      const dt=new Date(v.confirmed_at);
+      return [
+        dt.toLocaleDateString("de-DE"),
+        dt.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
+        rep?.name||v.rep_id,
+        c?.name||v.customer_id,
+        c?.postal||"",
+        c?.city||"",
+        rl(v.result),
+        v.status,
+        (v.distance!=null&&v.distance!==9999)?v.distance:"",
+        v.note||"",
+      ].map(s=>`"${String(s).replace(/^[\s]*[=+@\-]/,m=>"'"+m).replace(/"/g,'""')}"`).join(",");
+    });
+    const csv=[hdr.join(","),...rows].join("\n");
+    const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=`iris_besuche_${TODAY}.csv`;a.click();
+    URL.revokeObjectURL(url);
+  };
+
+
+  // Default: today
+  return (
+    <div className="main-panel">
+      <div className="panel-header" style={{flexWrap:"wrap",gap:6}}>
+        <div style={{flex:1}}>
+          <div className="panel-header-title">Dashboard</div>
+          <div className="panel-header-sub">{new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+        </div>
+        {navBtns}
+      </div>
+      <div className="panel-body">
+        <div style={{maxWidth:680,width:"100%"}}>
+        <div className="stats-grid-4" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:28}}>
+          {[{l:"Besuche",v:tot.v,c:OG},{l:"Bestellungen",v:tot.o,c:"#16a34a"},{l:"Konversionsrate",v:tot.conv,c:"#6366f1"},{l:"Zur Überprüfung",v:tot.f,c:"#dc2626"}].map(s=>(
+            <div key={s.l} className="stat-box"><div className="stat-num" style={{color:s.c,fontSize:typeof s.v==="string"?22:28}}>{s.v}</div><div className="stat-lbl">{s.l}</div></div>
+          ))}
+        </div>
+{showMap&&<>
+  <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+    {[{id:null,label:"Alle"},...reps.map(r=>({id:r.id,label:r.name.split(" ").map(n=>n[0]).join("")+" "+r.name.split(" ")[0]}))].map(({id,label})=>{
+      const active=mapRepFilter===id;
+      return <button key={String(id)} onClick={()=>setMapRepFilter(id)} style={{background:active?OG:"#f3f4f6",color:active?"white":"#374151",border:"none",borderRadius:20,padding:"5px 13px",cursor:"pointer",fontWeight:700,fontSize:12,fontFamily:"inherit"}}>{label}</button>;
+    })}
+  </div>
+  <RepMap visits={mapRepFilter?tod.filter(v=>v.rep_id===mapRepFilter):tod} custs={allCusts}/>
+</>}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:0}}>
+          <div className="section-label" style={{marginBottom:6}}>Rangliste — {todayLabel}</div>
+          <button onClick={exportVisitsCSV} style={{fontSize:12,fontWeight:700,color:"#374151",background:"#f3f4f6",border:"none",borderRadius:8,padding:"5px 11px",cursor:"pointer",fontFamily:"inherit",marginBottom:6}}>⬇ CSV</button>
+        </div>
+        <div className="team-ranklist-card" style={{borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:24}}>
+          <div className="team-today-hd" style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 80px",padding:"10px 16px",background:"#f9fafb",borderBottom:"1px solid #f0f0f0"}}>
+            {["Vertreter","Bes.","Best.","Konv."].map(h=>(
+              <div key={h} style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".08em",textAlign:["Bes.","Best.","Konv."].includes(h)?"center":"left"}}>{h}</div>
+            ))}
+          </div>
+          {rankList.map((r,i)=>(
+            <button key={r.id} onClick={()=>setSelRep(r)}
+              className="team-today-row" style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 80px",width:"100%",padding:"13px 16px",background:"white",border:"none",borderBottom:i<rankList.length-1?"1px solid #f9fafb":"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",transition:"background .1s",alignItems:"center"}}
+              onMouseOver={e=>e.currentTarget.style.background="#f9fafb"} onMouseOut={e=>e.currentTarget.style.background="white"}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:30,height:30,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,flexShrink:0}}>{r.initials}</div>
+                <div style={{fontSize:14,fontWeight:700}}>{r.name}</div>
+              </div>
+              <div style={{textAlign:"center",fontSize:16,fontWeight:900,color:r.moVisits>0?OG:"#d1d5db"}}>{r.moVisits||"—"}</div>
+              <div style={{textAlign:"center",fontSize:16,fontWeight:900,color:r.moOrders>0?"#16a34a":"#d1d5db"}}>{r.moOrders||"—"}</div>
+              <div style={{textAlign:"center",fontSize:14,fontWeight:700,color:"#6b7280"}}>{r.moConv!==null?r.moConv+"%":"—"}</div>
+            </button>
+          ))}
+        </div>
+        {tot.f>0&&<>
+          <div className="section-label" style={{color:"#f87171"}}>⚠ Zur Überprüfung ({tot.f})</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {tod.filter(v=>v.status==="rejected").map(v=>{
+              const c=lookupCust(v.customer_id);
+              const r=USERS.find(u=>u.id===v.rep_id);
+              return (
+                <div key={v.id} style={{background:"#fef2f2",border:"1.5px solid #fca5a5",borderRadius:12,padding:12}}>
+                  <div style={{fontSize:16,fontWeight:700,color:"#b91c1c"}}>{r?.name} · {c?.name}</div>
+                  <div style={{fontSize:14,color:"#ef4444"}}>{fmtT(v.confirmed_at)} · {v.gps_err===1?"🚫 GPS gesperrt":"✗ GPS"} · {(v.distance!=null&&v.distance>=0&&v.distance!==9999)?v.distance+' m':'n/a'} · {rl(v.result)}</div>
+                  <NoteLine note={v.note} size={14}/>
+                </div>
+              );
+            })}
+          </div>
+        </>}
+        {auditLogs.length>0&&<>
+          <div style={{display:"flex",alignItems:"center",marginTop:24,marginBottom:0}}>
+            <div className="section-label" style={{marginTop:0,flex:1}}>Änderungen</div>
+            {clearAuditLog&&<button onClick={()=>{if(window.confirm("Alle Änderungseinträge löschen?"))clearAuditLog();}} style={{fontSize:12,color:"#dc2626",background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:8,padding:"4px 10px",cursor:"pointer",fontWeight:600}}>🗑 Alle löschen</button>}
+          </div>
+          <div style={{background:"white",borderRadius:14,border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)",overflow:"hidden",marginBottom:8}}>
+            {auditLogs.map((log,i)=>{
+              const rep=USERS.find(u=>u.email===log.repEmail);
+              const c=log.before?lookupCust(log.before.customer_id):null;
+              const ts=log.timestamp?new Date(log.timestamp).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"-";
+              return(
+                <div key={log.id||i} style={{padding:"11px 16px",borderBottom:i<auditLogs.length-1?"1px solid #f9fafb":"none"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                    <span style={{fontSize:14,fontWeight:700,color:log.action==="deleted"?"#dc2626":"#e87722"}}>{log.action==="deleted"?"🗑️ gelöscht":"✏️ bearbeitet"}</span>
+                    <span style={{fontSize:13,color:"#374151",fontWeight:600}}>{rep?.name||log.repEmail}</span>
+                    <span style={{marginLeft:"auto",fontSize:12,color:"#9ca3af",flexShrink:0}}>{ts}</span>
+                  </div>
+                  <div style={{fontSize:13,color:"#6b7280"}}>
+                    {c?.name||log.before?.customer_id||"?"}
+                    {log.before?` · ${rl(log.before.result)}`:""}
+                    {log.action==="edited"&&log.after&&log.before?.result!==log.after?.result?<span style={{color:"#374151",fontWeight:700}}> → {rl(log.after.result)}</span>:""}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── ROOT ── */
+function ls(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch{return def;}}
+
+/* ── CUSTOMER DETAIL ── */
+function CustomerDetailScreen({user,customer,visits,onBack}){
+  // Plná historie: App drží jen posledních 90 dní, proto se z Firestore dotáhne vše pro tohoto zákazníka
+  const [fullV,setFullV]=useState(null);
+  useEffect(()=>{
+    const DB=window.db;
+    if(!window.USE_FIREBASE||!DB) return;
+    let alive=true;
+    (user.role==="manager"?DB.collection('visits'):DB.collection('visits').where('rep_id','==',user.id)).where('customer_id','==',customer.id).get()
+      .then(snap=>{if(alive)setFullV(snap.docs.map(d=>safeVisit(d.data(),d.id)));})
+      .catch(e=>console.error("[Iris] customer history:",e));
+    return ()=>{alive=false;};
+  },[customer.id,user.uid]);
+  const src=fullV||visits;
+  const allV=[...src].filter(v=>String(v.customer_id)===String(customer.id)).sort((a,b)=>b.confirmed_at.localeCompare(a.confirmed_at));
+  const myV=allV.filter(v=>v.rep_id===user.id);
+  const orders=allV.filter(v=>v.result==="order").length;
+  const daysSince=allV[0]?Math.floor((Date.now()-new Date(allV[0].confirmed_at))/86400000):null;
+  const st=custStatus(customer.id);
+  const repName=id=>USERS.find(u=>u.id===id)?.name||"—";
+  return (
+    <div className="main-panel">
+      <div className="panel-header">
+        <button className="back-btn" onClick={onBack}>‹</button>
+        <div style={{flex:1}}>
+          <div className="panel-header-title" style={{fontSize:18,lineHeight:1.2}}>{customer.name}</div>
+          <div className="panel-header-sub">{customer.postal} {customer.city}</div>
+        </div>
+      </div>
+      <div className="panel-body">
+        <div style={{maxWidth:600,width:"100%"}}>
+          {st&&<div className={st.type==="gesperrt"?"gesp-banner":""} style={{marginBottom:16,padding:"12px 16px",borderRadius:12,border:"2.5px solid "+(st.type==="gesperrt"?"#000":"#dc2626"),background:st.type==="gesperrt"?"#111":"#fef2f2",color:st.type==="gesperrt"?"#fff":"#991b1b",fontWeight:700,fontSize:15}}>
+            {st.type==="gesperrt"
+              ?<>⛔ GESPERRT — bitte nicht besuchen</>
+              :<>🏷 Einkaufsgemeinschaft: {st.label} <span style={{fontWeight:500,fontSize:13}}>· höhere Rabatte</span></>}
+          </div>}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16}}>
+            {[
+              {l:"Besuche gesamt",v:allV.length,c:OG},
+              {l:"Bestellungen",v:orders,c:"#16a34a"},
+              {l:"Tage seit letztem",v:daysSince!==null?daysSince:"—",c:"#374151"},
+            ].map(s=><div key={s.l} className="stat-box"><div className="stat-num" style={{color:s.c}}>{s.v}</div><div className="stat-lbl">{s.l}</div></div>)}
+          </div>
+          {customer.street&&<div className="card" style={{marginBottom:12,fontSize:14,color:"#374151"}}>📍 {customer.street}, {customer.postal} {customer.city}</div>}
+          {(customer.nr||customer.lastOrder)&&<div className="card" style={{marginBottom:12,fontSize:14,color:"#374151",display:"flex",gap:16,flexWrap:"wrap"}}>
+            {customer.nr&&<span>🔢 Kd-Nr. <b>{customer.nr}</b></span>}
+            {customer.lastOrder&&<span>🛒 Letzte Bestellung: <b>{new Date(customer.lastOrder+"T12:00:00").toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"})}</b> <span style={{color:"#9ca3af"}}>({Math.floor((Date.now()-new Date(customer.lastOrder))/86400000)} Tage)</span></span>}
+          </div>}
+          <a href={appleMapsUrl(customer)} target="_blank" rel="noopener" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,width:"100%",boxSizing:"border-box",padding:"15px 18px",borderRadius:13,background:OG,color:"#fff",fontWeight:800,fontSize:16,textDecoration:"none",marginBottom:8}}>🧭 Route in Apple Karten</a>
+          <a href={mapsUrl(customer)} target="_blank" rel="noopener" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,width:"100%",boxSizing:"border-box",padding:"11px 18px",borderRadius:13,background:"transparent",color:OG,border:"1.5px solid "+OG,fontWeight:700,fontSize:14,textDecoration:"none",marginBottom:20}}>Route in Google Maps</a>
+          <div className="section-label">Besuchsverlauf{fullV===null&&window.USE_FIREBASE?" (letzte 90 Tage, lädt…)":""}</div>
+          {allV.length===0
+            ?<div style={{textAlign:"center",padding:"40px 0",color:"#d1d5db"}}><div style={{fontSize:40,marginBottom:12}}>📭</div>Noch keine Besuche</div>
+            :<div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+              {allV.map((v,i)=>(
+                <div key={v.id} className="det-row" style={{borderBottom:i<allV.length-1?"1px solid #f9fafb":"none"}}>
+                  <span style={{fontSize:16,flexShrink:0}}>{ri(v.result)}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:14,color:"#111827"}}>{rl(v.result)}{v.result==="order"&&v.units?` · ${v.units} Stk.`:""}</div>
+                    <div style={{fontSize:13,color:"#9ca3af"}}>{new Date(v.confirmed_at).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"})} · {fmtT(v.confirmed_at)}{v.rep_id!==user.id?` · ${repName(v.rep_id)}`:""}</div>
+                    <NoteLine note={v.note}/>
+                  </div>
+                  <span className={"badge "+(v.status==="confirmed"?"badge-ok":v.status==="warning"?"badge-warn":"badge-err")}>{v.distance<9999?v.distance+"m":"GPS?"}</span>
+                </div>
+              ))}
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Načte workdays z posledních 90 dní z localStorage (fallback režim) */
+function loadAllLocalWorkdays(){
+  const result=[];
+  for(let i=0;i<90;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const ds=d.toISOString().split("T")[0];
+    const wds=ls("actio_wd_"+ds,[]);
+    result.push(...wds);
+  }
+  return result;
+}
+
+function safeVisit(data,id){
+  // Do not rewrite stored history. Prevent a malformed record crashing all views.
+  return {...data,id,confirmed_at:typeof data.confirmed_at==="string"?data.confirmed_at:"",note:typeof data.note==="string"?data.note:""};
+}
+function App(){
+  const DB=window.db;
+  const [screen,setScreen]=useState("login");
+  const [user,setUser]=useState(null);
+  const [visits,setVisits]=useState([]);
+  const [workdays,setWorkdays]=useState([]);
+  const [cust,setCust]=useState(null);
+  const [detailCust,setDetailCust]=useState(null);
+  const [prevScreen,setPrevScreen]=useState("home");
+  const [fbLoading,setFbLoading]=useState(true);
+  const [loadError,setLoadError]=useState("");
+  const [auditLogs,setAuditLogs]=useState([]);
+  const [newCusts,setNewCusts]=useState([]);
+  const [customerRevision,setCustomerRevision]=useState(0);
+  useEffect(()=>{
+    if(!window.irisAuth||!DB){setLoadError("Verbindung nicht verfügbar. Bitte neu laden.");setFbLoading(false);return;}
+    return window.irisAuth.onAuthStateChanged(authUser=>{
+      CUSTOMERS=[];HISTORY_CUSTOMERS=[];custById.m=null;
+      setVisits([]);setWorkdays([]);setAuditLogs([]);setNewCusts([]);
+      setCust(null);setDetailCust(null);setLoadError("");
+      const id=authUser&&IRIS_UIDS[authUser.uid];
+      const profile=id&&USERS.find(u=>u.id===id);
+      if(!profile){setUser(null);setScreen("login");setFbLoading(false);return;}
+      setFbLoading(true);setUser({...profile,uid:authUser.uid});
+      setScreen(profile.role==="manager"?"dashboard":"home");
+    },()=>{setLoadError("Anmeldung nicht verfügbar.");setFbLoading(false);});
+  },[]);
+  useEffect(()=>{
+    if(!user||!DB)return;
+    let alive=true;
+    const ready=new Set();
+    const count=user.role==="manager"?6:5;
+    const done=name=>{ready.add(name);if(alive&&ready.size===count)setFbLoading(false);};
+    const fail=()=>{if(alive){setLoadError("Daten konnten nicht vollständig geladen werden. Bitte erneut anmelden oder Administrator kontaktieren.");setFbLoading(false);}};
+    const scoped=(name,field)=>user.role==="manager"?DB.collection(name):DB.collection(name).where(field,'==',user.id);
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
+    const cutStr=cutoff.toISOString().split("T")[0];
+    const unsubs=[
+      scoped('historical_customers','viewer_rep_id').onSnapshot(snap=>{if(!alive)return;HISTORY_CUSTOMERS=snap.docs.map(d=>d.data());custById.m=null;setCustomerRevision(n=>n+1);done('historical_customers');},fail),
+      scoped('customers','rep_id').onSnapshot(snap=>{if(!alive)return;CUSTOMERS=snap.docs.map(d=>d.data()).sort((a,b)=>(a._irisOrder??0)-(b._irisOrder??0));custById.m=null;setCustomerRevision(n=>n+1);done('customers');},fail),
+      scoped('visits','rep_id').onSnapshot(snap=>{if(!alive)return;setVisits(snap.docs.map(d=>safeVisit(d.data(),d.id)).filter(v=>v.confirmed_at.split("T")[0]>=cutStr));done('visits');},fail),
+      scoped('workdays','user_id').onSnapshot(snap=>{if(!alive)return;setWorkdays(snap.docs.map(d=>d.data()));done('workdays');},fail),
+      scoped('new_customers','rep_id').onSnapshot(snap=>{if(!alive)return;setNewCusts(snap.docs.map(d=>({...d.data(),id:d.id})));done('new_customers');},fail)
+    ];
+    if(user.role==="manager")unsubs.push(DB.collection('audit_log').orderBy('timestamp','desc').limit(20).onSnapshot(snap=>{if(!alive)return;setAuditLogs(snap.docs.map(d=>({...d.data(),id:d.id})));done('audit');},fail));
+    return()=>{alive=false;unsubs.forEach(f=>f());};
+  },[user?.uid]);
+  const login=()=>{};
+  const logout=()=>window.irisAuth.signOut();
+  const goDetail=c=>{setPrevScreen(screen);setDetailCust(c);setScreen("custdetail");};
+  const write=async operation=>{
+    if(!user||window.irisAuth?.currentUser?.uid!==user.uid){alert("Bitte erneut anmelden.");return false;}
+    try{await operation();return true;}
+    catch(e){console.error("[Iris] Speichern fehlgeschlagen:",e.code||"error");alert("Nicht gespeichert. Bitte Verbindung und Berechtigung prüfen und erneut versuchen.");return false;}
+  };
+  const addVisit=async v=>{
+    const ok=await write(async()=>{
+      const {_cityPos,id:_,...data}=v;
+      data.rep_id=user.id;
+      const batch=DB.batch();
+      batch.set(DB.collection('visits').doc(),data);
+      if(_cityPos&&String(v.customer_id).startsWith("new_"))batch.update(DB.collection('new_customers').doc(String(v.customer_id)),{lat:_cityPos.lat,lng:_cityPos.lng});
+      await batch.commit();
+    });
+    if(ok)setScreen("home");return ok;
+  };
+  const mutateVisit=(id,changes,audit)=>write(async()=>{
+    const ref=DB.collection('visits').doc(String(id));
+    await DB.runTransaction(async tx=>{
+      const snap=await tx.get(ref);if(!snap.exists)throw new Error('missing');
+      const before=snap.data();
+      if(audit){const after=changes?{...before,...changes}:null;tx.set(DB.collection('audit_log').doc(),{repEmail:user.email,rep_id:user.id,actor_uid:user.uid,action:changes?'edited':'deleted',timestamp:Date.now(),visitId:String(id),before,after});}
+      if(changes)tx.update(ref,changes);else tx.delete(ref);
+    });
+  });
+  const deleteVisit=id=>mutateVisit(id,null,false);
+  const editVisit=(id,changes)=>mutateVisit(id,changes,false);
+  const deleteVisitAudit=id=>mutateVisit(id,null,true);
+  const editVisitAudit=(id,changes)=>mutateVisit(id,changes,true);
+  const clearAuditLog=()=>write(async()=>{
+    if(user.role!=="manager")throw new Error('forbidden');
+    const snap=await DB.collection('audit_log').get();
+    for(let i=0;i<snap.docs.length;i+=400){const batch=DB.batch();snap.docs.slice(i,i+400).forEach(d=>batch.delete(d.ref));await batch.commit();}
+  });
+  const addNewCustomer=nc=>write(()=>DB.collection('new_customers').doc(String(nc.id)).set({...nc,rep_id:user.id}));
+  const editNewCustomer=(id,changes)=>write(()=>DB.collection('new_customers').doc(String(id)).update(changes));
+  const myWorkday=user?workdays.find(w=>w.user_id===user.id&&w.date===TODAY):null;
+  const saveWorkday=async wd=>{const ok=await write(()=>DB.collection('workdays').doc(`${user.id}_${wd.date}`).set({...wd,user_id:user.id,id:Date.now()}));if(ok)setScreen("home");};
+  const saveOvernight=async overnight=>{const ok=await write(()=>DB.collection('workdays').doc(`${user.id}_${TODAY}`).update({overnight}));if(ok)setScreen("home");};
+  if(loadError)return <div style={{padding:40,color:"white"}}>{loadError}<br/><button onClick={()=>window.location.reload()}>Neu laden</button><button onClick={logout}>Abmelden</button></div>;
+  if(fbLoading) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"#232323",color:"rgba(255,255,255,.75)",fontSize:16,fontWeight:700,fontFamily:"Montserrat,sans-serif",gap:12}}>⏳ Verbindung wird hergestellt…</div>;
+  if(!user||screen==="login") return <LoginScreen onLogin={login}/>;
+
+  return (
+    <div className="app-root">
+      <Sidebar user={user} workday={myWorkday} visits={visits} onLogout={logout} onSetDay={()=>setScreen("dayset")}/>
+      {screen==="home"       && <HomeScreen user={user} visits={visits} workday={myWorkday} workdays={workdays} newCusts={newCusts} onNewVisit={()=>setScreen("search")} onSetOvernight={()=>setScreen("overnight")} onDeleteVisit={deleteVisit} onEditVisit={editVisit} onEditNewCust={editNewCustomer} onDeleteVisitAudit={deleteVisitAudit} onEditVisitAudit={editVisitAudit} onCustDetail={goDetail}/>}
+      {screen==="dayset"     && <DaySetupScreen user={user} existing={myWorkday} onBack={()=>setScreen("home")} onSave={saveWorkday}/>}
+      {screen==="overnight"  && <OvernightScreen workday={myWorkday} onBack={()=>setScreen("home")} onSave={saveOvernight}/>}
+      {screen==="search"     && <CustomerSearchScreen user={user} visits={visits} newCusts={newCusts} onBack={()=>setScreen("home")} onSelect={c=>{setCust(c);setScreen("confirm");}} onNewCustomer={()=>setScreen("neukunde")} onDetail={goDetail}/>}
+      {screen==="neukunde"   && <NewCustomerScreen user={user} onBack={()=>setScreen("search")} onSave={async c=>{if(await addNewCustomer(c)){setCust(c);setScreen("confirm");}}}/>}
+      {screen==="confirm"    && <VisitConfirmScreen user={user} customer={cust} onBack={()=>setScreen("search")} onConfirm={addVisit}/>}
+      {screen==="dashboard"  && <DashboardScreen visits={visits} workdays={workdays} auditLogs={auditLogs} newCusts={newCusts} clearAuditLog={clearAuditLog}/>}
+      {screen==="custdetail" && <CustomerDetailScreen user={user} customer={detailCust} visits={visits} onBack={()=>setScreen(prevScreen)}/>}
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>, document.getElementById("root"));
+</script>
+<script>
+// PWA icon + manifest
+(function(){
+  // Generate icon via canvas
+  const c=document.createElement("canvas");
+  c.width=c.height=512;
+  const ctx=c.getContext("2d");
+  // Dark rounded background (same as sidebar #232323)
+  const r=90;
+  ctx.fillStyle="#232323";
+  ctx.beginPath();
+  ctx.moveTo(r,0);ctx.lineTo(512-r,0);ctx.quadraticCurveTo(512,0,512,r);
+  ctx.lineTo(512,512-r);ctx.quadraticCurveTo(512,512,512-r,512);
+  ctx.lineTo(r,512);ctx.quadraticCurveTo(0,512,0,512-r);
+  ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);
+  ctx.closePath();ctx.fill();
+  // Subtle circle decoration (like sidebar ::before)
+  ctx.fillStyle="rgba(255,255,255,.07)";
+  ctx.beginPath();ctx.arc(420,90,200,0,Math.PI*2);ctx.fill();
+  // "Iris" centered
+  ctx.fillStyle="white";
+  ctx.font="bold 140px Montserrat,Arial,sans-serif";
+  ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText("Iris",256,256);
+  const iconUrl=c.toDataURL("image/png");
+  document.getElementById("pwa-icon").href=iconUrl;
+  // Manifest
+  const m={name:"Iris – Prague Eyewear",short_name:"Iris",start_url:"/",display:"standalone",background_color:"#232323",theme_color:"#232323",icons:[{src:iconUrl,sizes:"512x512",type:"image/png"}]};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:"application/json"}));
+  document.getElementById("pwa-manifest").href=url;
+})();
+</script>
+</body>
+</html>
