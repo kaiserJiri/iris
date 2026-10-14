@@ -1859,6 +1859,12 @@ function CustomerDetailScreen({user,customer,visits,onBack}){
   const myV=allV.filter(v=>v.rep_id===user.id);
   const orders=allV.filter(v=>v.result==="order").length;
   const daysSince=allV[0]?Math.floor((Date.now()-new Date(allV[0].confirmed_at))/86400000):null;
+  // Poslední objednávka = novější z importu (customer.lastOrder) a z návštěv s objednávkou zadaných v aplikaci
+  const lastOrderVisit=allV.find(v=>v.result==="order"&&v.confirmed_at);
+  const lastOrderApp=lastOrderVisit?new Date(lastOrderVisit.confirmed_at).toLocaleDateString("sv-SE"):null; // YYYY-MM-DD v místním čase
+  const lastOrderImp=customer.lastOrder?String(customer.lastOrder).slice(0,10):null;
+  const lastOrder=[lastOrderImp,lastOrderApp].filter(Boolean).sort().pop()||null;
+  const lastOrderDays=lastOrder?Math.max(0,Math.floor((Date.now()-new Date(lastOrder+"T12:00:00"))/86400000)):null;
   const st=custStatus(customer.id);
   const repName=id=>USERS.find(u=>u.id===id)?.name||"—";
   return (
@@ -1885,9 +1891,9 @@ function CustomerDetailScreen({user,customer,visits,onBack}){
             ].map(s=><div key={s.l} className="stat-box"><div className="stat-num" style={{color:s.c}}>{s.v}</div><div className="stat-lbl">{s.l}</div></div>)}
           </div>
           {customer.street&&<div className="card" style={{marginBottom:12,fontSize:14,color:"#374151"}}>📍 {customer.street}, {customer.postal} {customer.city}</div>}
-          {(customer.nr||customer.lastOrder)&&<div className="card" style={{marginBottom:12,fontSize:14,color:"#374151",display:"flex",gap:16,flexWrap:"wrap"}}>
+          {(customer.nr||lastOrder)&&<div className="card" style={{marginBottom:12,fontSize:14,color:"#374151",display:"flex",gap:16,flexWrap:"wrap"}}>
             {customer.nr&&<span>🔢 Kd-Nr. <b>{customer.nr}</b></span>}
-            {customer.lastOrder&&<span>🛒 Letzte Bestellung: <b>{new Date(customer.lastOrder+"T12:00:00").toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"})}</b> <span style={{color:"#9ca3af"}}>({Math.floor((Date.now()-new Date(customer.lastOrder))/86400000)} Tage)</span></span>}
+            {lastOrder&&<span>🛒 Letzte Bestellung: <b>{new Date(lastOrder+"T12:00:00").toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"})}</b> <span style={{color:"#9ca3af"}}>({lastOrderDays} Tage)</span></span>}
           </div>}
           <a href={appleMapsUrl(customer)} target="_blank" rel="noopener" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,width:"100%",boxSizing:"border-box",padding:"15px 18px",borderRadius:13,background:OG,color:"#fff",fontWeight:800,fontSize:16,textDecoration:"none",marginBottom:8}}>🧭 Route in Apple Karten</a>
           <a href={mapsUrl(customer)} target="_blank" rel="noopener" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,width:"100%",boxSizing:"border-box",padding:"11px 18px",borderRadius:13,background:"transparent",color:OG,border:"1.5px solid "+OG,fontWeight:700,fontSize:14,textDecoration:"none",marginBottom:20}}>Route in Google Maps</a>
