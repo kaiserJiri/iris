@@ -509,24 +509,24 @@ function LoginScreen({onLogin}){
         <div style={{flex:2}}/>
       </div>
       <div className="login-right">
-        <div className="login-form-box">
+        <form className="login-form-box" autoComplete="on" noValidate onSubmit={e=>{e.preventDefault();go();}}>
           <div style={{marginBottom:32}}>
             <div style={{fontSize:28,fontWeight:900,color:"#111827",marginBottom:4}}>Anmelden</div>
             <div style={{fontSize:15,color:"#9ca3af"}}>Geben Sie Ihre Anmeldedaten ein</div>
           </div>
           <div style={{marginBottom:16}}>
             <div style={{fontSize:13,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>E-mail</div>
-            <input placeholder="vas@mi-optics.de" value={email} onChange={e=>{setEmail(e.target.value);setErr("");}}/>
+            <input id="iris-login-email" name="username" type="email" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="vas@mi-optics.de" value={email} onChange={e=>{setEmail(e.target.value);setErr("");}}/>
           </div>
           <div style={{marginBottom:20}}>
             <div style={{fontSize:13,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Passwort</div>
-            <input type="password" placeholder="••••••" value={pass} onChange={e=>{setPass(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&go()}/>
+            <input id="iris-login-password" name="password" type="password" autoComplete="current-password" placeholder="••••••" value={pass} onChange={e=>{setPass(e.target.value);setErr("");}}/>
           </div>
           {err&&<div style={{color:"#ef4444",fontSize:12,fontWeight:600,marginBottom:14,padding:"10px 14px",background:"#fef2f2",borderRadius:10}}>{err}</div>}
-          <button disabled={busy} onClick={go} style={{width:"100%",padding:"14px 0",background:OG,color:"white",border:"none",borderRadius:12,fontSize:17,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+          <button type="submit" disabled={busy} style={{width:"100%",padding:"14px 0",background:OG,color:"white",border:"none",borderRadius:12,fontSize:17,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
             Anmelden →
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );
