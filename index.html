@@ -487,12 +487,13 @@ function Sidebar({user,workday,visits,onLogout,onSetDay}){
 function LoginScreen({onLogin}){
   const [email,setEmail]=useState(""); const [pass,setPass]=useState(""); const [err,setErr]=useState("");
   const [busy,setBusy]=useState(false);
+  const [remember,setRemember]=useState(false);
   const go=async()=>{
     if(busy)return;
     setBusy(true);setErr("");
     try{
       if(!window.irisAuth)throw new Error("auth-unavailable");
-      await window.irisAuth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+      await window.irisAuth.setPersistence(remember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
       const cred=await window.irisAuth.signInWithEmailAndPassword(email.trim(),pass);
       if(!IRIS_UIDS[cred.user.uid]){await window.irisAuth.signOut();throw new Error("not-authorized");}
     }catch(e){setErr("Anmeldung nicht möglich. Bitte Zugangsdaten und Verbindung prüfen.");}
@@ -522,6 +523,11 @@ function LoginScreen({onLogin}){
             <div style={{fontSize:13,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Passwort</div>
             <input id="iris-login-password" name="password" type="password" autoComplete="current-password" placeholder="••••••" value={pass} onChange={e=>{setPass(e.target.value);setErr("");}}/>
           </div>
+          <label style={{display:"flex",alignItems:"center",gap:10,minHeight:44,marginBottom:4,cursor:busy?"default":"pointer",color:"#374151",fontSize:15,fontWeight:600}}>
+            <input id="iris-remember" name="remember" type="checkbox" checked={remember} disabled={busy} onChange={e=>setRemember(e.target.checked)} style={{width:20,height:20,padding:0,margin:0,flexShrink:0,accentColor:OG}}/>
+            <span>Angemeldet bleiben</span>
+          </label>
+          <div style={{fontSize:12,lineHeight:1.5,color:"#6b7280",marginBottom:16}}>Nur auf Ihrem eigenen Gerät. Mit „Abmelden“ beenden Sie die Anmeldung.</div>
           {err&&<div style={{color:"#ef4444",fontSize:12,fontWeight:600,marginBottom:14,padding:"10px 14px",background:"#fef2f2",borderRadius:10}}>{err}</div>}
           <button type="submit" disabled={busy} style={{width:"100%",padding:"14px 0",background:OG,color:"white",border:"none",borderRadius:12,fontSize:17,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
             Anmelden →
