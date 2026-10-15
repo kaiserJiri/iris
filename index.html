@@ -13,6 +13,26 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23232323'/><text x='16' y='23' font-family='Montserrat,Arial,sans-serif' font-size='18' font-weight='900' fill='white' text-anchor='middle'>I</text></svg>" />
   <link rel="apple-touch-icon" id="pwa-icon" />
   <link rel="manifest" id="pwa-manifest" />
+  <script>
+  // Apply the system theme before external scripts and the first app render.
+  (function(){
+    var media=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+    var mode='auto';
+    function apply(){
+      var dark=mode==='dark'||(mode==='auto'&&!!(media&&media.matches));
+      document.documentElement.classList.toggle('dark',dark);
+      document.documentElement.style.colorScheme=dark?'dark':'light';
+      window.dispatchEvent(new Event('iris-theme-change'));
+    }
+    window.irisTheme={getMode:function(){return mode;},cycle:function(){mode=mode==='auto'?'light':mode==='light'?'dark':'auto';apply();}};
+    if(media){
+      var changed=function(){if(mode==='auto')apply();};
+      if(media.addEventListener)media.addEventListener('change',changed);
+      else if(media.addListener)media.addListener(changed);
+    }
+    apply();
+  })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <title>Iris · Prague Eyewear</title>
@@ -94,10 +114,10 @@
     .cust-row:hover { border-color: #BFDFEF; }
     .cust-row.st-grp  { border: 2.5px solid #dc2626 !important; }
     .cust-row.st-gesp { border: 2.5px solid #000 !important; }
-    body.dark .cust-row.st-grp  { border-color: #dc2626 !important; }
-    body.dark .cust-row.st-gesp { border-color: #f1f5f9 !important; box-shadow: none !important; }
-    body.dark .gesp-badge { background: #f1f5f9 !important; color: #111 !important; }
-    body.dark .gesp-banner { border-color: #f1f5f9 !important; }
+    html.dark .cust-row.st-grp  { border-color: #dc2626 !important; }
+    html.dark .cust-row.st-gesp { border-color: #f1f5f9 !important; box-shadow: none !important; }
+    html.dark .gesp-badge { background: #f1f5f9 !important; color: #111 !important; }
+    html.dark .gesp-banner { border-color: #f1f5f9 !important; }
     input, textarea { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 11px; padding: 14px 18px; font-size: 16px; outline: none; font-family: inherit; background: white; }
     input:focus, textarea:focus { border-color: #2C8CD1; }
     ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
@@ -141,7 +161,7 @@
     .team-today-row:nth-child(5),.team-month-row:nth-child(5){animation-delay:.16s}
     .team-today-row:nth-child(6),.team-month-row:nth-child(6){animation-delay:.2s}
     .panel-nav-btn[data-active="true"] { background: #e87722 !important; color: white !important; }
-    body.dark .panel-nav-btn[data-active="true"] { background: #e87722 !important; color: white !important; }
+    html.dark .panel-nav-btn[data-active="true"] { background: #e87722 !important; color: white !important; }
 
     @media (max-width: 900px) {
       .login-root { flex-direction: column; }
@@ -230,70 +250,81 @@
       .stat-box { box-shadow: none !important; }
     }
     /* ── DARK MODE ── */
-    body.dark .main-panel { background: #0f172a !important; color: #e2e8f0 !important; }
-    body.dark .panel-header { background: #1e293b !important; border-color: #334155 !important; }
-    body.dark .panel-header-title { color: #e2e8f0 !important; }
-    body.dark .panel-header-sub { color: #94a3b8 !important; }
-    body.dark .panel-body { color: #e2e8f0; }
-    body.dark .card { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
-    body.dark .stat-box { background: #1e293b !important; border-color: #334155 !important; }
-    body.dark .stat-lbl { color: #94a3b8 !important; }
-    body.dark .section-label { color: #64748b !important; }
-    body.dark .group-label { background: #1e293b !important; color: #94a3b8 !important; }
-    body.dark .cust-row { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
-    body.dark input, body.dark textarea { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
-    body.dark .result-btn { background: #1e293b !important; border-color: #334155 !important; }
-    body.dark .result-lbl { color: #e2e8f0 !important; }
-    body.dark .result-btn.active { background: #172554 !important; border-color: #2C8CD1 !important; }
-    body.dark .login-right { background: #0f172a !important; }
-    body.dark .overdue-btn { background: #1a0a00 !important; border-color: #7c2d12 !important; }
-    body.dark .det-row { border-color: #334155 !important; }
+    html.dark .main-panel { background: #0f172a !important; color: #e2e8f0 !important; }
+    html.dark .panel-header { background: #1e293b !important; border-color: #334155 !important; }
+    html.dark .panel-header-title { color: #e2e8f0 !important; }
+    html.dark .panel-header-sub { color: #94a3b8 !important; }
+    html.dark .panel-body { color: #e2e8f0; }
+    html.dark .card { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+    html.dark .stat-box { background: #1e293b !important; border-color: #334155 !important; }
+    html.dark .stat-lbl { color: #94a3b8 !important; }
+    html.dark .section-label { color: #64748b !important; }
+    html.dark .group-label { background: #1e293b !important; color: #94a3b8 !important; }
+    html.dark .cust-row { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+    html.dark input, html.dark textarea { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+    html.dark .result-btn { background: #1e293b !important; border-color: #334155 !important; }
+    html.dark .result-lbl { color: #e2e8f0 !important; }
+    html.dark .result-btn.active { background: #172554 !important; border-color: #2C8CD1 !important; }
+    html.dark .login-right { background: #0f172a !important; }
+    html.dark .overdue-btn { background: #1a0a00 !important; border-color: #7c2d12 !important; }
+    html.dark .det-row { border-color: #334155 !important; }
     /* ── Team table rows (named classes) ── */
-    body.dark .team-today-hd,body.dark .team-month-hd { background: #0f172a !important; border-color: #334155 !important; }
-    body.dark .team-today-row,body.dark .team-month-row { background: #1e293b !important; color: #e2e8f0 !important; border-color: #334155 !important; }
-    body.dark .team-today-row *,body.dark .team-month-row * { color: inherit; }
-    body.dark .team-today-row:hover,body.dark .team-month-row:hover { background: #253354 !important; }
+    html.dark .team-today-hd,html.dark .team-month-hd { background: #0f172a !important; border-color: #334155 !important; }
+    html.dark .team-today-row,html.dark .team-month-row { background: #1e293b !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+    html.dark .team-today-row *,html.dark .team-month-row * { color: inherit; }
+    html.dark .team-today-row:hover,html.dark .team-month-row:hover { background: #253354 !important; }
     /* ── Chart containers ── */
-    body.dark .chart-scroll { background: #1e293b !important; border-color: #334155 !important; }
-    body.dark .seven-day-grid > div { background: #1e293b !important; border-color: #334155 !important; }
+    html.dark .chart-scroll { background: #1e293b !important; border-color: #334155 !important; }
+    html.dark .seven-day-grid > div { background: #1e293b !important; border-color: #334155 !important; }
     /* ── Panel-header buttons ── */
-    body.dark .panel-header button { background: #334155 !important; color: #e2e8f0 !important; border-color: #475569 !important; }
+    html.dark .panel-header button { background: #334155 !important; color: #e2e8f0 !important; border-color: #475569 !important; }
     /* Restore orange for active Monatsreport button */
-    body.dark .panel-header button[style*="rgb(232, 119, 34)"],
-    body.dark .panel-header button[style*="e87722"] { background: #e87722 !important; color: white !important; border-color: #e87722 !important; }
+    html.dark .panel-header button[style*="rgb(232, 119, 34)"],
+    html.dark .panel-header button[style*="e87722"] { background: #e87722 !important; color: white !important; border-color: #e87722 !important; }
     /* Month nav ‹ › arrows — keep transparent */
-    body.dark .panel-header button[style*="border: none"][style*="background: none"] { background: transparent !important; border: none !important; color: #94a3b8 !important; }
-    body.dark .panel-header .back-btn { background: transparent !important; border: none !important; color: #94a3b8 !important; }
+    html.dark .panel-header button[style*="border: none"][style*="background: none"] { background: transparent !important; border: none !important; color: #94a3b8 !important; }
+    html.dark .panel-header .back-btn { background: transparent !important; border: none !important; color: #94a3b8 !important; }
     /* ── Rankliste outer card ── */
-    body.dark .team-ranklist-card { background: #1e293b !important; border-color: #334155 !important; }
+    html.dark .team-ranklist-card { background: #1e293b !important; border-color: #334155 !important; }
     /* ── CSV / action buttons inside panel-body section labels ── */
-    body.dark .panel-body button[style*="f3f4f6"] { background: #334155 !important; color: #e2e8f0 !important; }
+    html.dark .panel-body button[style*="f3f4f6"] { background: #334155 !important; color: #e2e8f0 !important; }
     /* ── Month label spans in panel-header ── */
-    body.dark .panel-header span { color: #94a3b8 !important; }
+    html.dark .panel-header span { color: #94a3b8 !important; }
     /* ── White card fallback (Chrome normalizes 'white' → rgb(255,255,255)) ── */
-    body.dark .main-panel div[style*="background: rgb(255, 255, 255)"] { background: #1e293b !important; }
-    body.dark .main-panel div[style*="background: white"] { background: #1e293b !important; }
+    html.dark .main-panel div[style*="background: rgb(255, 255, 255)"] { background: #1e293b !important; }
+    html.dark .main-panel div[style*="background: white"] { background: #1e293b !important; }
     /* ── Progress bar track backgrounds in compare view ── */
-    body.dark .main-panel div[style*="background: rgb(243, 244, 246)"] { background: #334155 !important; }
+    html.dark .main-panel div[style*="background: rgb(243, 244, 246)"] { background: #334155 !important; }
     /* ── Inline dark text colors throughout main panel ── */
-    body.dark .main-panel div[style*="color: rgb(17, 24, 39)"],
-    body.dark .main-panel span[style*="color: rgb(17, 24, 39)"],
-    body.dark .main-panel div[style*="color: rgb(31, 41, 55)"],
-    body.dark .main-panel div[style*="color: rgb(55, 65, 81)"],
-    body.dark .main-panel span[style*="color: rgb(55, 65, 81)"],
-    body.dark .main-panel div[style*="color: rgb(75, 85, 99)"],
-    body.dark .main-panel span[style*="color: rgb(75, 85, 99)"] { color: #cbd5e1 !important; }
+    html.dark .main-panel div[style*="color: rgb(17, 24, 39)"],
+    html.dark .main-panel span[style*="color: rgb(17, 24, 39)"],
+    html.dark .main-panel div[style*="color: rgb(31, 41, 55)"],
+    html.dark .main-panel div[style*="color: rgb(55, 65, 81)"],
+    html.dark .main-panel span[style*="color: rgb(55, 65, 81)"],
+    html.dark .main-panel div[style*="color: rgb(75, 85, 99)"],
+    html.dark .main-panel span[style*="color: rgb(75, 85, 99)"] { color: #cbd5e1 !important; }
     /* calendar grid light rows */
-    body.dark .main-panel div[style*="background: rgb(250, 250, 250)"],
-    body.dark .main-panel div[style*="background: rgb(249, 250, 251)"] { background: #0f172a !important; }
+    html.dark .main-panel div[style*="background: rgb(250, 250, 250)"],
+    html.dark .main-panel div[style*="background: rgb(249, 250, 251)"] { background: #0f172a !important; }
     /* ── Stats grid row ── */
-    body.dark .stats-grid-4 .stat-box { background: #1e293b !important; }
+    html.dark .stats-grid-4 .stat-box { background: #1e293b !important; }
     /* ── Fix all inline-styled white/light containers in main panel ── */
-    body.dark .main-panel { --force-white: #1e293b; }
+    html.dark .main-panel { --force-white: #1e293b; }
     /* Section headings with hardcoded dark color */
-    body.dark .panel-header-title { color: #f1f5f9 !important; }
-    body.dark .panel-header-sub { color: #94a3b8 !important; }
-    body.dark .section-label { color: #64748b !important; }
+    html.dark .panel-header-title { color: #f1f5f9 !important; }
+    html.dark .panel-header-sub { color: #94a3b8 !important; }
+    html.dark .section-label { color: #64748b !important; }
+    .iris-theme-toggle { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:40px; padding:7px 11px; border:1px solid #d1d5db; border-radius:10px; background:transparent; color:#4b5563; font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+    .iris-theme-toggle:hover { background:#f3f4f6; }
+    .iris-theme-toggle:focus-visible { outline:2px solid #2C8CD1; outline-offset:3px; }
+    .login-theme-row { display:flex; justify-content:flex-end; margin-bottom:24px; }
+    .sidebar .iris-theme-toggle { width:100%; justify-content:flex-start; margin-top:12px; color:rgba(255,255,255,.8); border-color:rgba(255,255,255,.2); background:rgba(255,255,255,.06); }
+    html.dark .login-root { background:#0f172a; }
+    html.dark .login-heading { color:#f1f5f9 !important; }
+    html.dark .login-field-label, html.dark .login-remember-label { color:#cbd5e1 !important; }
+    html.dark .login-copy { color:#94a3b8 !important; }
+    html.dark .iris-theme-toggle { color:#cbd5e1; border-color:#475569; }
+    html.dark .iris-theme-toggle:hover { background:#334155; }
   </style>
 </head>
 <body>
@@ -406,13 +437,26 @@ function Badge({status}){
   return <span className={"badge "+m}>{t}</span>;
 }
 
+function ThemeToggle(){
+  const [mode,setMode]=useState(()=>window.irisTheme.getMode());
+  useEffect(()=>{
+    const sync=()=>setMode(window.irisTheme.getMode());
+    window.addEventListener('iris-theme-change',sync);
+    return()=>window.removeEventListener('iris-theme-change',sync);
+  },[]);
+  const labels={auto:'Automatisch',light:'Hell',dark:'Dunkel'};
+  const next={auto:'Hell',light:'Dunkel',dark:'Automatisch'};
+  const title='Darstellung: '+labels[mode]+'. Wechseln zu: '+next[mode];
+  return <button type="button" className="iris-theme-toggle" onClick={()=>window.irisTheme.cycle()} title={title} aria-label={title}>
+    <span aria-hidden="true">{mode==='auto'?'🖥️':mode==='light'?'☀️':'🌙'}</span><span>{labels[mode]}</span>
+  </button>;
+}
+
 /* ── SIDEBAR — stejná struktura jako login-left ── */
 function Sidebar({user,workday,visits,onLogout,onSetDay}){
   const ds=workday?dsInfo(workday.day_status):null;
   const av={width:54,height:54,borderRadius:"50%",background:OG,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,flexShrink:0};
   const weekStart=(()=>{const d=new Date();const day=d.getDay();const diff=d.getDate()-day+(day===0?-6:1);const nd=new Date(d);nd.setDate(diff);return nd.toISOString().split("T")[0];})();
-  const [dark,setDark]=useState(()=>localStorage.getItem("iris_dark")==="1");
-  useEffect(()=>{document.body.classList.toggle("dark",dark);localStorage.setItem("iris_dark",dark?"1":"0");},[dark]);
   const wv=(visits||[]).filter(v=>v.rep_id===user.id&&v.confirmed_at.split("T")[0]>=weekStart);
   const wo=wv.filter(v=>v.result==="order");
   const visitPct=Math.min(100,wv.length/14*100);
@@ -468,10 +512,7 @@ function Sidebar({user,workday,visits,onLogout,onSetDay}){
               </div>
             ))}
           </div>}
-          {/* Dark mode toggle */}
-          <button onClick={()=>setDark(d=>!d)} style={{background:"rgba(255,255,255,.1)",border:"none",cursor:"pointer",fontFamily:"inherit",padding:"8px 14px",fontSize:12,fontWeight:600,color:"rgba(255,255,255,.6)",borderRadius:10,marginTop:12,width:"100%",textAlign:"left"}}>
-            {dark?"☀ Heller Modus":"🌙 Dunkler Modus"}
-          </button>
+          <ThemeToggle/>
           {/* Abmelden */}
           <button onClick={onLogout} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:"8px 0",fontSize:13,fontWeight:600,color:"rgba(255,255,255,.4)",letterSpacing:".04em",marginTop:8}}>
             Abmelden →
@@ -511,23 +552,24 @@ function LoginScreen({onLogin}){
       </div>
       <div className="login-right">
         <form className="login-form-box" autoComplete="on" noValidate onSubmit={e=>{e.preventDefault();go();}}>
+          <div className="login-theme-row"><ThemeToggle/></div>
           <div style={{marginBottom:32}}>
-            <div style={{fontSize:28,fontWeight:900,color:"#111827",marginBottom:4}}>Anmelden</div>
-            <div style={{fontSize:15,color:"#9ca3af"}}>Geben Sie Ihre Anmeldedaten ein</div>
+            <div className="login-heading" style={{fontSize:28,fontWeight:900,color:"#111827",marginBottom:4}}>Anmelden</div>
+            <div className="login-copy" style={{fontSize:15,color:"#9ca3af"}}>Geben Sie Ihre Anmeldedaten ein</div>
           </div>
           <div style={{marginBottom:16}}>
-            <div style={{fontSize:13,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>E-mail</div>
+            <div className="login-field-label" style={{fontSize:13,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>E-mail</div>
             <input id="iris-login-email" name="username" type="email" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="vas@mi-optics.de" value={email} onChange={e=>{setEmail(e.target.value);setErr("");}}/>
           </div>
           <div style={{marginBottom:20}}>
-            <div style={{fontSize:13,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Passwort</div>
+            <div className="login-field-label" style={{fontSize:13,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Passwort</div>
             <input id="iris-login-password" name="password" type="password" autoComplete="current-password" placeholder="••••••" value={pass} onChange={e=>{setPass(e.target.value);setErr("");}}/>
           </div>
-          <label style={{display:"flex",alignItems:"center",gap:10,minHeight:44,marginBottom:4,cursor:busy?"default":"pointer",color:"#374151",fontSize:15,fontWeight:600}}>
+          <label className="login-remember-label" style={{display:"flex",alignItems:"center",gap:10,minHeight:44,marginBottom:4,cursor:busy?"default":"pointer",color:"#374151",fontSize:15,fontWeight:600}}>
             <input id="iris-remember" name="remember" type="checkbox" checked={remember} disabled={busy} onChange={e=>setRemember(e.target.checked)} style={{width:20,height:20,padding:0,margin:0,flexShrink:0,accentColor:OG}}/>
             <span>Angemeldet bleiben</span>
           </label>
-          <div style={{fontSize:12,lineHeight:1.5,color:"#6b7280",marginBottom:16}}>Nur auf Ihrem eigenen Gerät. Mit „Abmelden“ beenden Sie die Anmeldung.</div>
+          <div className="login-copy" style={{fontSize:12,lineHeight:1.5,color:"#6b7280",marginBottom:16}}>Mit „Abmelden“ beenden Sie die Anmeldung.</div>
           {err&&<div style={{color:"#ef4444",fontSize:12,fontWeight:600,marginBottom:14,padding:"10px 14px",background:"#fef2f2",borderRadius:10}}>{err}</div>}
           <button type="submit" disabled={busy} style={{width:"100%",padding:"14px 0",background:OG,color:"white",border:"none",borderRadius:12,fontSize:17,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
             Anmelden →
