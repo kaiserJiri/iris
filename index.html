@@ -732,7 +732,7 @@ function HomeScreen({user,visits,workday,workdays,newCusts,onNewVisit,onSetOvern
                       ))}
                     </div>
                     <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:8}}>Notiz</div>
-                    <textarea rows={2} value={histEditNote} onChange={e=>setHistEditNote(e.target.value)} placeholder="Kurze Notiz…" style={{resize:"none",marginBottom:16}}/>
+                    <textarea maxLength={2000} rows={2} value={histEditNote} onChange={e=>setHistEditNote(e.target.value)} placeholder="Kurze Notiz…" style={{resize:"none",marginBottom:16}}/>
                     <div style={{display:"flex",gap:10}}>
                       <button onClick={()=>setHistDialog(null)} style={{flex:1,padding:"12px",borderRadius:10,background:"#f3f4f6",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Abbrechen</button>
                       <button onClick={()=>{onEditVisitAudit(histDialog.visit.id,{result:histEditResult,note:histEditNote},histDialog.visit);setHistDialog(null);}} style={{flex:1,padding:"12px",borderRadius:10,background:OG,color:"white",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Speichern</button>
@@ -800,8 +800,8 @@ function HomeScreen({user,visits,workday,workdays,newCusts,onNewVisit,onSetOvern
                     const nc=lookupCust(dialog.visit.customer_id);
                     return(<div style={{marginBottom:16}}>
                       <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:8}}>Kundenname</div>
-                      <input value={editCustName} onChange={e=>setEditCustName(e.target.value)} placeholder={nc?.name||"Firmenname"} style={{marginBottom:8}}/>
-                      <input value={editCustCity} onChange={e=>setEditCustCity(e.target.value)} placeholder={nc?.city||"Stadt"} style={{marginBottom:0}}/>
+                      <input maxLength={200} value={editCustName} onChange={e=>setEditCustName(e.target.value)} placeholder={nc?.name||"Firmenname"} style={{marginBottom:8}}/>
+                      <input maxLength={100} value={editCustCity} onChange={e=>setEditCustCity(e.target.value)} placeholder={nc?.city||"Stadt"} style={{marginBottom:0}}/>
                     </div>);
                   })()}
                   <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:10}}>Ergebnis</div>
@@ -815,7 +815,7 @@ function HomeScreen({user,visits,workday,workdays,newCusts,onNewVisit,onSetOvern
                     ))}
                   </div>
                   <div style={{fontSize:13,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:".1em",marginBottom:8}}>Notiz</div>
-                  <textarea rows={2} value={editNote} onChange={e=>setEditNote(e.target.value)} placeholder="Kurze Notiz…" style={{resize:"none",marginBottom:16}}/>
+                  <textarea maxLength={2000} rows={2} value={editNote} onChange={e=>setEditNote(e.target.value)} placeholder="Kurze Notiz…" style={{resize:"none",marginBottom:16}}/>
                   <div style={{display:"flex",gap:10}}>
                     <button onClick={()=>setDialog(null)} style={{flex:1,padding:"12px",borderRadius:10,background:"#f3f4f6",border:"none",cursor:"pointer",fontWeight:700,fontSize:15,fontFamily:"inherit"}}>Abbrechen</button>
                     <button onClick={()=>{
@@ -929,11 +929,11 @@ function DaySetupScreen({user,existing,onBack,onSave}){
         <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:16}}>
           <div>
             <div className="section-label">Veranstaltungsname *</div>
-            <input placeholder="z. B. OPTI München" value={eventName} onChange={e=>setEventName(e.target.value)}/>
+            <input maxLength={200} placeholder="z. B. OPTI München" value={eventName} onChange={e=>setEventName(e.target.value)}/>
           </div>
           <div>
             <div className="section-label">Stadt</div>
-            <input placeholder="z. B. München" value={eventCity} onChange={e=>setEventCity(e.target.value)}/>
+            <input maxLength={100} placeholder="z. B. München" value={eventCity} onChange={e=>setEventCity(e.target.value)}/>
           </div>
           <div>
             <div className="section-label">Übernachtungsort</div>
@@ -961,7 +961,7 @@ function DaySetupScreen({user,existing,onBack,onSave}){
           </div>
           <div style={{marginBottom:16}}>
             <div className="section-label">Notiz (optional)</div>
-            <textarea rows={3} placeholder="Weitere Informationen…" value={note} onChange={e=>setNote(e.target.value)} style={{resize:"none"}}/>
+            <textarea maxLength={2000} rows={3} placeholder="Weitere Informationen…" value={note} onChange={e=>setNote(e.target.value)} style={{resize:"none"}}/>
           </div>
           <button className="btn-primary" onClick={()=>commit(dayStatus,"","","","",note)} style={{marginBottom:10}}>✓ BESTÄTIGEN</button>
           <button onClick={()=>setStep("type")} style={{width:"100%",background:"none",border:"1.5px solid #e5e7eb",borderRadius:13,padding:"13px 0",fontWeight:700,fontSize:16,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>← Zurück zur Auswahl</button>
@@ -1055,8 +1055,8 @@ function NewCustomerScreen({user,onBack,onSave}){
       <div className="panel-body">
         <div style={{maxWidth:580,width:"100%"}}>
           <div style={{background:"#f9fafb",borderRadius:14,padding:"16px",marginBottom:16,border:"1.5px solid #e5e7eb"}}>
-            <input placeholder="Geschäftsname" value={nkName} onChange={e=>setNkName(e.target.value)} style={{marginBottom:10}} onKeyDown={e=>e.key==="Enter"&&saveNk()}/>
-            <input placeholder="Stadt" value={nkCity} onChange={e=>setNkCity(e.target.value)} style={{marginBottom:12}} onKeyDown={e=>e.key==="Enter"&&saveNk()}/>
+            <input maxLength={200} placeholder="Geschäftsname" value={nkName} onChange={e=>setNkName(e.target.value)} style={{marginBottom:10}} onKeyDown={e=>e.key==="Enter"&&saveNk()}/>
+            <input maxLength={100} placeholder="Stadt" value={nkCity} onChange={e=>setNkCity(e.target.value)} style={{marginBottom:12}} onKeyDown={e=>e.key==="Enter"&&saveNk()}/>
             <div style={{display:"flex",gap:8}}>
               <button onClick={saveNk} disabled={!nkName.trim()||!nkCity.trim()} style={{flex:1,background:(nkName.trim()&&nkCity.trim())?OG:"#d1d5db",color:"white",border:"none",borderRadius:8,padding:"11px",fontWeight:700,cursor:(nkName.trim()&&nkCity.trim())?"pointer":"default",fontFamily:"inherit",fontSize:15,transition:"background .2s"}}>
                 {editNkId?"Speichern ✓":"Hinzufügen +"}
@@ -1226,7 +1226,7 @@ function VisitConfirmScreen({user,customer,onBack,onConfirm}){
           </div>
           <div>
             <div className="section-label">Notiz (optional)</div>
-            <textarea rows={2} placeholder="Kurze Notiz…" value={note} onChange={e=>setNote(e.target.value)} style={{resize:"none"}}/>
+            <textarea maxLength={2000} rows={2} placeholder="Kurze Notiz…" value={note} onChange={e=>setNote(e.target.value)} style={{resize:"none"}}/>
           </div>
           <button className="btn-primary" onClick={go} disabled={!result||saving}
             style={{background:(!result||saving)?"#e5e7eb":OG,color:(!result||saving)?"#9ca3af":"white",cursor:(!result||saving)?"not-allowed":"pointer"}}>
@@ -2062,11 +2062,11 @@ function App(){
     await DB.runTransaction(async tx=>{
       const snap=await tx.get(ref);if(!snap.exists)throw new Error('missing');
       const before=snap.data();
-      if(audit){const after=changes?{...before,...changes}:null;tx.set(DB.collection('audit_log').doc(),{repEmail:user.email,rep_id:user.id,actor_uid:user.uid,action:changes?'edited':'deleted',timestamp:Date.now(),visitId:String(id),before,after});}
+      if(audit){const after=changes?{...before,...changes}:null;tx.set(changes?DB.collection('audit_log').doc():DB.collection('audit_log').doc('del_'+String(id)),{repEmail:user.email,rep_id:user.id,actor_uid:user.uid,action:changes?'edited':'deleted',timestamp:Date.now(),visitId:String(id),before,after});}
       if(changes)tx.update(ref,changes);else tx.delete(ref);
     });
   });
-  const deleteVisit=id=>mutateVisit(id,null,false);
+  const deleteVisit=id=>mutateVisit(id,null,true); // mazání vždy s auditem (vynucuje i Firestore Rules)
   const editVisit=(id,changes)=>mutateVisit(id,changes,false);
   const deleteVisitAudit=id=>mutateVisit(id,null,true);
   const editVisitAudit=(id,changes)=>mutateVisit(id,changes,true);
