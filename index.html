@@ -114,7 +114,10 @@
     .cust-row:hover { border-color: #BFDFEF; }
     .cust-row.st-grp  { border: 2.5px solid #dc2626 !important; }
     .cust-row.st-gesp { border: 2.5px solid #000 !important; }
+    .cust-row.st-vip  { border: 2.5px solid #d4a017 !important; background: #fffbeb !important; }
     html.dark .cust-row.st-grp  { border-color: #dc2626 !important; }
+    html.dark .cust-row.st-vip  { border-color: #eab308 !important; background: #1e293b !important; }
+    html.dark .vip-banner { background: #2a2205 !important; color: #fde68a !important; border-color: #eab308 !important; }
     html.dark .cust-row.st-gesp { border-color: #f1f5f9 !important; box-shadow: none !important; }
     html.dark .gesp-badge { background: #f1f5f9 !important; color: #111 !important; }
     html.dark .gesp-banner { border-color: #f1f5f9 !important; }
@@ -335,17 +338,19 @@ const OG = "#2C8CD1";
 const TODAY = new Date().toISOString().split("T")[0];
 // Status zákazníka podle sloupce „Skupina“ v DE_Kunden.xlsx (pole grp v CUSTOMERS)
 // GESPERRT = nejezdit (černý rámeček). EKG / EVA = nákupní skupina, vyšší slevy (červený rámeček).
+// EVA VIP 40% = VIP zákazník EVA, sleva 40 % (zlatý rámeček), dle Martina 2.11.2026.
 const custById=id=>{if(!custById.m)custById.m=new Map([...HISTORY_CUSTOMERS,...CUSTOMERS].map(c=>[String(c.id),c]));return custById.m.get(String(id));};
 const custStatus=id=>{
   const c=custById(id); if(!c||!c.grp) return null;
   if(c.grp==="GESPERRT") return {type:"gesperrt",label:"GESPERRT"};
+  if(/VIP/i.test(c.grp)) return {type:"vip",label:"VIP 40%",full:c.grp};
   return {type:"group",label:c.grp};
 };
-const custRowClass=id=>{const st=custStatus(id);return st?(st.type==="gesperrt"?" st-gesp":" st-grp"):"";};
+const custRowClass=id=>{const st=custStatus(id);return st?(st.type==="gesperrt"?" st-gesp":st.type==="vip"?" st-vip":" st-grp"):"";};
 const custBadge=id=>{
   const st=custStatus(id); if(!st) return null;
-  const bg=st.type==="gesperrt"?"#111":"#dc2626";
-  return <span className={st.type==="gesperrt"?"gesp-badge":""} style={{background:bg,color:"#fff",fontSize:9,fontWeight:800,padding:"1px 6px",borderRadius:20,marginLeft:5,letterSpacing:1,verticalAlign:"middle",flexShrink:0}}>{st.label}</span>;
+  const bg=st.type==="gesperrt"?"#111":st.type==="vip"?"#b8860b":"#dc2626";
+  return <span className={st.type==="gesperrt"?"gesp-badge":""} style={{background:bg,color:"#fff",fontSize:9,fontWeight:800,padding:"1px 6px",borderRadius:20,marginLeft:5,letterSpacing:1,verticalAlign:"middle",flexShrink:0}}>{st.type==="vip"?"★ ":""}{st.label}</span>;
 };
 const custAddr=c=>[c.street,c.postal,c.city].filter(Boolean).join(", ");
 const appleMapsUrl=c=>(c.lat!=null&&c.lng!=null&&!c.approx)
@@ -1926,9 +1931,11 @@ function CustomerDetailScreen({user,customer,visits,onBack}){
       </div>
       <div className="panel-body">
         <div style={{maxWidth:600,width:"100%"}}>
-          {st&&<div className={st.type==="gesperrt"?"gesp-banner":""} style={{marginBottom:16,padding:"12px 16px",borderRadius:12,border:"2.5px solid "+(st.type==="gesperrt"?"#000":"#dc2626"),background:st.type==="gesperrt"?"#111":"#fef2f2",color:st.type==="gesperrt"?"#fff":"#991b1b",fontWeight:700,fontSize:15}}>
+          {st&&<div className={st.type==="gesperrt"?"gesp-banner":st.type==="vip"?"vip-banner":""} style={{marginBottom:16,padding:"12px 16px",borderRadius:12,border:"2.5px solid "+(st.type==="gesperrt"?"#000":st.type==="vip"?"#d4a017":"#dc2626"),background:st.type==="gesperrt"?"#111":st.type==="vip"?"#fffbeb":"#fef2f2",color:st.type==="gesperrt"?"#fff":st.type==="vip"?"#78350f":"#991b1b",fontWeight:700,fontSize:15}}>
             {st.type==="gesperrt"
               ?<>⛔ GESPERRT — bitte nicht besuchen</>
+              :st.type==="vip"
+              ?<>★ VIP-Kunde · Einkaufsgemeinschaft EVA <span style={{fontWeight:500,fontSize:13}}>· 40 % Rabatt</span></>
               :<>🏷 Einkaufsgemeinschaft: {st.label} <span style={{fontWeight:500,fontSize:13}}>· höhere Rabatte</span></>}
           </div>}
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16}}>
