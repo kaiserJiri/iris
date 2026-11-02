@@ -1880,6 +1880,14 @@ function DashboardScreen({visits,workdays,auditLogs=[],newCusts=[],clearAuditLog
                     {log.before?` · ${rl(log.before.result)}`:""}
                     {log.action==="edited"&&log.after&&log.before?.result!==log.after?.result?<span style={{color:"#374151",fontWeight:700}}> → {rl(log.after.result)}</span>:""}
                   </div>
+                  {(()=>{
+                    const nb=(log.before?.note||"").trim(), na=(log.after?.note||"").trim();
+                    if(log.action==="edited"&&log.after&&nb!==na) return(
+                      <div style={{fontSize:13,color:"#6b7280",fontStyle:"italic",marginTop:3,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>
+                        📝 <span style={{textDecoration:"line-through"}}>{nb||"—"}</span> → <span style={{color:"#374151"}}>{na||"—"}</span>
+                      </div>);
+                    return <NoteLine note={nb}/>;
+                  })()}
                 </div>
               );
             })}
